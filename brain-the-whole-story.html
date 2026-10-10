@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Whole Story</title>
+<style>
+  :root { --ink: #1a1a1a; --soft: #6b7280; --line: #e5e7eb; --wash: #fafafa; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: var(--ink); min-width: 320px; }
+  code, .mono { font-family: "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+  .header { display: flex; justify-content: space-between; align-items: baseline; padding: 26px 40px 18px; border-bottom: 1px solid var(--line); gap: 24px; flex-wrap: wrap; }
+  .header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.02em; font-weight: 750; }
+  .header .sub { margin: 4px 0 0; color: var(--soft); font-size: .85rem; }
+  .disclaimer { font-size: .72rem; color: var(--soft); max-width: 460px; line-height: 1.45; border-left: 3px solid #f59e0b; padding-left: 10px; }
+  .records { display: flex; gap: 10px; padding: 18px 40px; flex-wrap: wrap; align-items: center; }
+  .records-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); margin-right: 6px; }
+  .record-pill { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; border: 2px solid var(--line); border-radius: 12px; background: #fff; padding: 8px 13px; cursor: pointer; min-width: 120px; transition: border-color .2s, transform .15s, box-shadow .2s; }
+  .record-pill:hover { transform: translateY(-2px); }
+  .record-pill .rid { font-size: .76rem; font-weight: 700; font-family: "SF Mono", monospace; }
+  .record-pill .rmsg { font-size: .7rem; color: var(--soft); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .record-pill .dot { width: 9px; height: 9px; border-radius: 50%; margin-bottom: 4px; }
+  .record-pill.active { box-shadow: 0 4px 14px rgba(0,0,0,.09); }
+  .record-pill.special { border-style: dashed; }
+  .seq-panel { margin: 4px 40px 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--wash); gap: 10px; flex-wrap: wrap; }
+  .panel-head .t { font-size: .8rem; font-weight: 700; }
+  .panel-head .h { font-size: .68rem; color: var(--soft); text-transform: uppercase; letter-spacing: .07em; }
+  .seq-body { padding: 14px 16px; }
+  .seq-empty { color: var(--soft); font-size: .85rem; }
+  .seq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .seq-chip { border: 1.5px solid var(--line); border-radius: 9px; padding: 6px 10px; font-family: "SF Mono", monospace; font-size: .82rem; background: #fff; color: var(--soft); cursor: pointer; transition: all .25s; }
+  .seq-chip:hover { transform: translateY(-2px); border-color: var(--ink); color: var(--ink); }
+  .seq-chip.you { border-color: currentColor; border-width: 2.5px; font-weight: 700; color: var(--ink); }
+  .seq-chip.you::after { content: " \25C2 the thought"; font-size: .6rem; font-weight: 600; }
+  .seq-note { margin: 10px 0 0; font-size: .7rem; color: var(--soft); line-height: 1.5; }
+</style>
+<style>
+  .story { margin: 18px 40px 0; border: 1px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; }
+  .story-body { padding: 14px 16px 4px; }
+  .steps { display: flex; gap: 8px; }
+  .step { flex: 1; text-align: center; font-size: .63rem; padding: 7px 3px 6px; border-radius: 8px; border: 1px solid var(--line); color: var(--soft); font-weight: 650; letter-spacing: .03em; transition: all .4s; }
+  .step small { display: block; font-weight: 500; font-size: .57rem; margin-top: 2px; letter-spacing: 0; }
+  .step.on { color: #fff; }
+  .caption { margin: 12px 0 10px; padding: 12px 14px; font-size: .84rem; line-height: 1.55; background: var(--wash); border-radius: 10px; min-height: 66px; }
+  .story-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 16px 14px; gap: 10px; flex-wrap: wrap; }
+  .replay { border: 1.5px solid var(--ink); background: #fff; border-radius: 9px; padding: 7px 13px; font-size: .74rem; font-weight: 650; cursor: pointer; transition: background .2s, color .2s; }
+  .replay:hover { background: var(--ink); color: #fff; }
+  .replay:disabled { opacity: .4; cursor: not-allowed; }
+  .next { border: 1.5px solid var(--ink); background: var(--ink); color: #fff; border-radius: 9px; padding: 7px 16px; font-size: .74rem; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .next:disabled { opacity: .4; cursor: not-allowed; }
+  .story-hint { font-size: .7rem; color: var(--soft); }
+  .stage { margin: 18px 40px 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+  .stage-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--wash); gap: 10px; flex-wrap: wrap; }
+  .stage-head .t { font-size: .8rem; font-weight: 700; }
+  .stage-head .h { font-size: .68rem; color: var(--soft); text-transform: uppercase; letter-spacing: .07em; }
+  .stage-body { padding: 14px 16px; }
+  .stage-body .empty { color: var(--soft); font-size: .85rem; line-height: 1.6; }
+  .strip-label { font-size: .7rem; color: var(--soft); margin: 12px 0 6px; font-weight: 650; }
+  .strip-big { display: block; width: 100%; height: 52px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .strip-big svg { width: 100%; height: 100%; display: block; }
+  .you-piece { font-family: "SF Mono", monospace; font-size: 1.05rem; font-weight: 700; }
+  .you-sub { font-size: .74rem; color: var(--soft); margin: 3px 0 10px; line-height: 1.5; }
+  .lens-row { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: center; margin-bottom: 10px; opacity: 0; transition: opacity .5s; }
+  .lens-row.shown { opacity: 1; }
+  .lens-row .lens-tag { font-size: .72rem; font-weight: 750; border-radius: 8px; padding: 7px 0px; text-align: center; color: #fff; }
+  .lens-row .lens-strip { border: 1px solid var(--line); border-radius: 6px; background: #fff; display: block; width: 100%; height: 44px; }
+  .lens-row .lens-strip svg { width: 100%; height: 100%; display: block; }
+  .cards { display: flex; flex-direction: column; gap: 8px; max-height: 470px; overflow-y: auto; }
+  .card { display: grid; grid-template-columns: 40px 120px 1fr 108px 108px; gap: 10px; align-items: center; border: 1.5px solid var(--line); border-radius: 11px; padding: 8px 11px; background: #fff; opacity: 0; transition: opacity .4s; }
+  .card.shown { opacity: 1; }
+  .card.locked { opacity: 0 !important; border-style: dashed; }
+  .card.locked.shown { opacity: .38 !important; }
+  .card .cpos { font-size: .62rem; color: var(--soft); font-family: "SF Mono", monospace; }
+  .card .cpiece { font-family: "SF Mono", monospace; font-size: .84rem; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .cstrip { display: block; width: 100%; height: 22px; border: 1px solid var(--line); border-radius: 4px; }
+  .cstrip svg { width: 100%; height: 100%; display: block; }
+  .card .cbars { display: flex; flex-direction: column; gap: 4px; }
+  .card .crow { display: flex; align-items: center; gap: 5px; font-size: .6rem; color: var(--soft); font-family: "SF Mono", monospace; opacity: 0; transition: opacity .4s; }
+  .card .crow.shown { opacity: 1; }
+  .card .crow .b { height: 8px; border-radius: 3px; min-width: 1px; }
+  .card .crow .cl { font-size: .55rem; width: 34px; }
+  .card.locked .cpiece { text-decoration: line-through; }
+  .card .lock { font-size: .8rem; }
+  .gather2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .gather2 .gcol .strip-big { height: 46px; }
+  .combine { display: grid; grid-template-columns: 1fr 1fr 60px 1fr; gap: 10px; align-items: center; }
+  .combine .op { text-align: center; color: var(--soft); font-size: 1rem; font-weight: 800; }
+  .combine .cvec { border: 1px solid var(--line); border-radius: 6px; background: #fff; display: block; width: 100%; height: 42px; }
+  .combine .cvec svg { width: 100%; height: 100%; display: block; }
+  .fade { opacity: 0; transition: opacity .5s; }
+  .fade.shown { opacity: 1; }
+  .combine-row { opacity: 0; transition: opacity .5s; }
+  .combine-row.shown { opacity: 1; }
+  .ka-row { display: grid; grid-template-columns: 150px 1fr 18px 1fr 18px 1fr; gap: 10px; align-items: center; opacity: 0; transition: opacity .5s; }
+  .ka-row.shown { opacity: 1; }
+  .ka-row .op { text-align: center; color: var(--soft); font-size: .9rem; font-weight: 700; }
+  .ka-row .spiece { font-family: "SF Mono", monospace; font-size: .74rem; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+  .ka-row .svec { border: 1px solid var(--line); border-radius: 6px; background: #fff; display: block; width: 100%; height: 40px; }
+  .ka-row .svec svg { width: 100%; height: 100%; display: block; }
+  .blockmap { display: grid; grid-template-columns: minmax(300px, 480px) 1fr; gap: 22px; align-items: start; }
+  #brainMount svg { width: 100%; height: auto; display: block; }
+  .round-badge { opacity: 0; transition: opacity .5s; }
+  .round-badge.shown { opacity: 1; }
+  .map-note { font-size: .78rem; line-height: 1.6; color: var(--ink); padding: 4px 0; }
+  .map-note b { font-family: "SF Mono", monospace; }
+  .connect-examples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+  .connect-chip { border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 11px; font-size: .72rem; font-weight: 650; font-family: "SF Mono", monospace; opacity: 0; transition: opacity .4s; background: #fff; }
+  .connect-chip.shown { opacity: 1; }
+  .connect-note { margin-top: 10px; font-size: .78rem; color: var(--soft); line-height: 1.6; }
+  .footer { margin-top: 22px; padding: 18px 40px 14px; border-top: 1px solid var(--line); font-size: .7rem; color: var(--soft); line-height: 1.6; background: var(--wash); }
+  .footer b { color: var(--ink); }
+  .series-nav { padding: 0 40px 22px; background: var(--wash); display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .series-nav a { color: var(--soft); text-decoration: none; font-size: .68rem; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: #fff; }
+  .series-nav a:hover { border-color: var(--ink); color: var(--ink); }
+  .series-nav a.here { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 700; }
+  .series-nav a.next-up { border: 2px solid var(--ink); color: var(--ink); font-weight: 750; }
+  #toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 999px; padding: 9px 18px; font-size: .78rem; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 60; }
+  #toast.show { opacity: 1; }
+  @media (max-width: 1120px) { .blockmap { grid-template-columns: 1fr; } .gather2 { grid-template-columns: 1fr; } .combine { grid-template-columns: 1fr 1fr; } }
+
+</style>
+<style>
+  .top-grid { display: grid; grid-template-columns: 1fr 340px; gap: 18px; margin: 4px 40px 0; align-items: start; }
+  .map-card { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; position: sticky; top: 10px; background: #fff; }
+  .map-card .map-note { font-size: .74rem; min-height: 40px; }
+  .round-head { font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: var(--soft); margin: 14px 0 8px; }
+  .round-head:first-child { margin-top: 0; }
+  .film-row { display: grid; grid-template-columns: 150px 1fr 330px; gap: 12px; align-items: center; margin-bottom: 8px; }
+  .film-row .st-label { font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-decoration: none; }
+  .film-row .st-label:hover { text-decoration: underline; }
+  .film-row .vn { font-weight: 500; color: var(--soft); font-size: .62rem; }
+  .film-row .svec { border: 1px solid var(--line); border-radius: 6px; display: block; height: 34px; }
+  .film-row .svec svg { width: 100%; height: 100%; display: block; }
+  .film-row .fact { font-size: .74rem; line-height: 1.45; }
+  .src { font-size: .62rem; color: var(--soft); font-weight: 400; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .big-line { font-size: .92rem; margin: 6px 0; line-height: 1.6; }
+  .pc { font-family: "SF Mono", monospace; font-size: .8rem; border-radius: 7px; padding: 2px 8px; margin-right: 6px; border: 1.5px solid; }
+  .pc.wrong { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+  .pc.right { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
+  .blame-row { display: grid; grid-template-columns: 220px 1fr 60px; gap: 10px; align-items: center; margin-bottom: 5px; font-size: .72rem; }
+  .bl-track { display: block; height: 10px; background: var(--wash); border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .bl-fill { display: block; height: 100%; }
+  .bl-val { font-family: "SF Mono", monospace; text-align: right; color: var(--soft); }
+  .grid-scroll { overflow-x: auto; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: .74rem; }
+  table.grid th { text-align: left; font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); font-weight: 650; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.grid td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.grid tr.fade { opacity: 0; transition: opacity .5s; }
+  table.grid tr.fade.shown { opacity: 1; }
+  .mono { font-family: "SF Mono", monospace; }
+  .splitbar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; color: #fff; font-size: .68rem; font-weight: 700; }
+  .splitbar span { display: flex; align-items: center; padding-left: 10px; white-space: nowrap; overflow: hidden; }
+  .vlink { color: var(--ink); font-weight: 650; text-decoration: none; border-bottom: 1px dashed var(--soft); }
+  .vlink:hover { border-bottom-style: solid; }
+  @media (max-width: 1120px) { .top-grid { grid-template-columns: 1fr; } .map-card { position: static; } .two-col { grid-template-columns: 1fr; } .film-row { grid-template-columns: 110px 1fr; } .film-row .fact { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>The Whole Story</h1>
+    <p class="sub">one real message through every station &mdash; then the brain learns from its mistake &mdash; and every record does the same</p>
+  </div>
+  <div class="disclaimer">
+    A simplified cognitive story &mdash; <b>not neuroscience</b>. Every pattern, percentage and loss below is real,
+    gathered from viz #1&ndash;#12 of this series (the lab&rsquo;s seeded decoder, the real records, the pinned Qwen3-8B tokenizer).
+  </div>
+</div>
+
+<div class="records" id="records">
+  <span class="records-label">Real records &rarr;</span>
+</div>
+
+<div class="top-grid">
+  <div class="story" style="margin:0;">
+    <div class="story-body">
+      <div class="steps">
+        <div class="step" id="step1">1. SEES<small>pieces</small></div>
+        <div class="step" id="step2">2. HOLDS<small>one pattern</small></div>
+        <div class="step" id="step3">3. ROUND ONE<small>every station</small></div>
+        <div class="step" id="step4">4. ROUND TWO<small>same stations again</small></div>
+        <div class="step" id="step5">5. DECIDES<small>the next piece</small></div>
+        <div class="step" id="step6">6. LEARNS<small>blame flows back</small></div>
+        <div class="step" id="step7">7. HABITS &amp; NOTES<small>LoRA &middot; KV cache</small></div>
+        <div class="step" id="step8">8. EVERY RECORD<small>the whole brain</small></div>
+      </div>
+      <div class="caption" id="caption">Everything you have seen, in one pass: a real message is seen, held, thought over twice, turned into a next piece &mdash; and then the brain learns from being wrong.</div>
+    </div>
+    <div class="story-foot">
+      <span class="story-hint" id="storyHint">&ldquo;Next&rdquo; (or &rarr;) steps through; the pills switch real records.</span>
+      <div style="display:flex; gap:8px;">
+        <button class="replay" id="replayBtn">&#8635; replay</button>
+        <button class="next" id="nextBtn" disabled>Next &#9656;</button>
+      </div>
+    </div>
+  </div>
+  <div class="map-card">
+    <div id="brainMount"></div>
+    <div class="map-note" id="mapNote">The brain map from viz #2 &mdash; it lights up as the thought travels.</div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Sees &rarr; holds</span><span class="h">viz #1 &middot; pieces, addresses, one pattern</span></div>
+  <div class="stage-body" id="seesWrap"><div class="empty">The real message appears here, split into pieces.</div></div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">The journey &mdash; station by station</span><span class="h">the followed word&rsquo;s real 64 numbers at every station, on its real full prompt</span></div>
+  <div class="stage-body" id="filmWrap"><div class="empty">Each station the thought passes through appears here &mdash; with its real pattern and one real fact.</div></div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Decides</span><span class="h">viz #9 &middot; the thought becomes a next piece</span></div>
+  <div class="stage-body" id="decideWrap"><div class="empty">The choice appears here &mdash; and the answer key.</div></div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Learns</span><span class="h">viz #10 &middot; loss &rarr; blame flows backward &rarr; adjust</span></div>
+  <div class="stage-body" id="learnWrap"><div class="empty">The surprise, the blame at every station, and the correction appear here.</div></div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">A small new habit &middot; notes already made</span><span class="h">viz #11 LoRA &middot; viz #12 KV cache</span></div>
+  <div class="stage-body" id="extrasWrap"><div class="empty">Two practical tricks appear here.</div></div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Every record &mdash; the whole brain</span><span class="h">the same stations, for every real record</span></div>
+  <div class="stage-body" id="gridWrap"><div class="empty">Every record, side by side, appears here.</div></div>
+</div>
+
+<div class="footer" id="footer"></div>
+<div class="series-nav" id="seriesNav"></div>
+<div id="toast"></div>
+<script>
+"use strict";"use strict";
+const DATA = {"records": [{"id": "TRAIN-41", "message": "Job search", "msg_pieces": ["Job", " search"], "prompt_count": 3452, "followed": " search", "followed_pos": 3440, "next_piece": "\"}", "ops": {"load": [-1.234, 0.9117, -1.5384, 1.4959, 0.7153, 0.1401, -0.4862, -1.5904, -0.4504, 0.9582, -0.3557, -0.5716, 0.9653, 0.4427, 1.3314, 2.0596, 0.2237, -0.6513, 0.7301, -0.2339, 0.0599, -0.5088, 0.1205, -1.4576, 0.0343, 0.9743, 0.0953, 0.329, 0.9154, -1.372, 1.8979, -0.8301, 0.5417, 0.3987, -0.4203, -2.2395, -0.201, 0.5094, -0.3579, 0.6683, 1.2175, -0.0455, 0.5327, 0.9499, 1.5987, -0.1656, 0.873, 0.7817, -0.578, -1.1915, -0.1156, 1.5573, 1.1941, -0.059, 1.7448, 0.0307, 1.3021, 0.8745, 0.1832, 0.3836, 0.773, 0.9334, -0.3529, 2.0796], "L1_steady": [-1.2652, 0.9347, -1.5773, 1.5337, 0.7334, 0.1436, -0.4984, -1.6306, -0.4618, 0.9824, -0.3647, -0.586, 0.9897, 0.4539, 1.365, 2.1115, 0.2294, -0.6678, 0.7485, -0.2398, 0.0615, -0.5217, 0.1236, -1.4944, 0.0352, 0.9989, 0.0977, 0.3373, 0.9385, -1.4066, 1.9458, -0.8511, 0.5554, 0.4087, -0.4309, -2.2961, -0.2061, 0.5222, -0.3669, 0.6852, 1.2483, -0.0466, 0.5461, 0.9739, 1.639, -0.1698, 0.895, 0.8015, -0.5926, -1.2216, -0.1186, 1.5966, 1.2243, -0.0605, 1.7888, 0.0314, 1.335, 0.8966, 0.1879, 0.3933, 0.7925, 0.957, -0.3618, 2.1321], "L1_consult": [-0.0269, 0.0116, -0.029, 0.0488, 0.0193, 0.0299, 0.0502, -0.0033, -0.0126, -0.007, -0.024, -0.0397, -0.0331, -0.0303, -0.0508, 0.0358, -0.04, -0.0062, 0.0293, -0.0043, 0.0439, 0.0271, 0.0264, -0.0461, -0.0492, -0.0041, 0.0126, -0.0226, 0.0304, -0.0176, -0.0424, -0.0004, -0.02, -0.0021, 0.0236, 0.0082, 0.0167, 0.0345, 0.0204, -0.0171, -0.0211, -0.0009, -0.0203, 0.0142, 0.0133, -0.0338, 0.0163, 0.0342, 0.036, 0.0126, 0.023, 0.0049, -0.0079, 0.0007, 0.0675, -0.0222, 0.0193, -0.0252, 0.0489, -0.0195, 0.0095, 0.0706, -0.0181, -0.021], "L1_keep": [-1.2609, 0.9233, -1.5674, 1.5447, 0.7347, 0.17, -0.436, -1.5938, -0.463, 0.9512, -0.3797, -0.6113, 0.9322, 0.4125, 1.2806, 2.0954, 0.1837, -0.6576, 0.7594, -0.2382, 0.1038, -0.4817, 0.1469, -1.5038, -0.0149, 0.9702, 0.1079, 0.3064, 0.9458, -1.3895, 1.8556, -0.8306, 0.5217, 0.3966, -0.3967, -2.2313, -0.1843, 0.5439, -0.3375, 0.6512, 1.1965, -0.0464, 0.5124, 0.9641, 1.612, -0.1994, 0.8892, 0.816, -0.542, -1.1789, -0.0927, 1.5622, 1.1862, -0.0583, 1.8122, 0.0084, 1.3214, 0.8493, 0.2321, 0.3641, 0.7825, 1.004, -0.371, 2.0586], "L1_process": [-0.1458, -0.0586, -0.0485, -0.0072, 0.0037, 0.0304, 0.0255, 0.1397, 0.0426, -0.0211, -0.1717, 0.045, -0.0978, -0.0494, 0.0362, -0.0054, -0.0267, 0.0487, 0.0396, 0.1287, 0.069, -0.0581, 0.1638, 0.0177, -0.026, -0.0216, -0.1236, 0.0024, -0.1589, -0.0938, 0.0583, 0.05, -0.0198, 0.0087, -0.2385, -0.0251, -0.151, 0.0211, 0.0075, 0.2086, -0.0101, 0.1304, 0.0202, -0.0076, 0.0797, 0.0725, 0.0554, 0.0736, -0.0421, 0.0431, 0.0637, -0.0638, 0.0203, 0.0002, -0.0443, -0.0997, -0.0741, -0.0389, 0.1483, -0.0565, 0.1968, -0.0856, -0.1014, 0.1515], "L1_return": [-1.4068, 0.8647, -1.6159, 1.5375, 0.7384, 0.2005, -0.4104, -1.454, -0.4204, 0.9301, -0.5514, -0.5662, 0.8344, 0.3631, 1.3168, 2.0899, 0.157, -0.6088, 0.799, -0.1095, 0.1728, -0.5398, 0.3107, -1.4861, -0.0408, 0.9486, -0.0156, 0.3088, 0.7869, -1.4833, 1.9138, -0.7806, 0.5019, 0.4053, -0.6352, -2.2564, -0.3352, 0.5649, -0.33, 0.8598, 1.1863, 0.0841, 0.5325, 0.9565, 1.6917, -0.1269, 0.9447, 0.8896, -0.5841, -1.1358, -0.029, 1.4984, 1.2065, -0.058, 1.768, -0.0913, 1.2473, 0.8105, 0.3804, 0.3076, 0.9793, 0.9183, -0.4725, 2.2101], "L2_steady": [-1.4165, 0.8707, -1.6271, 1.5482, 0.7435, 0.2019, -0.4133, -1.4641, -0.4233, 0.9365, -0.5552, -0.5702, 0.8402, 0.3656, 1.3259, 2.1044, 0.1581, -0.613, 0.8045, -0.1103, 0.174, -0.5435, 0.3128, -1.4964, -0.0411, 0.9551, -0.0157, 0.3109, 0.7923, -1.4936, 1.927, -0.786, 0.5054, 0.4081, -0.6396, -2.272, -0.3376, 0.5688, -0.3323, 0.8657, 1.1945, 0.0846, 0.5362, 0.9631, 1.7034, -0.1278, 0.9512, 0.8957, -0.5881, -1.1437, -0.0292, 1.5088, 1.2148, -0.0584, 1.7802, -0.0919, 1.256, 0.8161, 0.3831, 0.3098, 0.9861, 0.9247, -0.4757, 2.2254], "L2_consult": [-0.0023, 0.0095, 0.0355, -0.0111, 0.0057, -0.0129, 0.0412, -0.0077, -0.0326, 0.0128, 0.0223, -0.0028, -0.0299, -0.0022, 0.0002, -0.0155, 0.0216, -0.0119, -0.0293, 0.0027, -0.0161, -0.0318, -0.0106, -0.0022, -0.0022, -0.0087, -0.0057, 0.0084, 0.0287, 0.0075, 0.005, -0.0018, -0.0248, -0.0404, 0.0381, -0.0034, -0.0089, 0.0124, 0.006, -0.0554, -0.0172, -0.0185, -0.0264, 0.0259, 0.0214, 0.0095, 0.0047, 0.0075, -0.0018, 0.0253, 0.0278, 0.001, -0.009, -0.0346, 0.0309, -0.0051, -0.0257, -0.0317, -0.0131, -0.0023, -0.0065, 0.0143, 0.0215, -0.0245], "L2_keep": [-1.4091, 0.8742, -1.5804, 1.5265, 0.7441, 0.1876, -0.3693, -1.4617, -0.453, 0.9428, -0.5291, -0.5691, 0.8045, 0.3609, 1.317, 2.0744, 0.1786, -0.6207, 0.7698, -0.1068, 0.1567, -0.5717, 0.3001, -1.4883, -0.043, 0.9399, -0.0213, 0.3171, 0.8156, -1.4758, 1.9188, -0.7824, 0.4771, 0.3649, -0.597, -2.2598, -0.3442, 0.5773, -0.324, 0.8043, 1.1692, 0.0656, 0.5061, 0.9823, 1.7131, -0.1174, 0.9493, 0.897, -0.5859, -1.1106, -0.0012, 1.4994, 1.1975, -0.0926, 1.7989, -0.0964, 1.2217, 0.7788, 0.3673, 0.3053, 0.9728, 0.9326, -0.451, 2.1856], "L2_process": [-0.1104, 0.0817, -0.2203, -0.0941, 0.0202, -0.069, -0.071, 0.0218, 0.0011, -0.1161, -0.0119, -0.0101, -0.1847, -0.1249, -0.093, 0.117, -0.1095, -0.1166, -0.1338, -0.1841, -0.016, -0.0123, -0.0745, 0.0404, 0.0869, -0.0779, 0.1067, 0.1002, -0.093, 0.0399, 0.0712, -0.1912, 0.0342, 0.2253, 0.1906, -0.0886, 0.0217, -0.0872, -0.1265, -0.0037, -0.1382, 0.0448, -0.0628, 0.0019, 0.1177, 0.1059, 0.051, 0.0291, 0.1026, 0.0535, 0.1907, -0.1541, -0.1439, 0.1175, -0.0259, 0.0671, -0.2317, -0.0184, -0.1906, -0.1236, 0.0523, 0.1401, 0.1149, 0.0872], "L2_return": [-1.5195, 0.9559, -1.8007, 1.4324, 0.7643, 0.1186, -0.4403, -1.44, -0.4519, 0.8268, -0.541, -0.5792, 0.6198, 0.236, 1.224, 2.1915, 0.0691, -0.7373, 0.636, -0.2908, 0.1407, -0.5839, 0.2255, -1.4479, 0.0439, 0.862, 0.0854, 0.4174, 0.7226, -1.4359, 1.99, -0.9735, 0.5113, 0.5902, -0.4064, -2.3485, -0.3225, 0.4902, -0.4505, 0.8006, 1.0309, 0.1103, 0.4433, 0.9842, 1.8308, -0.0115, 1.0003, 0.9261, -0.4833, -1.0571, 0.1894, 1.3453, 1.0536, 0.0249, 1.773, -0.0293, 0.9899, 0.7603, 0.1767, 0.1817, 1.0251, 1.0727, -0.3361, 2.2728], "final": [-1.5305, 0.9628, -1.8137, 1.4427, 0.7699, 0.1195, -0.4434, -1.4504, -0.4551, 0.8327, -0.5449, -0.5834, 0.6243, 0.2377, 1.2328, 2.2073, 0.0696, -0.7426, 0.6406, -0.2929, 0.1417, -0.5882, 0.2272, -1.4583, 0.0442, 0.8683, 0.086, 0.4204, 0.7278, -1.4463, 2.0044, -0.9806, 0.515, 0.5944, -0.4094, -2.3654, -0.3248, 0.4937, -0.4537, 0.8064, 1.0384, 0.1111, 0.4465, 0.9913, 1.8441, -0.0115, 1.0075, 0.9328, -0.4868, -1.0648, 0.1908, 1.355, 1.0612, 0.0251, 1.7858, -0.0295, 0.9971, 0.7658, 0.178, 0.183, 1.0325, 1.0804, -0.3385, 2.2892]}, "ops_off_final": [0.943, 0.5711, 1.3174, 1.2926, 0.3442, 0.3138, -0.2047, -1.8382, -0.3494, 2.2009, 0.4573, -0.8554, -0.8417, 0.5774, -0.9792, -1.6975, 0.8256, 0.1788, -0.0748, 0.7633, 0.8032, 0.4219, -0.1173, -1.2769, 0.0486, -0.5343, 0.8092, -1.5633, 0.5425, -0.5123, -1.1892, 1.0463, -1.8793, 1.8285, 0.5409, 0.8241, 0.0497, 1.3681, 0.4445, -1.0925, 1.0518, -0.5777, 1.4973, 0.4737, 1.0995, 0.5816, 0.4924, -1.3147, -1.2239, 0.4196, 0.9003, 0.0349, -1.9564, -1.3176, -1.2439, -0.2287, -1.097, -0.8382, 0.2821, -0.6159, -0.0413, -1.5876, -1.1711, -0.5294], "echo": {"tid": 2711, "piece": " search", "p": 1.0}, "off_top": {"tid": 17224, "piece": " fucking", "p": 0.33768}, "survival_on": {"L1_keep": 0.9996, "L1_return": 0.9956, "L2_keep": 0.9958, "L2_return": 0.9895, "final": 0.9895}, "survival_off": {"L1_keep": 0.1684, "L1_return": -0.0294, "L2_keep": 0.0121, "L2_return": -0.1494, "final": -0.1494}, "lenses": {"source": "TRAIN-41 (prompt start)", "piece": " draft", "lens1": " action", "lens1_w": 0.13678, "lens2": "<|im_start|>", "lens2_w": 0.13389}, "steady": {"source": "TRAIN-41 (prompt start)", "before": 0.931, "after": 1.0}, "ideas": {"source": "TRAIN-41 (prompt start)", "piece": " draft", "fired": 135, "total": 192}, "decide": {"greedy": ["\n\n", "\n\n", "\n\n"], "target": ["{\"", "action", "\":\""], "prompt_count": 3452}, "learn": {"loss_before": 64.23239, "loss_one_step": 58.55046, "loss_after_training": 27.09842, "blame": [{"id": "decide", "label": "DECIDE (final norm)", "size": 8.45387}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "size": 4.17283}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "size": 0.7766}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "size": 0.24763}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "size": 4.32011}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "size": 0.97752}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "size": 0.31184}]}, "lora": {"before": 64.2353515625, "after": 64.21316528320312}, "kv": {"without": 45, "with": 3, "source": "TRAIN-41 (prompt start)"}}, {"id": "TRAIN-29", "message": "is this sent by ai or human?", "msg_pieces": ["is", " this", " sent", " by", " ai", " or", " human", "?"], "prompt_count": 3772, "followed": "?", "followed_pos": 2726, "next_piece": " How", "ops": {"load": [-1.1281, -0.3253, -0.3779, 0.3864, -0.3876, -0.1191, 1.328, 0.9095, -1.6805, -1.6358, -0.2436, 0.0166, 1.3595, 0.8078, -0.5056, -0.0087, -0.5848, 0.6351, 0.6874, -0.0422, -0.6442, 0.6837, 0.7941, 1.8909, -0.0308, -0.7913, 1.2121, 0.8203, -0.2668, -0.3043, -1.622, 0.7235, 0.5463, 0.895, 1.3127, 0.5402, 0.5859, 0.1705, 0.644, -2.2224, -0.0224, 1.8561, 1.845, 0.7341, 0.8491, 0.0293, -0.3463, 0.235, -0.5016, -1.8308, 0.7858, -0.1285, -0.0541, -1.1317, 1.5468, 1.4167, 1.3479, -0.4048, 0.7575, 0.4933, 0.4183, -0.5155, 0.1651, -0.4351], "L1_steady": [-1.2099, -0.3489, -0.4053, 0.4144, -0.4157, -0.1277, 1.4243, 0.9755, -1.8024, -1.7544, -0.2613, 0.0178, 1.4581, 0.8664, -0.5422, -0.0093, -0.6272, 0.6811, 0.7372, -0.0453, -0.6909, 0.7333, 0.8517, 2.028, -0.033, -0.8487, 1.2999, 0.8797, -0.2861, -0.3264, -1.7396, 0.7759, 0.5859, 0.9599, 1.4079, 0.5793, 0.6284, 0.1828, 0.6907, -2.3835, -0.024, 1.9907, 1.9788, 0.7873, 0.9106, 0.0314, -0.3714, 0.2521, -0.538, -1.9635, 0.8428, -0.1378, -0.058, -1.2137, 1.659, 1.5194, 1.4457, -0.4341, 0.8125, 0.5291, 0.4486, -0.5529, 0.1771, -0.4667], "L1_consult": [-0.0263, 0.0081, -0.0239, 0.0309, 0.0189, 0.0429, 0.0439, -0.0148, -0.0123, -0.0027, -0.0073, -0.0326, -0.0335, -0.0474, -0.0323, 0.0366, -0.051, 0.0047, 0.0234, -0.0106, 0.0482, -0.0001, 0.0106, -0.0365, -0.042, 0.0132, 0.0028, -0.0079, 0.0363, -0.0204, -0.0369, -0.0124, -0.0084, 0.0126, 0.0189, -0.0004, 0.0003, 0.0197, 0.0207, 0.0034, -0.0284, 0.0014, -0.0386, 0.0112, 0.0084, -0.0284, 0.0273, 0.0197, 0.0494, 0.0267, 0.0246, 0.0346, 0.0, -0.0158, 0.053, -0.0048, 0.022, -0.0229, 0.0525, -0.0112, 0.0271, 0.0508, 0.013, -0.0319], "L1_keep": [-1.1544, -0.3172, -0.4018, 0.4174, -0.3687, -0.0762, 1.3719, 0.8947, -1.6929, -1.6385, -0.2509, -0.016, 1.3261, 0.7604, -0.5379, 0.0279, -0.6357, 0.6397, 0.7108, -0.0528, -0.596, 0.6836, 0.8047, 1.8543, -0.0728, -0.7782, 1.2149, 0.8123, -0.2305, -0.3248, -1.6588, 0.7111, 0.5378, 0.9076, 1.3316, 0.5398, 0.5862, 0.1901, 0.6647, -2.219, -0.0508, 1.8575, 1.8064, 0.7453, 0.8575, 0.0009, -0.319, 0.2547, -0.4522, -1.8041, 0.8104, -0.0939, -0.0541, -1.1475, 1.5998, 1.4119, 1.37, -0.4277, 0.8101, 0.4821, 0.4454, -0.4648, 0.1782, -0.467], "L1_process": [0.1739, 0.0208, 0.1794, 0.1418, -0.4187, 0.1969, -0.0646, -0.0856, -0.0806, -0.0927, 0.1187, 0.1501, 0.0612, 0.0401, -0.0829, -0.2072, 0.0265, -0.0677, -0.0246, -0.1178, 0.2474, 0.0793, 0.1112, 0.0131, 0.0581, -0.0678, -0.1132, 0.1004, -0.0833, -0.1451, 0.1653, -0.0266, -0.017, -0.1299, 0.1845, -0.0343, 0.0434, -0.0017, -0.0244, 0.0898, -0.0973, -0.018, -0.1398, -0.0863, 0.0051, 0.0437, 0.0492, 0.0883, -0.143, 0.1468, -0.0391, -0.1243, 0.0677, -0.2268, 0.1399, 0.0024, 0.0217, 0.1422, -0.1837, 0.0652, -0.0364, -0.0013, -0.071, -0.1678], "L1_return": [-0.9805, -0.2964, -0.2224, 0.5592, -0.7873, 0.1208, 1.3074, 0.8091, -1.7735, -1.7312, -0.1321, 0.1341, 1.3872, 0.8005, -0.6207, -0.1793, -0.6092, 0.5721, 0.6861, -0.1706, -0.3486, 0.7629, 0.9159, 1.8674, -0.0147, -0.846, 1.1017, 0.9127, -0.3138, -0.4699, -1.4935, 0.6845, 0.5208, 0.7777, 1.5161, 0.5055, 0.6296, 0.1884, 0.6404, -2.1292, -0.1481, 1.8395, 1.6666, 0.6589, 0.8627, 0.0446, -0.2698, 0.343, -0.5952, -1.6572, 0.7714, -0.2182, 0.0136, -1.3743, 1.7397, 1.4143, 1.3917, -0.2855, 0.6264, 0.5474, 0.409, -0.4661, 0.1072, -0.6348], "L2_steady": [-1.0472, -0.3165, -0.2375, 0.5972, -0.8409, 0.129, 1.3963, 0.8641, -1.8941, -1.8489, -0.1411, 0.1432, 1.4816, 0.8549, -0.6629, -0.1915, -0.6506, 0.611, 0.7328, -0.1822, -0.3723, 0.8148, 0.9782, 1.9944, -0.0157, -0.9035, 1.1766, 0.9748, -0.3352, -0.5019, -1.5951, 0.731, 0.5562, 0.8306, 1.6192, 0.5399, 0.6724, 0.2012, 0.6839, -2.274, -0.1582, 1.9646, 1.7799, 0.7037, 0.9213, 0.0476, -0.2881, 0.3663, -0.6357, -1.77, 0.8238, -0.2331, 0.0145, -1.4678, 1.8581, 1.5105, 1.4863, -0.305, 0.669, 0.5846, 0.4368, -0.4978, 0.1145, -0.678], "L2_consult": [-0.0044, -0.0169, 0.017, -0.0157, -0.0231, -0.0204, 0.0303, 0.0072, -0.0428, 0.0164, 0.0364, -0.0106, -0.0365, 0.0142, -0.0409, -0.0092, 0.0274, -0.0275, -0.0364, -0.0122, -0.0121, -0.0087, -0.0266, 0.0103, -0.0204, -0.0047, 0.0079, -0.0076, 0.0406, 0.0083, 0.0325, 0.0176, -0.0295, -0.0258, 0.056, 0.019, 0.0064, 0.0337, -0.0012, -0.0424, -0.0279, -0.0205, -0.0287, 0.0298, 0.0407, 0.0012, 0.027, -0.0047, 0.0227, 0.0308, 0.0476, -0.0098, 0.0091, -0.03, 0.0178, 0.0099, -0.0036, -0.0388, -0.0181, -0.0156, -0.0038, 0.0038, 0.0115, -0.009], "L2_keep": [-0.9849, -0.3133, -0.2053, 0.5435, -0.8104, 0.1003, 1.3377, 0.8163, -1.8162, -1.7148, -0.0958, 0.1234, 1.3508, 0.8147, -0.6616, -0.1885, -0.5818, 0.5446, 0.6498, -0.1828, -0.3607, 0.7543, 0.8892, 1.8777, -0.0351, -0.8507, 1.1096, 0.9051, -0.2732, -0.4616, -1.461, 0.7021, 0.4914, 0.7519, 1.572, 0.5245, 0.636, 0.2221, 0.6392, -2.1716, -0.176, 1.819, 1.6379, 0.6888, 0.9033, 0.0458, -0.2428, 0.3383, -0.5725, -1.6264, 0.819, -0.228, 0.0227, -1.4043, 1.7575, 1.4243, 1.388, -0.3243, 0.6083, 0.5317, 0.4052, -0.4622, 0.1187, -0.6438], "L2_process": [0.0444, -0.0631, -0.1145, 0.1076, 0.0435, -0.0769, -0.147, 0.0272, -0.0027, -0.098, 0.1971, 0.0494, 0.0472, -0.0556, 0.1255, 0.1652, -0.2348, -0.0851, 0.0971, -0.1711, -0.0184, 0.0688, 0.0769, 0.0521, 0.092, -0.0922, 0.1296, 0.1002, 0.1288, 0.1739, 0.0908, 0.1709, -0.0247, 0.0887, -0.0391, 0.0631, 0.0191, -0.01, 0.0019, 0.0924, -0.0371, 0.0349, -0.2046, -0.0001, -0.1104, -0.1608, 0.1063, 0.0903, 0.1202, 0.0252, 0.0886, 0.036, -0.076, 0.0032, 0.0148, -0.0786, -0.1239, 0.0932, 0.1022, 0.0899, -0.1134, 0.0887, -0.294, -0.029], "L2_return": [-0.9405, -0.3763, -0.3198, 0.651, -0.7669, 0.0234, 1.1907, 0.8434, -1.8189, -1.8127, 0.1013, 0.1729, 1.398, 0.759, -0.5362, -0.0234, -0.8166, 0.4595, 0.7468, -0.3538, -0.3791, 0.823, 0.9661, 1.9298, 0.0569, -0.9429, 1.2392, 1.0053, -0.1445, -0.2878, -1.3702, 0.873, 0.4667, 0.8405, 1.5329, 0.5876, 0.6551, 0.2121, 0.6411, -2.0792, -0.2131, 1.8539, 1.4332, 0.6886, 0.7929, -0.115, -0.1365, 0.4286, -0.4523, -1.6012, 0.9075, -0.192, -0.0533, -1.4012, 1.7723, 1.3457, 1.2641, -0.2311, 0.7105, 0.6217, 0.2918, -0.3735, -0.1752, -0.6728], "final": [-1.0016, -0.4008, -0.3406, 0.6934, -0.8168, 0.0249, 1.2681, 0.8983, -1.9372, -1.9306, 0.1079, 0.1841, 1.4889, 0.8084, -0.571, -0.0249, -0.8697, 0.4894, 0.7954, -0.3768, -0.4037, 0.8765, 1.0289, 2.0552, 0.0606, -1.0042, 1.3198, 1.0707, -0.1539, -0.3065, -1.4593, 0.9298, 0.4971, 0.8952, 1.6326, 0.6258, 0.6977, 0.2259, 0.6828, -2.2143, -0.2269, 1.9744, 1.5264, 0.7334, 0.8445, -0.1225, -0.1454, 0.4565, -0.4817, -1.7053, 0.9665, -0.2044, -0.0567, -1.4923, 1.8876, 1.4332, 1.3463, -0.2461, 0.7567, 0.6621, 0.3108, -0.3978, -0.1866, -0.7166]}, "ops_off_final": [0.8061, 0.6859, 1.2194, 1.1925, 0.3679, 0.0935, -0.2272, -1.9178, -0.0818, 2.0776, 0.4676, -0.6727, -1.0455, 0.7483, -1.3512, -1.7154, 0.8087, -0.0343, -0.0531, 0.7461, 1.0108, 0.582, -0.0388, -1.3396, 0.0088, -0.6151, 0.7604, -1.2958, 0.2885, -0.6622, -1.1195, 1.0121, -1.8185, 1.9734, 0.5426, 0.6952, -0.0646, 1.2397, 0.3654, -0.918, 1.1658, -0.5291, 1.4638, 0.2345, 1.1207, 0.8335, 0.5092, -1.3177, -1.2284, 0.5779, 0.9131, -0.311, -1.9841, -1.378, -1.3164, -0.254, -0.979, -0.739, 0.39, -0.4815, -0.2806, -1.5806, -1.19, -0.5491], "echo": {"tid": 30, "piece": "?", "p": 1.0}, "off_top": {"tid": 17224, "piece": " fucking", "p": 0.49106}, "survival_on": {"L1_keep": 0.9996, "L1_return": 0.9914, "L2_keep": 0.9904, "L2_return": 0.9836, "final": 0.9836}, "survival_off": {"L1_keep": 0.0749, "L1_return": -0.0221, "L2_keep": -0.2381, "L2_return": -0.0196, "final": -0.0196}, "lenses": {"source": "TRAIN-29", "piece": "?", "lens1": " this", "lens1_w": 0.19635, "lens2": " by", "lens2_w": 0.23288}, "steady": {"source": "TRAIN-29", "before": 0.9324, "after": 1.0}, "ideas": {"source": "TRAIN-29", "piece": "?", "fired": 136, "total": 192}, "decide": {"greedy": ["\n\n", "\n\n", "\n\n"], "target": ["{\"", "action", "\":\""], "prompt_count": 3772}, "learn": {"loss_before": 62.42133, "loss_one_step": 58.42919, "loss_after_training": 24.57649, "blame": [{"id": "decide", "label": "DECIDE (final norm)", "size": 8.02976}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "size": 3.87483}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "size": 0.74262}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "size": 0.24516}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "size": 3.953}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "size": 0.97143}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "size": 0.27927}]}, "lora": {"before": 62.428035736083984, "after": 62.41243362426758}, "kv": {"without": 30, "with": 3, "source": "TRAIN-29"}}, {"id": "TRAIN-22", "message": "Hi\n\nWe just need LinkedIn profiles on rent", "msg_pieces": ["Hi", "\n\n", "We", " just", " need", " LinkedIn", " profiles", " on", " rent"], "prompt_count": 3460, "followed": " rent", "followed_pos": 3448, "next_piece": "\"}", "ops": {"load": [-0.2105, -0.411, -0.9069, -0.1261, 2.096, 0.4392, -0.5402, -1.5336, -1.04, 1.1063, -1.1009, -0.088, -0.1326, 0.3206, 1.0125, 0.1248, 1.1514, -1.061, 1.5105, 1.4527, -1.1116, 0.2817, 0.7328, 0.7696, -0.4567, -1.8903, -1.4233, -0.0645, 0.3132, -0.4718, 0.6608, 1.0366, -1.2051, -1.8728, 2.0801, 1.2536, 1.0435, -1.5659, 0.5261, -1.4042, -2.0848, -0.7984, -1.8209, -0.8671, -0.0131, 0.106, -1.9062, -0.493, 0.2768, 0.0909, 2.3041, -0.8839, -1.6814, 0.1726, 0.7681, 0.6007, 1.1224, -0.4233, -0.4779, 1.0514, 0.311, 0.253, 0.9409, 0.9926], "L1_steady": [-0.1954, -0.3816, -0.8418, -0.1171, 1.9457, 0.4077, -0.5015, -1.4236, -0.9654, 1.0269, -1.0219, -0.0817, -0.1231, 0.2976, 0.9399, 0.1159, 1.0688, -0.9849, 1.4021, 1.3485, -1.0318, 0.2615, 0.6802, 0.7144, -0.424, -1.7547, -1.3212, -0.0599, 0.2907, -0.438, 0.6134, 0.9622, -1.1187, -1.7385, 1.9309, 1.1637, 0.9687, -1.4536, 0.4883, -1.3034, -1.9352, -0.7412, -1.6903, -0.8049, -0.0122, 0.0984, -1.7695, -0.4576, 0.257, 0.0844, 2.1388, -0.8205, -1.5608, 0.1602, 0.713, 0.5577, 1.0419, -0.3929, -0.4436, 0.976, 0.2887, 0.2349, 0.8734, 0.9214], "L1_consult": [-0.0163, 0.017, -0.0424, 0.0365, 0.0069, 0.032, 0.0582, -0.0187, -0.0078, -0.014, -0.0068, -0.034, -0.0518, -0.0367, -0.0419, 0.0465, -0.0502, -0.0043, 0.0334, -0.0128, 0.0377, -0.0008, 0.0209, -0.0553, -0.0666, 0.0145, 0.0034, 0.0154, 0.0399, -0.0131, -0.0362, -0.0067, -0.0093, 0.0063, 0.0226, -0.0074, 0.0243, 0.0252, 0.0445, 0.0047, -0.029, 0.0174, -0.0251, 0.0019, -0.0007, -0.0174, 0.033, 0.0247, 0.0363, 0.0202, 0.0022, 0.0248, 0.008, 0.0118, 0.0453, -0.013, 0.0269, -0.0207, 0.0557, -0.0252, 0.0299, 0.064, -0.0025, -0.0145], "L1_keep": [-0.2268, -0.394, -0.9492, -0.0896, 2.1029, 0.4712, -0.482, -1.5524, -1.0478, 1.0923, -1.1076, -0.1221, -0.1844, 0.284, 0.9706, 0.1713, 1.1013, -1.0653, 1.5439, 1.4399, -1.0738, 0.2809, 0.7537, 0.7143, -0.5234, -1.8758, -1.4199, -0.0491, 0.3531, -0.4849, 0.6245, 1.0299, -1.2144, -1.8665, 2.1027, 1.2462, 1.0678, -1.5408, 0.5705, -1.3994, -2.1138, -0.781, -1.846, -0.8652, -0.0138, 0.0886, -1.8732, -0.4683, 0.3132, 0.1111, 2.3063, -0.8591, -1.6734, 0.1844, 0.8133, 0.5878, 1.1493, -0.4439, -0.4221, 1.0263, 0.3409, 0.317, 0.9383, 0.9781], "L1_process": [0.0051, 0.0123, 0.2516, -0.0341, 0.0164, 0.0319, 0.0605, -0.0169, 0.0461, 0.0379, 0.0425, -0.0316, -0.0754, 0.0705, 0.0485, 0.0886, -0.1298, 0.1104, -0.0787, -0.222, -0.0765, -0.077, -0.0306, -0.0737, 0.1412, 0.1826, 0.1461, 0.0318, 0.0696, 0.1429, 0.1094, -0.0461, -0.0062, -0.0316, 0.0609, 0.0423, -0.0516, 0.0387, 0.0233, -0.124, 0.0475, 0.0736, 0.1075, -0.0547, -0.1, -0.114, -0.0254, -0.038, -0.0608, -0.0048, -0.0416, -0.1166, -0.002, -0.0097, 0.0797, 0.191, -0.0092, 0.1791, -0.057, -0.0789, -0.0102, -0.0139, -0.0619, -0.0077], "L1_return": [-0.2217, -0.3817, -0.6977, -0.1236, 2.1193, 0.5031, -0.4215, -1.5692, -1.0017, 1.1302, -1.0652, -0.1536, -0.2599, 0.3544, 1.0191, 0.2598, 0.9714, -0.9549, 1.4652, 1.2179, -1.1504, 0.2039, 0.7231, 0.6406, -0.3821, -1.6931, -1.2738, -0.0173, 0.4227, -0.3419, 0.734, 0.9838, -1.2206, -1.8981, 2.1636, 1.2885, 1.0162, -1.5021, 0.5938, -1.5234, -2.0662, -0.7074, -1.7385, -0.9199, -0.1138, -0.0254, -1.8986, -0.5063, 0.2523, 0.1063, 2.2647, -0.9758, -1.6754, 0.1747, 0.893, 0.7788, 1.1401, -0.2649, -0.4791, 0.9474, 0.3307, 0.3032, 0.8765, 0.9704], "L2_steady": [-0.2094, -0.3605, -0.6589, -0.1168, 2.0015, 0.4751, -0.3981, -1.482, -0.946, 1.0674, -1.006, -0.1451, -0.2454, 0.3347, 0.9624, 0.2454, 0.9174, -0.9018, 1.3837, 1.1502, -1.0864, 0.1925, 0.6829, 0.605, -0.3609, -1.599, -1.203, -0.0163, 0.3992, -0.3229, 0.6932, 0.9291, -1.1528, -1.7926, 2.0433, 1.2169, 0.9597, -1.4186, 0.5608, -1.4387, -1.9514, -0.6681, -1.6419, -0.8688, -0.1075, -0.024, -1.793, -0.4781, 0.2383, 0.1004, 2.1388, -0.9215, -1.5822, 0.165, 0.8434, 0.7355, 1.0767, -0.2501, -0.4525, 0.8947, 0.3123, 0.2863, 0.8277, 0.9165], "L2_consult": [0.0027, 0.0041, 0.0335, -0.006, -0.0019, -0.0069, 0.0278, -0.0063, -0.0396, 0.0068, 0.0334, -0.004, -0.0316, 0.0046, -0.0073, -0.0192, 0.0189, -0.0225, -0.0294, -0.0083, -0.0231, -0.0243, -0.0216, 0.0104, -0.0125, -0.0096, -0.0013, 0.0079, 0.0392, 0.0119, 0.0201, 0.0021, -0.0268, -0.0427, 0.0339, -0.0012, -0.0112, 0.0191, 0.0039, -0.0554, -0.0144, -0.0156, -0.0239, 0.0288, 0.0274, 0.0066, 0.0101, 0.01, 0.0075, 0.0279, 0.0355, -0.0017, -0.0026, -0.0332, 0.0364, 0.0034, -0.0243, -0.0349, -0.0146, -0.0089, -0.0013, 0.0152, 0.0204, -0.0157], "L2_keep": [-0.219, -0.3776, -0.6642, -0.1296, 2.1175, 0.4962, -0.3937, -1.5755, -1.0413, 1.137, -1.0318, -0.1577, -0.2915, 0.359, 1.0117, 0.2406, 0.9903, -0.9774, 1.4358, 1.2095, -1.1734, 0.1796, 0.7015, 0.651, -0.3946, -1.7027, -1.2751, -0.0093, 0.4619, -0.33, 0.754, 0.986, -1.2474, -1.9409, 2.1975, 1.2873, 1.005, -1.483, 0.5977, -1.5788, -2.0806, -0.723, -1.7624, -0.8911, -0.0864, -0.0189, -1.8884, -0.4963, 0.2598, 0.1342, 2.3002, -0.9774, -1.678, 0.1415, 0.9294, 0.7822, 1.1158, -0.2997, -0.4937, 0.9385, 0.3294, 0.3183, 0.8969, 0.9547], "L2_process": [-0.0175, 0.024, 0.0275, 0.0103, -0.0076, -0.0137, -0.1185, -0.109, -0.0821, -0.0008, 0.2067, -0.1273, -0.0171, 0.0983, 0.0635, -0.1265, -0.058, -0.003, 0.094, -0.0515, 0.0368, -0.0144, 0.0979, 0.1162, -0.0344, 0.0943, -0.0069, -0.0454, 0.0058, 0.0044, -0.012, -0.1626, 0.0033, -0.0086, -0.2245, -0.0836, 0.0269, -0.0096, 0.0907, -0.0558, -0.0677, 0.0815, 0.011, 0.0403, 0.0365, 0.0772, 0.0616, 0.0664, 0.0978, -0.1613, 0.0816, -0.0689, -0.0261, -0.1786, 0.1265, 0.1619, -0.0574, -0.102, -0.0429, 0.0112, 0.1276, -0.1346, -0.1148, -0.1719], "L2_return": [-0.2366, -0.3536, -0.6367, -0.1193, 2.1099, 0.4825, -0.5122, -1.6845, -1.1234, 1.1362, -0.8251, -0.285, -0.3087, 0.4573, 1.0753, 0.1141, 0.9323, -0.9804, 1.5298, 1.158, -1.1367, 0.1651, 0.7993, 0.7672, -0.429, -1.6084, -1.282, -0.0548, 0.4677, -0.3256, 0.742, 0.8234, -1.2442, -1.9495, 1.973, 1.2037, 1.0319, -1.4926, 0.6884, -1.6346, -2.1483, -0.6415, -1.7514, -0.8509, -0.0498, 0.0584, -1.8268, -0.4299, 0.3576, -0.0271, 2.3818, -1.0463, -1.7041, -0.0371, 1.0559, 0.9441, 1.0584, -0.4017, -0.5366, 0.9498, 0.4571, 0.1837, 0.7821, 0.7828], "final": [-0.2224, -0.3324, -0.5985, -0.1122, 1.9834, 0.4536, -0.4815, -1.5835, -1.056, 1.0681, -0.7757, -0.2679, -0.2901, 0.4299, 1.0108, 0.1073, 0.8764, -0.9217, 1.4381, 1.0886, -1.0685, 0.1552, 0.7514, 0.7212, -0.4033, -1.5119, -1.2051, -0.0515, 0.4396, -0.3061, 0.6976, 0.774, -1.1696, -1.8326, 1.8547, 1.1315, 0.97, -1.4031, 0.6471, -1.5366, -2.0195, -0.603, -1.6464, -0.7998, -0.0468, 0.0549, -1.7173, -0.4041, 0.3361, -0.0255, 2.239, -0.9836, -1.6019, -0.0349, 0.9926, 0.8875, 0.995, -0.3776, -0.5044, 0.8928, 0.4297, 0.1727, 0.7352, 0.7359]}, "ops_off_final": [0.9318, 0.6019, 1.3388, 1.2842, 0.3395, 0.2989, -0.1946, -1.8374, -0.322, 2.18, 0.4667, -0.8324, -0.8619, 0.606, -0.9911, -1.6994, 0.8504, 0.1659, -0.0601, 0.7717, 0.8277, 0.44, -0.1034, -1.2728, 0.0393, -0.5357, 0.7918, -1.5609, 0.5276, -0.5212, -1.1941, 1.0388, -1.8718, 1.8413, 0.5448, 0.823, 0.0543, 1.3681, 0.4455, -1.0789, 1.0459, -0.5848, 1.4969, 0.4567, 1.0973, 0.5948, 0.494, -1.3211, -1.2236, 0.4232, 0.9123, 0.006, -1.9476, -1.3228, -1.2535, -0.2309, -1.0798, -0.8259, 0.2797, -0.6097, -0.0497, -1.5977, -1.1504, -0.5473], "echo": {"tid": 8016, "piece": " rent", "p": 1.0}, "off_top": {"tid": 17224, "piece": " fucking", "p": 0.35457}, "survival_on": {"L1_keep": 0.9996, "L1_return": 0.9966, "L2_keep": 0.9961, "L2_return": 0.9919, "final": 0.9919}, "survival_off": {"L1_keep": -0.0143, "L1_return": 0.0933, "L2_keep": -0.1596, "L2_return": -0.0056, "final": -0.0056}, "lenses": {"source": "TRAIN-22", "piece": " rent", "lens1": " on", "lens1_w": 0.16027, "lens2": " LinkedIn", "lens2_w": 0.24703}, "steady": {"source": "TRAIN-22", "before": 1.0773, "after": 1.0}, "ideas": {"source": "TRAIN-22", "piece": " rent", "fired": 133, "total": 192}, "decide": {"greedy": ["\n\n", "\n\n", "\n\n"], "target": ["{\"", "action", "\":\""], "prompt_count": 3460}, "learn": {"loss_before": 66.41092, "loss_one_step": 61.83721, "loss_after_training": 10.87724, "blame": [{"id": "decide", "label": "DECIDE (final norm)", "size": 9.28327}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "size": 6.97611}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "size": 1.31479}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "size": 0.35277}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "size": 7.86817}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "size": 1.69692}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "size": 0.47019}]}, "lora": {"before": 66.38282012939453, "after": 66.32530975341797}, "kv": {"without": 33, "with": 3, "source": "TRAIN-22"}}, {"id": "TRAIN-39", "message": "Waste of time", "msg_pieces": ["W", "aste", " of", " time"], "prompt_count": 3454, "followed": " time", "followed_pos": 3442, "next_piece": "\"}", "ops": {"load": [1.5156, -0.0204, 0.1087, -0.0345, 0.8124, 1.7063, -0.9664, -0.2046, -1.4819, 0.8265, 0.38, -0.0316, 0.1782, -0.4659, 0.2699, 0.7183, 0.054, -0.5553, 0.1812, 0.2402, -1.4998, -2.2612, 0.3057, -0.1825, 0.3565, -0.6259, -1.0142, 0.8727, 0.5748, -1.1553, 1.0864, 1.6072, -0.0615, 0.8087, -0.0661, -1.2684, -0.4519, -1.6994, -0.5601, 1.2372, -0.6891, 0.1799, 1.5109, 1.0626, 1.1916, 1.3594, 0.5645, 0.2869, 0.1073, 0.6908, -0.6944, 0.9545, -0.0876, 0.7886, -2.4929, -0.9709, -0.3608, 1.5392, -0.3312, 0.6251, -0.8082, -0.1583, 0.3783, 0.7723], "L1_steady": [1.6315, -0.0219, 0.117, -0.0371, 0.8745, 1.8368, -1.0403, -0.2203, -1.5952, 0.8897, 0.409, -0.034, 0.1918, -0.5015, 0.2906, 0.7733, 0.0581, -0.5978, 0.195, 0.2586, -1.6145, -2.4341, 0.329, -0.1964, 0.3838, -0.6738, -1.0917, 0.9394, 0.6188, -1.2436, 1.1695, 1.7301, -0.0662, 0.8706, -0.0712, -1.3654, -0.4864, -1.8293, -0.603, 1.3318, -0.7418, 0.1936, 1.6264, 1.1439, 1.2827, 1.4634, 0.6076, 0.3088, 0.1155, 0.7436, -0.7475, 1.0274, -0.0943, 0.8489, -2.6835, -1.0452, -0.3884, 1.6569, -0.3565, 0.673, -0.87, -0.1704, 0.4072, 0.8314], "L1_consult": [-0.0115, 0.0256, -0.0427, 0.0386, 0.0223, 0.0402, 0.0428, -0.0072, -0.0086, -0.0159, -0.0328, -0.0441, -0.0354, -0.032, -0.0374, 0.0323, -0.0451, 0.0027, 0.0419, -0.0012, 0.0403, 0.0141, 0.013, -0.0321, -0.0609, 0.0105, 0.0159, -0.011, 0.0355, -0.0136, -0.0269, -0.0073, -0.0241, -0.0047, 0.0183, -0.0064, 0.0119, 0.0213, 0.0282, -0.0118, -0.0165, 0.0029, -0.0327, 0.0129, 0.0074, -0.0126, 0.0293, 0.0237, 0.0438, 0.0378, 0.0163, 0.0326, 0.005, -0.0005, 0.0473, -0.006, 0.0271, -0.0131, 0.0448, -0.0148, 0.0261, 0.0562, 0.0083, -0.0289], "L1_keep": [1.5041, 0.0053, 0.0659, 0.0042, 0.8347, 1.7465, -0.9235, -0.2119, -1.4906, 0.8105, 0.3472, -0.0757, 0.1428, -0.4979, 0.2325, 0.7506, 0.0088, -0.5526, 0.2231, 0.239, -1.4595, -2.2471, 0.3187, -0.2146, 0.2956, -0.6154, -0.9983, 0.8617, 0.6103, -1.1689, 1.0595, 1.5999, -0.0857, 0.804, -0.0478, -1.2748, -0.44, -1.6781, -0.5319, 1.2254, -0.7056, 0.1828, 1.4782, 1.0755, 1.199, 1.3468, 0.5937, 0.3105, 0.1511, 0.7287, -0.6781, 0.987, -0.0827, 0.7882, -2.4456, -0.9769, -0.3337, 1.5261, -0.2864, 0.6104, -0.7821, -0.1021, 0.3866, 0.7434], "L1_process": [0.0313, 0.0272, -0.2065, -0.0681, 0.0183, -0.0182, -0.0206, -0.1357, -0.0056, 0.0146, -0.0065, 0.0249, -0.0786, 0.0666, 0.1033, -0.2827, 0.0717, 0.0278, 0.1174, -0.0286, 0.0162, -0.0082, 0.1857, -0.1637, -0.0398, 0.1575, -0.0044, 0.0989, -0.0645, -0.0126, 0.0222, 0.3193, -0.0428, -0.2378, 0.0795, -0.0862, 0.0036, -0.2028, -0.0614, 0.1459, 0.0754, -0.1991, -0.0573, -0.1445, 0.0937, 0.1247, -0.0019, 0.0159, -0.0273, 0.2781, -0.0883, -0.1765, -0.0834, -0.1106, -0.084, 0.0221, 0.0491, 0.1309, 0.2356, -0.0006, -0.0201, -0.1259, 0.1923, 0.0394], "L1_return": [1.5354, 0.0325, -0.1406, -0.0639, 0.853, 1.7283, -0.9441, -0.3476, -1.4962, 0.8251, 0.3406, -0.0508, 0.0642, -0.4313, 0.3359, 0.4679, 0.0805, -0.5248, 0.3405, 0.2104, -1.4433, -2.2553, 0.5044, -0.3783, 0.2557, -0.4579, -1.0027, 0.9606, 0.5458, -1.1815, 1.0817, 1.9191, -0.1284, 0.5662, 0.0317, -1.361, -0.4364, -1.8809, -0.5933, 1.3713, -0.6301, -0.0163, 1.4209, 0.9311, 1.2927, 1.4716, 0.5918, 0.3264, 0.1238, 1.0068, -0.7664, 0.8105, -0.166, 0.6776, -2.5296, -0.9549, -0.2846, 1.6571, -0.0508, 0.6098, -0.8022, -0.228, 0.5789, 0.7828], "L2_steady": [1.6119, 0.0341, -0.1476, -0.0671, 0.8955, 1.8143, -0.9911, -0.3649, -1.5707, 0.8662, 0.3576, -0.0533, 0.0674, -0.4528, 0.3526, 0.4912, 0.0845, -0.5509, 0.3574, 0.2208, -1.5152, -2.3676, 0.5295, -0.3972, 0.2685, -0.4807, -1.0527, 1.0085, 0.573, -1.2404, 1.1356, 2.0147, -0.1348, 0.5944, 0.0333, -1.4288, -0.4581, -1.9746, -0.6228, 1.4396, -0.6615, -0.0171, 1.4917, 0.9775, 1.3571, 1.5449, 0.6213, 0.3427, 0.1299, 1.0569, -0.8046, 0.8509, -0.1743, 0.7113, -2.6556, -1.0024, -0.2988, 1.7396, -0.0534, 0.6401, -0.8421, -0.2394, 0.6078, 0.8218], "L2_consult": [-0.0014, -0.0103, 0.017, -0.0058, -0.0205, -0.0146, 0.0211, 0.0008, -0.0279, 0.0185, 0.0246, -0.0236, -0.027, 0.012, -0.0169, -0.0008, 0.0267, -0.023, -0.033, 0.0046, -0.016, -0.0058, -0.0139, -0.0114, -0.0139, -0.0027, -0.0107, -0.0012, 0.0374, 0.0233, 0.0234, 0.0057, -0.0225, -0.0302, 0.0501, -0.0023, -0.0151, 0.025, 0.0053, -0.0492, -0.008, -0.0181, -0.0184, 0.0338, 0.0304, 0.0192, 0.0131, 0.0095, 0.0248, 0.0253, 0.0464, -0.0192, 0.0116, -0.0373, 0.0173, 0.0114, -0.0115, -0.0436, -0.0167, 0.0042, 0.0211, 0.0039, 0.0181, -0.0229], "L2_keep": [1.534, 0.0222, -0.1236, -0.0696, 0.8326, 1.7137, -0.923, -0.3468, -1.524, 0.8436, 0.3652, -0.0744, 0.0373, -0.4193, 0.3189, 0.467, 0.1072, -0.5478, 0.3075, 0.215, -1.4593, -2.2611, 0.4905, -0.3897, 0.2418, -0.4606, -1.0134, 0.9594, 0.5832, -1.1582, 1.1051, 1.9248, -0.1509, 0.536, 0.0818, -1.3633, -0.4515, -1.8559, -0.588, 1.3221, -0.6381, -0.0344, 1.4024, 0.9649, 1.3231, 1.4908, 0.6049, 0.3359, 0.1486, 1.0321, -0.72, 0.7913, -0.1544, 0.6402, -2.5122, -0.9434, -0.2961, 1.6135, -0.0675, 0.614, -0.781, -0.2242, 0.597, 0.7599], "L2_process": [-0.0013, 0.0572, -0.0567, 0.1733, -0.0221, -0.0178, 0.0172, -0.0592, -0.0723, 0.2158, -0.0367, 0.0908, 0.0006, 0.0281, -0.2031, 0.1046, -0.0016, -0.0043, 0.1983, -0.1115, -0.1341, -0.0813, -0.0784, -0.0292, 0.0709, 0.0444, -0.0376, 0.0697, 0.0266, 0.0062, -0.0532, -0.029, 0.0206, 0.0524, 0.0812, 0.0336, 0.0177, -0.0047, 0.0382, 0.0868, -0.0621, 0.0057, 0.2376, 0.0287, -0.0122, -0.0299, -0.0019, -0.1206, -0.0588, -0.0698, 0.0742, 0.0431, 0.0408, 0.0826, -0.0555, 0.0424, -0.2055, -0.2272, 0.016, -0.0608, -0.1041, -0.0466, -0.1548, -0.1222], "L2_return": [1.5327, 0.0794, -0.1803, 0.1036, 0.8105, 1.6958, -0.9058, -0.4061, -1.5963, 1.0594, 0.3286, 0.0164, 0.0379, -0.3913, 0.1158, 0.5717, 0.1057, -0.5521, 0.5058, 0.1035, -1.5933, -2.3424, 0.4121, -0.4189, 0.3127, -0.4162, -1.051, 1.0292, 0.6098, -1.152, 1.052, 1.8959, -0.1303, 0.5883, 0.163, -1.3297, -0.4337, -1.8606, -0.5497, 1.4089, -0.7001, -0.0287, 1.64, 0.9935, 1.3108, 1.4609, 0.603, 0.2153, 0.0898, 0.9623, -0.6458, 0.8344, -0.1136, 0.7228, -2.5678, -0.901, -0.5016, 1.3863, -0.0515, 0.5532, -0.8851, -0.2708, 0.4422, 0.6377], "final": [1.5905, 0.0824, -0.1871, 0.1076, 0.841, 1.7598, -0.9399, -0.4214, -1.6565, 1.0994, 0.3409, 0.017, 0.0393, -0.406, 0.1202, 0.5932, 0.1097, -0.573, 0.5248, 0.1074, -1.6534, -2.4307, 0.4276, -0.4347, 0.3245, -0.4319, -1.0906, 1.068, 0.6328, -1.1954, 1.0916, 1.9674, -0.1352, 0.6105, 0.1691, -1.3799, -0.4501, -1.9308, -0.5705, 1.462, -0.7266, -0.0298, 1.7018, 1.031, 1.3603, 1.516, 0.6257, 0.2234, 0.0932, 0.9986, -0.6701, 0.8658, -0.1179, 0.75, -2.6646, -0.935, -0.5205, 1.4386, -0.0535, 0.5741, -0.9185, -0.281, 0.4589, 0.6617]}, "ops_off_final": [0.9364, 0.5962, 1.323, 1.305, 0.3529, 0.3313, -0.2029, -1.8208, -0.3439, 2.2141, 0.4559, -0.8737, -0.8274, 0.5709, -0.9483, -1.6951, 0.8232, 0.1934, -0.0698, 0.7849, 0.7812, 0.4187, -0.1212, -1.2664, 0.0531, -0.5233, 0.7892, -1.578, 0.5613, -0.5001, -1.2067, 1.0311, -1.8849, 1.811, 0.5223, 0.8508, 0.0556, 1.3664, 0.4447, -1.1121, 1.0418, -0.5948, 1.4977, 0.4806, 1.1035, 0.5584, 0.4879, -1.3304, -1.2249, 0.4186, 0.9061, 0.0614, -1.9507, -1.3231, -1.2388, -0.23, -1.1017, -0.8391, 0.269, -0.6116, -0.0366, -1.5884, -1.1512, -0.5341], "echo": {"tid": 882, "piece": " time", "p": 1.0}, "off_top": {"tid": 17224, "piece": " fucking", "p": 0.316}, "survival_on": {"L1_keep": 0.9996, "L1_return": 0.992, "L2_keep": 0.9916, "L2_return": 0.9902, "final": 0.9902}, "survival_off": {"L1_keep": -0.2087, "L1_return": -0.0767, "L2_keep": -0.0441, "L2_return": 0.0284, "final": 0.0284}, "lenses": {"source": "TRAIN-39", "piece": " time", "lens1": " time", "lens1_w": 0.35329, "lens2": "W", "lens2_w": 0.33385}, "steady": {"source": "TRAIN-39", "before": 0.929, "after": 1.0}, "ideas": {"source": "TRAIN-39", "piece": " time", "fired": 147, "total": 192}, "decide": {"greedy": ["\n\n", "\n\n", "\n\n"], "target": ["{\"", "action", "\":\""], "prompt_count": 3454}, "learn": {"loss_before": 62.82201, "loss_one_step": 58.35691, "loss_after_training": 15.34859, "blame": [{"id": "decide", "label": "DECIDE (final norm)", "size": 8.27711}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "size": 4.87359}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "size": 0.93059}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "size": 0.30739}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "size": 5.10498}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "size": 1.23231}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "size": 0.27572}]}, "lora": {"before": 62.827762603759766, "after": 62.794986724853516}, "kv": {"without": 18, "with": 3, "source": "TRAIN-39"}}], "split": {"train": 41, "validation": 8, "test": 1, "note": "the real frozen promoted split (video-plan/final-course/07-a-fair-split-and-an-honest-baseline.md; NUMBERS.md); the test record is never peeked at here"}, "validation": {"before": 65.79856, "after_training": 20.97666}, "lora_share": 0.02834, "kv_memory": {"lab": 1767424, "qwen": 509018112}};
+
+const COLORS = {
+  'TRAIN-29': '#7c3aed', 'TRAIN-41': '#2563eb', 'TRAIN-22': '#0d9488',
+  'TRAIN-39': '#dc2626',
+  'TRAIN-41 (prompt start)': '#2563eb',
+};
+
+const state = { seqId: null, youPos: null, run: 0, fast: false, advance: null };
+
+// ---- helpers ---------------------------------------------------------------
+// classroom filter: an untrained brain's random guesses include a few rude words; show them as ✱✱✱
+const RUDE_PIECE = /fuck|osexual/i;
+function escapePiece(p) {
+  if (RUDE_PIECE.test(p)) return '\u2731\u2731\u2731'; return p.replace(/ /g, '\u2423').replace(/\n/g, '\u23CE'); }
+// ---- Next stepper: every step plays, then waits for Next (button, → or space) ----
+const CANCEL = new Error('cancelled');
+function wait(ms) {
+  const id = state.run;
+  return new Promise((res, rej) => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      if (id !== state.run) { clearInterval(iv); rej(CANCEL); }
+      else if (state.fast || Date.now() - t0 >= ms) { clearInterval(iv); res(); }
+    }, 30);
+  });
+}
+function gate() {
+  const id = state.run, btn = document.getElementById('nextBtn');
+  state.fast = false; btn.disabled = false;
+  return new Promise((res, rej) => {
+    state.advance = () => { state.advance = null; btn.disabled = true; id === state.run ? res() : rej(CANCEL); };
+  });
+}
+function next() {
+  if (state.advance) state.advance();   // step finished: go on
+  else state.fast = true;               // step still animating: finish it now
+}
+function startRun() {
+  const release = state.advance;        // bump the run first, so the old gate sees
+  state.run++; state.fast = false;      // it is stale and cancels instead of continuing
+  document.getElementById('nextBtn').disabled = true;
+  if (release) release();
+  return state.run;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function seqById(id) { return DATA.sequences.find(s => s.id === id); }
+function bars(vec, color, w, mid, scale) {
+  scale = scale || 2.6;
+  const n = vec.length; let out = ''; const bw = w / n;
+  for (let i = 0; i < n; i++) {
+    const v = vec[i];
+    const h = Math.max(0.5, Math.min(mid - 0.5, Math.abs(v) / scale * (mid - 0.5)));
+    const y = v >= 0 ? mid - h : mid;
+    out += '<rect x="' + (i * bw).toFixed(2) + '" y="' + y.toFixed(2) +
+      '" width="' + Math.max(0.5, bw - 0.15).toFixed(2) + '" height="' + h.toFixed(2) +
+      '" fill="' + color + '"><title>dim ' + i + ': ' + v + '</title></rect>';
+  }
+  return out;
+}
+// fit=true scales the strip to its own largest number (shape, not size)
+function stripSvg(vec, color, h, fit) {
+  const scale = fit ? Math.max(0.001, ...vec.map(Math.abs)) : 2.6;
+  const mid = h / 2;
+  return '<svg viewBox="0 0 256 ' + h + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<line x1="0" y1="' + mid + '" x2="256" y2="' + mid + '" stroke="#eee" stroke-width="0.5"/>' +
+    bars(vec, color, 256, mid, scale) + '</svg>';
+}
+function stepOn(n, color) {
+  const s = document.getElementById('step' + n);
+  s.classList.add('on'); s.style.background = color; s.style.borderColor = color;
+}
+function resetSteps() {
+  for (let n = 1; n <= 8; n++) {
+    const s = document.getElementById('step' + n);
+    s.classList.remove('on'); s.style.background = ''; s.style.borderColor = '';
+  }
+}
+function setCaption(html) { document.getElementById('caption').innerHTML = html; }
+
+// ---- brain map (same as viz #2) ------------------------------------------------
+function buildBrain() {
+  const svg = `
+<svg id="brainSvg" viewBox="0 0 460 360" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0 0 L7 4 L0 8" fill="none" stroke="#c9cdd3" stroke-width="1.5"/></marker></defs>
+  <path d="M 118 236 C 78 222 52 190 56 150 C 60 112 84 82 122 68 C 158 38 218 30 268 46
+           C 318 62 352 96 362 140 C 372 184 352 226 312 250 C 274 272 214 276 168 264
+           C 142 257 132 248 118 236 Z"
+        fill="#f7f8fa" stroke="#c9cdd3" stroke-width="2.5"/>
+  <path d="M 158 52 C 178 66 160 84 178 98" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 330 84 C 348 100 336 118 352 132" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 176 232 C 196 218 214 232 232 220" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g id="eye">
+    <ellipse cx="26" cy="150" rx="14" ry="16" fill="#fff" stroke="#9ca3af" stroke-width="2"/>
+    <circle cx="26" cy="150" r="5.5" fill="#9ca3af"/>
+    <line x1="42" y1="150" x2="66" y2="150" stroke="#c9cdd3" stroke-width="2" stroke-dasharray="4 4"/>
+  </g>
+  <path id="loopPath" d="M 326 160 C 340 240, 170 262, 106 132" stroke="#c9cdd3" stroke-width="2"
+        fill="none" stroke-dasharray="5 5" marker-end="url(#arr)"/>
+  <text x="218" y="286" text-anchor="middle" font-size="9" fill="#b3b8bf">keep + add \u2192 go again</text>
+  <path d="M 342 158 C 360 154 372 152 386 151" stroke="#c9cdd3" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <circle id="s1" cx="105" cy="95" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s2" cx="192" cy="72" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s3" cx="272" cy="95" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s4" cx="326" cy="160" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="decide" cx="406" cy="150" r="16" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <text x="105" y="127" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">STEADY</text>
+  <text x="192" y="46" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">CONSULT</text>
+  <text x="272" y="127" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">KEEP+ADD</text>
+  <text x="326" y="192" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">PROCESS</text>
+  <text x="406" y="184" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">DECIDE</text>
+  <text id="roundBadge" class="round-badge" x="218" y="322" text-anchor="middle" font-size="12" font-weight="800" fill="#6b7280" letter-spacing="1">\u21BB ROUND TWO \u2014 same stations, second pass</text>
+</svg>`;
+  document.getElementById('brainMount').innerHTML = svg;
+}
+function zoneActive(id, color) {
+  const z = document.getElementById(id);
+  z.setAttribute('fill', color); z.setAttribute('fill-opacity', '0.3');
+  z.setAttribute('stroke', color); z.setAttribute('stroke-width', '2.5');
+}
+function resetBrain() {
+  ['s1', 's2', 's3', 's4', 'decide'].forEach(id => {
+    const z = document.getElementById(id);
+    if (!z) return;
+    z.setAttribute('fill', '#eceef1'); z.setAttribute('fill-opacity', '1');
+    z.setAttribute('stroke', '#d7dade'); z.setAttribute('stroke-width', '1.5');
+  });
+  const b = document.getElementById('roundBadge');
+  if (b) b.classList.remove('shown');
+}
+
+// ---- the series: navigation + "the brain so far" --------------------------------------
+const SERIES = [
+  ['brain-token-embedding.html', 'pieces → patterns'],
+  ['brain-open-the-decoder.html', 'the whole block'],
+  ['brain-attention-workbench.html', 'consult: one thought'],
+  ['brain-attention-layer.html', 'consult: every thought'],
+  ['brain-multiple-heads.html', 'two lenses'],
+  ['brain-rmsnorm.html', 'steady'],
+  ['brain-residual.html', 'keep + add'],
+  ['brain-ffn.html', 'process'],
+  ['brain-decide.html', 'decide'],
+  ['brain-learning.html', 'learning (backprop)'],
+  ['brain-lora.html', 'a small new habit (LoRA)'],
+  ['brain-kv-cache.html', 'notes already made (KV cache)'],
+  ['brain-the-whole-story.html', 'the whole story'],
+];
+function buildSeriesNav(here) {
+  const el = document.getElementById('seriesNav');
+  el.innerHTML = '<span class="records-label">The series &rarr;</span>' + SERIES.map((s, i) =>
+    '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : i === here ? 'next-up' : '') + '">' + (i + 1) + '. ' + s[1] + '</a>').join('');
+}
+function buildGrow(here) {
+  return '<div style="font-size:.72rem; color:var(--soft); text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px;">the brain so far</div>' +
+    '<div class="series-nav" style="padding:0; background:none;">' + SERIES.map((s, i) =>
+      '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : '') + '" style="' + (i + 1 < here ? 'color:var(--ink); border-color:var(--ink);' : i + 1 > here ? 'opacity:.45;' : '') + '">' +
+      (i + 1 < here ? '✓ ' : i + 1 === here ? '◉ ' : '') + s[1] + '</a>').join('') + '</div>';
+}
+
+// ---- small helpers for this page -----------------------------------------------------
+function recById(id) { return DATA.records.find(r => r.id === id); }
+function rms(v) { return Math.sqrt(v.reduce((a, x) => a + x * x, 0) / v.length); }
+function pct(x) { return Math.round(x * 100) + '%'; }
+function fmt(x, d) { return Number(x).toFixed(d == null ? 2 : d); }
+function vizLink(n, text) { return '<a class="vlink" href="' + SERIES[n - 1][0] + '">' + text + ' &#9656; #' + n + '</a>'; }
+function showAll(els) { els.forEach(e => e.classList.add('shown')); }
+
+function buildPills() {
+  const wrap = document.getElementById('records');
+  DATA.records.forEach(rec => {
+    const color = COLORS[rec.id];
+    const pill = document.createElement('button');
+    pill.className = 'record-pill';
+    pill.style.color = color;
+    pill.innerHTML = '<span class="dot" style="background:' + color + '"></span><span class="rid">' + rec.id + '</span>' +
+      '<span class="rmsg">' + escapePiece(rec.message).replace(/⏎/g, ' ') + '</span>';
+    pill.dataset.sid = rec.id;
+    pill.addEventListener('click', () => { selectPill(rec.id); state.seqId = rec.id; runStory(rec); });
+    wrap.appendChild(pill);
+  });
+}
+function selectPill(id) {
+  document.querySelectorAll('.record-pill').forEach(p => p.classList.toggle('active', p.dataset.sid === id));
+}
+
+// ---- the journey: every station, both rounds ------------------------------------------
+function stationRows(rec, round) {
+  const L = 'L' + round, o = rec.ops, s = rec.survival_on;
+  const before = round === 1 ? o.load : o.L1_return;
+  const lens = rec.lenses;
+  const rows = [
+    ['STEADY', 's1', 6, o[L + '_steady'], 'size ' + fmt(rms(before)) + ' &rarr; ' + fmt(rms(o[L + '_steady'])) + ' &mdash; levelled before consulting'],
+    ['CONSULT', 's2', 5, o[L + '_consult'], round === 1
+      ? 'two lenses at once: lens 1 &rarr; <b>' + escapePiece(lens.lens1) + '</b>, lens 2 &rarr; <b>' + escapePiece(lens.lens2) + '</b><span class="src"> (for &ldquo;' + escapePiece(lens.piece) + '&rdquo;, ' + lens.source + ')</span>'
+      : 'consults again &mdash; every earlier piece now carries round-one context'],
+    ['KEEP + ADD', 's3', 7, o[L + '_keep'], 'still <b>' + pct(s[L + '_keep']) + '</b> the original thought'],
+    ['PROCESS', 's4', 8, o[L + '_process'], round === 1
+      ? '<b>' + rec.ideas.fired + '</b> of ' + rec.ideas.total + ' ideas got through the gate<span class="src"> (for &ldquo;' + escapePiece(rec.ideas.piece) + '&rdquo;, ' + rec.ideas.source + ')</span>'
+      : 'thinks it over again, alone'],
+    ['KEEP + ADD', 's3', 7, o[L + '_return'], 'still <b>' + pct(s[L + '_return']) + '</b> the original thought'],
+  ];
+  if (round === 2) rows.push(['STEADY (last)', 's1', 6, o.final, 'size ' + fmt(rms(o.L2_return)) + ' &rarr; ' + fmt(rms(o.final)) + ' &mdash; levelled once more before deciding']);
+  return rows;
+}
+function filmRowHtml(row, color, idx) {
+  return '<div class="film-row fade" data-z="' + row[1] + '" id="film' + idx + '">' +
+    '<a class="st-label" href="' + SERIES[row[2] - 1][0] + '" style="color:' + color + '">' + row[0] + ' <span class="vn">#' + row[2] + '</span></a>' +
+    // CONSULT / PROCESS hand back a small addition: draw it to its own size so its shape shows
+    '<span class="svec" title="' + (row[1] === 's2' || row[1] === 's4' ? 'what this station hands back, drawn to its own size' : 'the thought itself') + '">' + stripSvg(row[3], row[1] === 's2' || row[1] === 's4' ? '#6b7280' : color, 34, row[1] === 's2' || row[1] === 's4') + '</span>' +
+    '<span class="fact">' + row[4] + '</span></div>';
+}
+function addRound(rec, color, round) {
+  const wrap = document.getElementById('filmWrap');
+  if (round === 1) wrap.innerHTML = '';
+  const rows = stationRows(rec, round);
+  const start = wrap.querySelectorAll('.film-row').length;
+  wrap.insertAdjacentHTML('beforeend', '<div class="round-head">' + (round === 1 ? 'ROUND ONE <span class="src">&mdash; colored = the thought itself; gray = what CONSULT / PROCESS hand back to be added (drawn to its own size, it is small)</span>' : '&#8635; ROUND TWO &mdash; the same stations, a second pass') + '</div>' +
+    rows.map((r, i) => filmRowHtml(r, color, start + i)).join(''));
+  return Array.from(wrap.querySelectorAll('.film-row')).slice(start);
+}
+
+// ---- stages ---------------------------------------------------------------------------
+function buildSees(rec, color) {
+  document.getElementById('seesWrap').innerHTML =
+    '<div class="you-sub">The real message of <b>' + rec.id + '</b> &mdash; one small part of its real <b>' + rec.prompt_count.toLocaleString() + '</b>-piece prompt:</div>' +
+    '<div class="seq-row" id="seesChips">' + rec.msg_pieces.map(p =>
+      '<span class="seq-chip fade" style="color:' + color + (p === rec.followed ? '; border-color:' + color + '; border-width:2.5px; font-weight:700' : '') + '">' + escapePiece(p) + '</span>').join('') + '</div>' +
+    '<div id="holdRow" class="fade" style="margin-top:14px;"><div class="strip-label">HOLDS &mdash; the word we follow, <b style="color:' + color + '">' + escapePiece(rec.followed) + '</b>, is an address with a stored pattern (64 real numbers):</div>' +
+    '<span class="strip-big">' + stripSvg(rec.ops.load, '#9ca3af', 52) + '</span>' +
+    '<div class="seq-note">' + vizLink(1, 'pieces &rarr; patterns') + '</div></div>';
+  return Array.from(document.querySelectorAll('#seesChips .seq-chip'));
+}
+function buildDecide(rec, color) {
+  const d = rec.decide;
+  document.getElementById('decideWrap').innerHTML =
+    '<div class="two-col">' +
+    '<div class="fade" id="dec1"><div class="strip-label">After both rounds, the refined <b style="color:' + color + '">' + escapePiece(rec.followed) + '</b> meets every one of 151,669 pieces:</div>' +
+    '<div class="big-line">top choice <b style="color:' + color + '">' + escapePiece(rec.echo.piece) + '</b> (' + fmt(rec.echo.p * 100, 1) + '%)</div>' +
+    '<div class="seq-note">an untrained brain simply <b>echoes the word it is holding</b>. What really came next: <b>' + escapePiece(rec.next_piece || '') + '</b>.</div></div>' +
+    '<div class="fade" id="dec2"><div class="strip-label">At the end of the prompt, it writes three pieces by itself:</div>' +
+    '<div class="big-line">free choice: ' + d.greedy.map(p => '<span class="pc wrong">' + escapePiece(p) + '</span>').join('') + '</div>' +
+    '<div class="big-line">answer key: ' + d.target.map(p => '<span class="pc right">' + escapePiece(p) + '</span>').join('') + '</div>' +
+    '<div class="seq-note">Wrong every time &mdash; that gap is what learning measures. ' + vizLink(9, 'decide') + '</div></div>' +
+    '</div>';
+  return [document.getElementById('dec1'), document.getElementById('dec2')];
+}
+function buildLearn(rec, color) {
+  const l = rec.learn, maxB = Math.max(...l.blame.map(b => b.size));
+  document.getElementById('learnWrap').innerHTML =
+    '<div class="big-line fade" id="ln1">surprise (loss) <b>' + fmt(l.loss_before) + '</b> &mdash; nearly total surprise at the answer key</div>' +
+    '<div class="strip-label fade" id="ln2" style="margin-top:12px;">the blame, handed backward station by station (real gradient size):</div>' +
+    '<div id="blameRows">' + l.blame.map((b, i) =>
+      '<div class="blame-row fade" id="bl' + i + '"><span class="bl-label">' + b.label + '</span>' +
+      '<span class="bl-track"><span class="bl-fill" style="width:' + (b.size / maxB * 100) + '%; background:' + color + '"></span></span>' +
+      '<span class="bl-val">' + fmt(b.size, 2) + '</span></div>').join('') + '</div>' +
+    '<div class="big-line fade" id="ln3" style="margin-top:12px;">adjust a little: <b>' + fmt(l.loss_before) + '</b> &rarr; <b>' + fmt(l.loss_one_step) + '</b> after one real update' +
+    (l.loss_after_training != null ? ' &rarr; <b style="color:#059669">' + fmt(l.loss_after_training) + '</b> after 12 real updates' : '') + '</div>' +
+    '<div class="seq-note fade" id="ln4">And on a record it never studied (VALIDATION-01): <b>' + fmt(DATA.validation.before) + '</b> &rarr; <b style="color:#059669">' + fmt(DATA.validation.after_training) + '</b> &mdash; the habit transfers. ' + vizLink(10, 'learning (backprop)') + '</div>';
+  return ['ln1', 'ln2'].map(id => document.getElementById(id))
+    .concat(l.blame.map((b, i) => document.getElementById('bl' + i)))
+    .concat(['ln3', 'ln4'].map(id => document.getElementById(id)));
+}
+function blameZone(id) {
+  if (id === 'decide') return 'decide';
+  if (id.endsWith('process')) return 's4';
+  if (id.endsWith('consult')) return 's2';
+  if (id.endsWith('steady')) return 's1';
+  return null;
+}
+function buildExtras(rec, color) {
+  const m = DATA.kv_memory;
+  document.getElementById('extrasWrap').innerHTML =
+    '<div class="two-col">' +
+    '<div class="fade" id="ex1"><div class="strip-label">A SMALL NEW HABIT &mdash; freeze everything, bolt on a tiny correction</div>' +
+    '<div class="big-line">loss <b>' + fmt(rec.lora.before) + '</b> &rarr; <b>' + fmt(rec.lora.after) + '</b> with only the bolt-on trained</div>' +
+    '<div class="seq-note">In the real course run the bolt-on is just <b>' + fmt(DATA.lora_share * 100, 2) + '%</b> of Qwen3-8B&rsquo;s size. ' + vizLink(11, 'LoRA') + '</div></div>' +
+    '<div class="fade" id="ex2"><div class="strip-label">NOTES ALREADY MADE &mdash; the KV cache</div>' +
+    '<div class="big-line">3 new pieces: <b>' + rec.kv.without + '</b> re-asks without notes &middot; <b>' + rec.kv.with + '</b> with notes</div>' +
+    '<div class="seq-note">Same answer, less work. The price is memory: ' + fmt(m.lab / 1e6) + ' MB here, ' + fmt(m.qwen / 1e6, 0) + ' MB for Qwen3-8B on the same prompt. ' + vizLink(12, 'KV cache') + '</div></div>' +
+    '</div>';
+  return [document.getElementById('ex1'), document.getElementById('ex2')];
+}
+function buildGrid() {
+  const head = ['record', 'followed word', 'still original after 2 rounds<br>(highway ON / OFF)', 'two lenses', 'ideas through the gate', 'free choice vs answer', 'loss: before &rarr; after 12 updates'];
+  const rows = DATA.records.map(r => {
+    const c = COLORS[r.id];
+    return '<tr class="fade"><td style="color:' + c + '; font-weight:700">' + r.id + '<div class="src">' + escapePiece(r.message).replace(/⏎/g, ' ').slice(0, 34) + '</div></td>' +
+      '<td class="mono">' + escapePiece(r.followed) + '</td>' +
+      '<td>' + pct(r.survival_on.final) + ' / ' + pct(r.survival_off.final) + '</td>' +
+      '<td class="mono">' + escapePiece(r.lenses.lens1) + ' &middot; ' + escapePiece(r.lenses.lens2) + '</td>' +
+      '<td>' + r.ideas.fired + ' / ' + r.ideas.total + '</td>' +
+      '<td class="mono">' + escapePiece(r.decide.greedy[0]) + ' vs ' + escapePiece(r.decide.target[0]) + '</td>' +
+      '<td>' + fmt(r.learn.loss_before, 1) + ' &rarr; <b style="color:#059669">' + (r.learn.loss_after_training != null ? fmt(r.learn.loss_after_training, 1) : '&mdash;') + '</b></td></tr>';
+  }).join('');
+  const sp = DATA.split, tot = sp.train + sp.validation + sp.test;
+  document.getElementById('gridWrap').innerHTML =
+    '<div class="grid-scroll"><table class="grid"><thead><tr>' + head.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<div class="strip-label" style="margin-top:16px;">and the real split every record belongs to:</div>' +
+    '<div class="splitbar fade" id="splitBar"><span style="flex:' + sp.train + '; background:#1f2937">' + sp.train + ' train &mdash; the brain learns from these</span>' +
+    '<span style="flex:' + sp.validation + '; background:#0d9488">' + sp.validation + ' check</span>' +
+    '<span style="flex:' + Math.max(sp.test, 1.4) + '; background:#dc2626">' + sp.test + '</span></div>' +
+    '<div class="seq-note">' + tot + ' real records: ' + sp.train + ' to learn from, ' + sp.validation + ' to check the habit transfers, ' + sp.test + ' test record never peeked at.</div>' +
+    '<div id="growWrap" class="fade" style="margin-top:14px;"></div>';
+  return Array.from(document.querySelectorAll('#gridWrap .fade'));
+}
+function resetPanels() {
+  document.getElementById('seesWrap').innerHTML = '<div class="empty">The real message appears here, split into pieces.</div>';
+  document.getElementById('filmWrap').innerHTML = '<div class="empty">Each station the thought passes through appears here.</div>';
+  document.getElementById('decideWrap').innerHTML = '<div class="empty">The choice appears here &mdash; and the answer key.</div>';
+  document.getElementById('learnWrap').innerHTML = '<div class="empty">The surprise, the blame and the correction appear here.</div>';
+  document.getElementById('extrasWrap').innerHTML = '<div class="empty">Two practical tricks appear here.</div>';
+  document.getElementById('gridWrap').innerHTML = '<div class="empty">Every record, side by side, appears here.</div>';
+  document.getElementById('mapNote').innerHTML = 'The brain map from viz #2 &mdash; it lights up as the thought travels.';
+  resetBrain();
+}
+function scrollTo(id) { const el = document.getElementById(id); if (el) el.closest('.stage').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+
+// ---- the eight steps -------------------------------------------------------------------
+async function runStory(rec) {
+  startRun();
+  const color = COLORS[rec.id];
+  resetSteps(); resetPanels();
+  document.getElementById('storyHint').textContent = rec.id + ' — ' + rec.prompt_count.toLocaleString() + ' real prompt pieces; we follow “' + rec.followed.trim() + '”.';
+  const note = html => { document.getElementById('mapNote').innerHTML = html; };
+  try {
+    // 1. SEES
+    stepOn(1, color);
+    document.getElementById('eye').querySelectorAll('ellipse, circle').forEach(e => e.setAttribute('stroke', color));
+    setCaption('SEES. You glance at a message and it breaks into familiar pieces. The transformer does the same: <b>' + rec.msg_pieces.length + '</b> real pieces of ' + rec.id + '&rsquo;s message.');
+    note('Eyes: the message arrives as pieces.');
+    for (const c of buildSees(rec, color)) { c.classList.add('shown'); await wait(160); }
+    await gate();
+
+    // 2. HOLDS
+    stepOn(2, color);
+    setCaption('HOLDS. We follow one word, <b>' + escapePiece(rec.followed) + '</b>. Its address opens a stored pattern &mdash; 64 real numbers. That pattern is the thought, and it is what travels.');
+    document.getElementById('holdRow').classList.add('shown');
+    await gate();
+
+    // 3. ROUND ONE
+    stepOn(3, color);
+    scrollTo('filmWrap');
+    setCaption('ROUND ONE. The thought visits every station in order: <b>steady &rarr; consult &rarr; keep + add &rarr; process &rarr; keep + add</b>. Each row is its real pattern at that station, plus one real fact. Click a station to open its own visualization.');
+    for (const row of addRound(rec, color, 1)) {
+      resetBrain(); zoneActive(row.dataset.z, color);
+      row.classList.add('shown'); await wait(900);
+    }
+    note('One round done: <b>steady, consult, keep + add, process, keep + add</b>.');
+    await gate();
+
+    // 4. ROUND TWO
+    stepOn(4, color);
+    document.getElementById('roundBadge').classList.add('shown');
+    setCaption('ROUND TWO. The same stations run again on the refreshed thought. After both rounds it is still <b>' + pct(rec.survival_on.final) + '</b> the original thought &mdash; switch the keep + add highway off and only <b>' + pct(rec.survival_off.final) + '</b> would survive.');
+    for (const row of addRound(rec, color, 2)) {
+      resetBrain(); zoneActive(row.dataset.z, color);
+      document.getElementById('roundBadge').classList.add('shown');
+      row.classList.add('shown'); await wait(900);
+    }
+    note('&#8635; Qwen3-8B runs this round <b>36</b> times; this teaching brain runs it twice.');
+    await gate();
+
+    // 5. DECIDES
+    stepOn(5, color);
+    resetBrain(); zoneActive('decide', color);
+    scrollTo('decideWrap');
+    setCaption('DECIDES. The finished thought meets the whole vocabulary and one piece wins. This brain is <b>untrained</b>, so its choices are wrong &mdash; exactly what you would expect before any teaching.');
+    note('<b>DECIDE</b>: the chosen piece is appended, and the loop starts again.');
+    const dec = buildDecide(rec, color);
+    await wait(300); dec[0].classList.add('shown');
+    await wait(900); dec[1].classList.add('shown');
+    await gate();
+
+    // 6. LEARNS
+    stepOn(6, color);
+    scrollTo('learnWrap');
+    setCaption('LEARNS. The teacher shows the answer; the surprise is the <b>loss</b>. The blame travels <b>backward</b> through the same stations &mdash; DECIDE first, then each round in reverse &mdash; and every station is nudged a little. This is <b>backpropagation</b>.');
+    const ln = buildLearn(rec, color);
+    ln[0].classList.add('shown'); await wait(700); ln[1].classList.add('shown');
+    const blame = rec.learn.blame, maxB = Math.max(...blame.map(b => b.size));
+    for (let i = 0; i < blame.length; i++) {
+      resetBrain();
+      const z = blameZone(blame[i].id); if (z) zoneActive(z, color);
+      ln[2 + i].classList.add('shown'); await wait(520);
+    }
+    resetBrain();
+    const most = {};
+    blame.forEach(b => { const z = blameZone(b.id); if (z) most[z] = Math.max(most[z] || 0, b.size); });
+    Object.keys(most).forEach(z => { zoneActive(z, color); document.getElementById(z).setAttribute('fill-opacity', String(0.15 + 0.7 * most[z] / maxB)); });
+    note('Every station got its share of the blame &mdash; brighter = bigger correction.');
+    await wait(500); ln[ln.length - 2].classList.add('shown');
+    await wait(700); ln[ln.length - 1].classList.add('shown');
+    await gate();
+
+    // 7. HABITS & NOTES
+    stepOn(7, color);
+    scrollTo('extrasWrap');
+    setCaption('Two practical tricks. <b>A small new habit</b> (LoRA): freeze the brain and train a tiny add-on. <b>Notes already made</b> (KV cache): keep earlier pieces&rsquo; notes so each new piece does only its own work.');
+    resetBrain(); zoneActive('s2', color); zoneActive('decide', color);
+    note('Both tricks live at <b>CONSULT</b>; the notebook also speeds up the <b>DECIDE</b> loop.');
+    const ex = buildExtras(rec, color);
+    await wait(300); ex[0].classList.add('shown');
+    await wait(900); ex[1].classList.add('shown');
+    await gate();
+
+    // 8. EVERY RECORD
+    stepOn(8, color);
+    scrollTo('gridWrap');
+    ['s1', 's2', 's3', 's4', 'decide'].forEach(z => zoneActive(z, color));
+    document.getElementById('roundBadge').classList.add('shown');
+    note('The whole brain: every station lit, for every record.');
+    setCaption('EVERY RECORD. It was never about one example: every real record goes through the <b>same stations</b>, gets the <b>same kind of blame</b>, and the brain improves on <b>all of them at once</b> &mdash; including records it never studied.');
+    const cells = buildGrid();
+    for (const c of cells) { c.classList.add('shown'); await wait(350); }
+    document.getElementById('growWrap').innerHTML = buildGrow(13) +
+      '<div style="margin-top:10px;">This is how the brain operates &mdash; and how the transformer operates: <b>see, hold, consult, keep, process, decide, learn</b>, on every one of the ' + DATA.split.train + ' training records.</div>';
+    document.getElementById('growWrap').classList.add('shown');
+    toast('The whole story — switch records, or open any station’s own visualization');
+  } catch (e) { if (e !== CANCEL) throw e; }
+}
+
+function buildFooter() {
+  document.getElementById('footer').innerHTML =
+    'Real data, gathered from the series. The journey is the followed word&rsquo;s <b>real 64-number vector at every station</b> on its record&rsquo;s <b>real full prompt</b> (viz #2&rsquo;s trace, seed-701 lab decoder, checked against the model&rsquo;s own forward pass); sizes are real RMS; &ldquo;still original&rdquo; is real cos(original, current) with the highway on and off. ' +
+    'Facts marked with a source come from that viz&rsquo;s own sequence: the two lenses (#5) and ideas through the gate (#8) were computed on each record&rsquo;s real message pieces (TRAIN-41: the first 13 pieces of its prompt). ' +
+    'Decide (#9): real greedy choices and the real reviewed target. Learn (#10): real loss, real gradient sizes per station, real SGD updates (lr 0.05) and the real held-out VALIDATION-01. LoRA (#11) and KV cache (#12): real lab runs and real memory arithmetic. ' +
+    'The decoder is untrained until #10 &mdash; only the mechanism is real, not meaning. The brain story is a simplified intuition &mdash; <b>not neuroscience</b>.';
+}
+
+// ---- init ------------------------------------------------------------------------------
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('replayBtn').addEventListener('click', () => { const r = recById(state.seqId); if (r) runStory(r); });
+document.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); } });
+buildBrain();
+buildPills();
+buildFooter();
+buildSeriesNav(13);
+(function () {
+  const rec = DATA.records[0];
+  selectPill(rec.id); state.seqId = rec.id;
+  setTimeout(() => runStory(rec), 400);
+})();
+</script>
+</body>
+</html>

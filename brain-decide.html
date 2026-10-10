@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Thought Becomes a Next Piece — decide</title>
+<style>
+  :root { --ink: #1a1a1a; --soft: #6b7280; --line: #e5e7eb; --wash: #fafafa; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: var(--ink); min-width: 320px; }
+  code, .mono { font-family: "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+  .header { display: flex; justify-content: space-between; align-items: baseline; padding: 26px 40px 18px; border-bottom: 1px solid var(--line); gap: 24px; flex-wrap: wrap; }
+  .header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.02em; font-weight: 750; }
+  .header .sub { margin: 4px 0 0; color: var(--soft); font-size: .85rem; }
+  .disclaimer { font-size: .72rem; color: var(--soft); max-width: 460px; line-height: 1.45; border-left: 3px solid #f59e0b; padding-left: 10px; }
+  .records { display: flex; gap: 10px; padding: 18px 40px; flex-wrap: wrap; align-items: center; }
+  .records-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); margin-right: 6px; }
+  .record-pill { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; border: 2px solid var(--line); border-radius: 12px; background: #fff; padding: 8px 13px; cursor: pointer; min-width: 150px; transition: border-color .2s, transform .15s, box-shadow .2s; }
+  .record-pill:hover { transform: translateY(-2px); }
+  .record-pill .rid { font-size: .76rem; font-weight: 700; font-family: "SF Mono", monospace; }
+  .record-pill .rmsg { font-size: .7rem; color: var(--soft); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .record-pill .dot { width: 9px; height: 9px; border-radius: 50%; margin-bottom: 4px; }
+  .record-pill.active { box-shadow: 0 4px 14px rgba(0,0,0,.09); }
+</style>
+<style>
+  .story { margin: 4px 40px 0; border: 1px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; }
+  .story-body { padding: 14px 16px 4px; }
+  .steps { display: flex; gap: 8px; flex-wrap: wrap; }
+  .step { flex: 1; min-width: 110px; text-align: center; font-size: .62rem; padding: 7px 3px 6px; border-radius: 8px; border: 1px solid var(--line); color: var(--soft); font-weight: 650; letter-spacing: .03em; transition: all .4s; }
+  .step small { display: block; font-weight: 500; font-size: .56rem; margin-top: 2px; letter-spacing: 0; }
+  .step.on { color: #fff; }
+  .caption { margin: 12px 0 10px; padding: 12px 14px; font-size: .84rem; line-height: 1.55; background: var(--wash); border-radius: 10px; min-height: 66px; }
+  .story-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 16px 14px; gap: 10px; flex-wrap: wrap; }
+  .replay { border: 1.5px solid var(--ink); background: #fff; border-radius: 9px; padding: 7px 13px; font-size: .74rem; font-weight: 650; cursor: pointer; transition: background .2s, color .2s; }
+  .replay:hover { background: var(--ink); color: #fff; }
+  .replay:disabled { opacity: .4; cursor: not-allowed; }
+  .next { border: 1.5px solid var(--ink); background: var(--ink); color: #fff; border-radius: 9px; padding: 7px 16px; font-size: .74rem; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .next:disabled { opacity: .4; cursor: not-allowed; }
+  .story-hint { font-size: .7rem; color: var(--soft); }
+  .stage { margin: 18px 40px 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+  .stage-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--wash); gap: 10px; flex-wrap: wrap; }
+  .stage-head .t { font-size: .8rem; font-weight: 700; }
+  .stage-head .h { font-size: .68rem; color: var(--soft); text-transform: uppercase; letter-spacing: .07em; }
+  .stage-body { padding: 14px 16px; }
+  .stage-body .empty { color: var(--soft); font-size: .85rem; line-height: 1.6; }
+  .fade { opacity: 0; transition: opacity .5s; }
+  .fade.shown { opacity: 1; }
+  .blockmap { display: grid; grid-template-columns: minmax(300px, 480px) 1fr; gap: 22px; align-items: start; }
+  #brainMount svg { width: 100%; height: auto; display: block; }
+  .round-badge { opacity: 0; transition: opacity .5s; }
+  .round-badge.shown { opacity: 1; }
+  .map-note { font-size: .78rem; line-height: 1.6; color: var(--ink); padding: 4px 0; }
+  .map-note b { font-family: "SF Mono", monospace; }
+  .connect-examples { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+  .connect-chip { border: 1.5px solid var(--line); border-radius: 9px; padding: 8px 11px; font-size: .74rem; font-weight: 600; opacity: 0; transition: opacity .4s; background: #fff; }
+  .connect-chip.shown { opacity: 1; }
+  .connect-chip b { font-family: "SF Mono", monospace; }
+  .connect-note { margin-top: 10px; font-size: .78rem; color: var(--soft); line-height: 1.6; }
+  .footer { margin-top: 22px; padding: 18px 40px 14px; border-top: 1px solid var(--line); font-size: .7rem; color: var(--soft); line-height: 1.6; background: var(--wash); }
+  .footer b { color: var(--ink); }
+  .series-nav { padding: 0 40px 22px; background: var(--wash); display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .series-nav a { color: var(--soft); text-decoration: none; font-size: .68rem; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: #fff; }
+  .series-nav a:hover { border-color: var(--ink); color: var(--ink); }
+  .series-nav a.here { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 700; }
+  .series-nav a.next-up { border: 2px solid var(--ink); color: var(--ink); font-weight: 750; }
+  #toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 999px; padding: 9px 18px; font-size: .78rem; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 60; }
+  #toast.show { opacity: 1; }
+  @media (max-width: 1120px) { .blockmap { grid-template-columns: 1fr; } }
+</style>
+<style>
+  /* candidate rows (extends viz #2's decide strip) */
+  .cand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; opacity: 0; transition: opacity .4s; }
+  .cand-row.shown { opacity: 1; }
+  .cand-row .cp { font-family: "SF Mono", monospace; font-size: .8rem; min-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cand-row.winner .cp { font-weight: 800; }
+  .cand-row .bar { height: 13px; border-radius: 4px; min-width: 2px; }
+  .cand-row .pv { font-size: .66rem; color: var(--soft); font-family: "SF Mono", monospace; min-width: 62px; }
+  .thought-line { font-family: "SF Mono", monospace; font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+  .thought-sub { font-size: .74rem; color: var(--soft); margin: 0 0 12px; line-height: 1.5; }
+  .greedy-chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 14px; }
+  .chain-piece { font-family: "SF Mono", monospace; font-size: .82rem; border: 1.5px solid var(--line); border-radius: 8px; padding: 5px 9px; opacity: 0; transition: opacity .4s; }
+  .chain-piece.shown { opacity: 1; }
+  .chain-piece.new { font-weight: 800; }
+  .temp-block { margin-bottom: 18px; opacity: 0; transition: opacity .5s; }
+  .temp-block.shown { opacity: 1; }
+  .temp-block .tt { font-size: .74rem; font-weight: 700; margin-bottom: 6px; }
+  .answer-row { display: grid; grid-template-columns: 130px 1fr 1fr; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line); opacity: 0; transition: opacity .5s; }
+  .answer-row.shown { opacity: 1; }
+  .answer-row:last-child { border-bottom: 0; }
+  .answer-row .al { font-size: .72rem; color: var(--soft); font-weight: 650; }
+  .answer-row .apiece { font-family: "SF Mono", monospace; font-size: .84rem; font-weight: 700; }
+  .answer-row .asub { font-size: .68rem; color: var(--soft); }
+  .answer-row.match .apiece.free { color: #16a34a; }
+  .answer-row.mismatch .apiece.free { color: #dc2626; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>The Thought Becomes a Next Piece</h1>
+    <p class="sub">the refined pattern finally meets the vocabulary &mdash; and the choice becomes the next thought</p>
+  </div>
+  <div class="disclaimer">
+    A simplified cognitive story &mdash; <b>not neuroscience</b>. Every score, softmax percentage, greedy step
+    and resample below is real, computed from the lab decoder's real logits on each record's real full prompt.
+  </div>
+</div>
+
+<div class="records" id="records">
+  <span class="records-label">Real records (full real prompts) &rarr;</span>
+</div>
+
+<div class="story">
+  <div class="story-body">
+    <div class="steps">
+      <div class="step" id="step1">1. TWO CANDIDATES<small>the human mirror</small></div>
+      <div class="step" id="step2">2. SUPPORT SCORES<small>real top-10 of 151,669</small></div>
+      <div class="step" id="step3">3. PREFERENCE<small>softmax &rarr; %</small></div>
+      <div class="step" id="step4">4. CHOOSE &middot; APPEND &middot; ASK AGAIN<small>3 real greedy steps</small></div>
+      <div class="step" id="step5">5. HOW ADVENTUROUS<small>temperature</small></div>
+      <div class="step" id="step6">6. THE ANSWER KEY<small>reviewed target vs free choice</small></div>
+      <div class="step" id="step7">7. CONNECT<small>back into the brain</small></div>
+    </div>
+    <div class="caption" id="caption">When you finish someone's sentence, several words come to mind at once, and you pick one. The decoder&rsquo;s last step does the same thing &mdash; over 151,669 real candidates.</div>
+  </div>
+  <div class="story-foot">
+    <span class="story-hint" id="storyHint">&ldquo;Next&rdquo; steps through the story; the pills switch real records.</span>
+    <div style="display:flex; gap:8px;">
+      <button class="replay" id="replayBtn" disabled>&#8635; replay</button>
+      <button class="next" id="nextBtn" disabled>Next &#9656;</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">The thought, at the end of the real prompt</span><span class="h">real final position</span></div>
+  <div class="stage-body">
+    <div class="thought-line" id="thoughtLine">&mdash;</div>
+    <div class="thought-sub" id="thoughtSub">The featured record's real thought appears here.</div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Support scores &rarr; preference</span><span class="h">real logits &rarr; real softmax</span></div>
+  <div class="stage-body">
+    <div id="scoreBars"><div class="empty">Every one of the vocabulary's 151,669 pieces gets a real support score. The top 10 appear here.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Choose &middot; append &middot; ask again</span><span class="h">3 real greedy steps, honestly untrained</span></div>
+  <div class="stage-body">
+    <div class="greedy-chain" id="greedyChain"></div>
+    <div id="greedyBody"><div class="empty">Each chosen piece becomes the new thought and asks the same question again.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">How adventurous is the choice?</span><span class="h">real resampling, same real logits, fixed seed</span></div>
+  <div class="stage-body">
+    <div id="tempBody"><div class="empty">Temperature reshapes the same real distribution before one piece is drawn.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">The answer key</span><span class="h">the real reviewed target vs the untrained free choice</span></div>
+  <div class="stage-body">
+    <div id="answerBody"><div class="empty">What a human reviewer actually approved, compared with what the untrained decoder picked on its own.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Connect &mdash; back into the brain</span><span class="h">you are here: DECIDE, then the loop back</span></div>
+  <div class="stage-body">
+    <div class="blockmap">
+      <div id="brainMount"></div>
+      <div class="map-note" id="mapNote">This is DECIDE &mdash; the exit of the block from viz #2.</div>
+    </div>
+    <div class="connect-examples" id="connectExamples"></div>
+    <div class="connect-note" id="connectNote"></div>
+  </div>
+</div>
+
+<div class="footer" id="footer"></div>
+<div class="series-nav" id="seriesNav"></div>
+<div id="toast"></div>
+<script>
+"use strict";
+const DATA = {"model": {"kind": "seeded_untrained_custom_decoder", "seed": 701, "width": 64, "layers": 2, "note": "logits = tied output projection (model.output.weight is the same tensor as token_embedding.weight) applied to the real final-norm pattern; softmax rows are real and sum to 1 over the full 151,669-piece vocabulary; the 3 greedy steps use the lab’s real generation cache path (campaignlab/laboratory/operations.py _last_cached) so every logit is freshly real; teacher forcing feeds the record’s real reviewed target prefix at the same position free generation is feeding its own greedy choice; resampling reuses the exact same real final-position logits with only temperature changed, fixed seed 7, top_k=0 and top_p=1 so nothing but temperature moves the distribution."}, "records": [{"id": "TRAIN-41", "prompt_token_count": 3452, "reviewed_target_pieces": ["{\"", "action", "\":\""], "final_distribution": {"top": [{"id": 271, "piece": "\n\n", "logit": 67.4798, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1058, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.353, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5167, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5175, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5878, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4461, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4085, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1142, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7297, "probability": 0.0}], "top_probability_mass": 1.0, "vocabulary_size": 151669}, "greedy": [{"step": 1, "thought_piece": "\n\n", "free": {"sequence_length": 3452, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4798, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1058, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.353, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5167, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5175, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5878, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4461, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4085, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1142, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7297, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4798, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3452, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4798, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1058, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.353, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5167, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5175, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5878, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4461, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4085, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1142, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7297, "probability": 0.0}], "target": {"id": 4913, "piece": "{\"", "rank_in_full_vocab": 127118, "probability": 0.0, "logit": -7.8669}}}, {"step": 2, "thought_piece": "\n\n", "free": {"sequence_length": 3453, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4809, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1052, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3558, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5186, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5184, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5874, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4464, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4109, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1134, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7294, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4809, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3453, "top10": [{"id": 4913, "piece": "{\"", "logit": 68.1691, "probability": 1.0}, {"id": 135280, "piece": "แล้วก็", "logit": 36.9726, "probability": 0.0}, {"id": 23109, "piece": " adoles", "logit": 36.3603, "probability": 0.0}, {"id": 26046, "piece": " temps", "logit": 34.3959, "probability": 0.0}, {"id": 57214, "piece": "(hidden", "logit": 34.1919, "probability": 0.0}, {"id": 105675, "piece": "大脑", "logit": 33.2524, "probability": 0.0}, {"id": 99213, "piece": "领", "logit": 32.2916, "probability": 0.0}, {"id": 10222, "piece": "typeof", "logit": 32.2855, "probability": 0.0}, {"id": 140914, "piece": " 기억", "logit": 32.2285, "probability": 0.0}, {"id": 132123, "piece": " khảo", "logit": 32.1256, "probability": 0.0}], "target": {"id": 1311, "piece": "action", "rank_in_full_vocab": 97633, "probability": 0.0, "logit": -2.9996}}}, {"step": 3, "thought_piece": "\n\n", "free": {"sequence_length": 3454, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.482, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1048, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3572, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5245, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5245, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5815, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4432, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4063, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.117, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7301, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.482, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3454, "top10": [{"id": 1311, "piece": "action", "logit": 56.6868, "probability": 1.0}, {"id": 98257, "piece": " nanny", "logit": 34.6242, "probability": 0.0}, {"id": 99444, "piece": "�", "logit": 34.2489, "probability": 0.0}, {"id": 27951, "piece": "uter", "logit": 32.9839, "probability": 0.0}, {"id": 111324, "piece": "刊登", "logit": 31.9869, "probability": 0.0}, {"id": 2221, "piece": "ived", "logit": 31.0254, "probability": 0.0}, {"id": 126632, "piece": "עיר", "logit": 31.0216, "probability": 0.0}, {"id": 101178, "piece": "道路", "logit": 30.9249, "probability": 0.0}, {"id": 108360, "piece": "被告人", "logit": 30.6269, "probability": 0.0}, {"id": 75130, "piece": " wissen", "logit": 30.3913, "probability": 0.0}], "target": {"id": 3252, "piece": "\":\"", "rank_in_full_vocab": 98518, "probability": 0.0, "logit": -3.0409}}}], "resample": [{"temperature": 1.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 1.0}, {"id": 48200, "piece": "osexual", "probability": 0.0}, {"id": 14330, "piece": " toString", "probability": 0.0}, {"id": 139831, "piece": " gấp", "probability": 0.0}, {"id": 82291, "piece": "iaux", "probability": 0.0}, {"id": 81264, "piece": "？”", "probability": 0.0}, {"id": 49414, "piece": "onta", "probability": 0.0}, {"id": 135237, "piece": "بش", "probability": 0.0}], "sampled": {"id": 271, "piece": "\n\n", "probability": 1.0}}, {"temperature": 10.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 0.004063}, {"id": 48200, "piece": "osexual", "probability": 0.000355}, {"id": 14330, "piece": " toString", "probability": 0.000298}, {"id": 139831, "piece": " gấp", "probability": 0.000224}, {"id": 82291, "piece": "iaux", "probability": 0.000136}, {"id": 81264, "piece": "？”", "probability": 0.000112}, {"id": 49414, "piece": "onta", "probability": 0.000111}, {"id": 135237, "piece": "بش", "probability": 0.00011}], "sampled": {"id": 44663, "piece": "_DI", "probability": 9e-06}}, {"temperature": 30.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 6e-05}, {"id": 48200, "piece": "osexual", "probability": 2.7e-05}, {"id": 14330, "piece": " toString", "probability": 2.5e-05}, {"id": 139831, "piece": " gấp", "probability": 2.3e-05}, {"id": 82291, "piece": "iaux", "probability": 1.9e-05}, {"id": 81264, "piece": "？”", "probability": 1.8e-05}, {"id": 49414, "piece": "onta", "probability": 1.8e-05}, {"id": 135237, "piece": "بش", "probability": 1.8e-05}], "sampled": {"id": 44663, "piece": "_DI", "probability": 8e-06}}]}, {"id": "TRAIN-29", "prompt_token_count": 3772, "reviewed_target_pieces": ["{\"", "action", "\":\""], "final_distribution": {"top": [{"id": 271, "piece": "\n\n", "logit": 67.4848, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1101, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3591, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5214, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5177, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5707, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.5133, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3714, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1213, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7111, "probability": 0.0}], "top_probability_mass": 1.0, "vocabulary_size": 151669}, "greedy": [{"step": 1, "thought_piece": "\n\n", "free": {"sequence_length": 3772, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4848, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1101, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3591, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5214, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5177, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5707, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.5133, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3714, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1213, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7111, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4848, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3772, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4848, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1101, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3591, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5214, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5177, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5707, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.5133, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3714, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1213, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7111, "probability": 0.0}], "target": {"id": 4913, "piece": "{\"", "rank_in_full_vocab": 127220, "probability": 0.0, "logit": -7.8824}}}, {"step": 2, "thought_piece": "\n\n", "free": {"sequence_length": 3773, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4858, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1109, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3647, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5247, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5232, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5705, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.5072, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3706, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1151, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7027, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4858, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3773, "top10": [{"id": 4913, "piece": "{\"", "logit": 68.1746, "probability": 1.0}, {"id": 135280, "piece": "แล้วก็", "logit": 36.98, "probability": 0.0}, {"id": 23109, "piece": " adoles", "logit": 36.3455, "probability": 0.0}, {"id": 26046, "piece": " temps", "logit": 34.357, "probability": 0.0}, {"id": 57214, "piece": "(hidden", "logit": 34.1886, "probability": 0.0}, {"id": 105675, "piece": "大脑", "logit": 33.2512, "probability": 0.0}, {"id": 99213, "piece": "领", "logit": 32.3033, "probability": 0.0}, {"id": 10222, "piece": "typeof", "logit": 32.2507, "probability": 0.0}, {"id": 140914, "piece": " 기억", "logit": 32.2057, "probability": 0.0}, {"id": 132123, "piece": " khảo", "logit": 32.1339, "probability": 0.0}], "target": {"id": 1311, "piece": "action", "rank_in_full_vocab": 97536, "probability": 0.0, "logit": -2.9877}}}, {"step": 3, "thought_piece": "\n\n", "free": {"sequence_length": 3774, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4872, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1158, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3686, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5285, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5321, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.571, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.5031, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3724, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1105, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.6985, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4872, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3774, "top10": [{"id": 1311, "piece": "action", "logit": 56.6942, "probability": 1.0}, {"id": 98257, "piece": " nanny", "logit": 34.5657, "probability": 0.0}, {"id": 99444, "piece": "�", "logit": 34.2694, "probability": 0.0}, {"id": 27951, "piece": "uter", "logit": 32.984, "probability": 0.0}, {"id": 111324, "piece": "刊登", "logit": 32.0743, "probability": 0.0}, {"id": 126632, "piece": "עיר", "logit": 31.0523, "probability": 0.0}, {"id": 2221, "piece": "ived", "logit": 30.9963, "probability": 0.0}, {"id": 101178, "piece": "道路", "logit": 30.9115, "probability": 0.0}, {"id": 108360, "piece": "被告人", "logit": 30.7012, "probability": 0.0}, {"id": 75130, "piece": " wissen", "logit": 30.4277, "probability": 0.0}], "target": {"id": 3252, "piece": "\":\"", "rank_in_full_vocab": 97980, "probability": 0.0, "logit": -2.9694}}}], "resample": [{"temperature": 1.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 1.0}, {"id": 48200, "piece": "osexual", "probability": 0.0}, {"id": 14330, "piece": " toString", "probability": 0.0}, {"id": 139831, "piece": " gấp", "probability": 0.0}, {"id": 82291, "piece": "iaux", "probability": 0.0}, {"id": 81264, "piece": "？”", "probability": 0.0}, {"id": 49414, "piece": "onta", "probability": 0.0}, {"id": 135237, "piece": "بش", "probability": 0.0}], "sampled": {"id": 271, "piece": "\n\n", "probability": 1.0}}, {"temperature": 10.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 0.004065}, {"id": 48200, "piece": "osexual", "probability": 0.000355}, {"id": 14330, "piece": " toString", "probability": 0.000298}, {"id": 139831, "piece": " gấp", "probability": 0.000225}, {"id": 82291, "piece": "iaux", "probability": 0.000136}, {"id": 81264, "piece": "？”", "probability": 0.000112}, {"id": 49414, "piece": "onta", "probability": 0.000111}, {"id": 135237, "piece": "بش", "probability": 0.00011}], "sampled": {"id": 44663, "piece": "_DI", "probability": 8e-06}}, {"temperature": 30.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 6e-05}, {"id": 48200, "piece": "osexual", "probability": 2.7e-05}, {"id": 14330, "piece": " toString", "probability": 2.5e-05}, {"id": 139831, "piece": " gấp", "probability": 2.3e-05}, {"id": 82291, "piece": "iaux", "probability": 1.9e-05}, {"id": 81264, "piece": "？”", "probability": 1.8e-05}, {"id": 49414, "piece": "onta", "probability": 1.8e-05}, {"id": 135237, "piece": "بش", "probability": 1.8e-05}], "sampled": {"id": 44663, "piece": "_DI", "probability": 8e-06}}]}, {"id": "TRAIN-22", "prompt_token_count": 3460, "reviewed_target_pieces": ["{\"", "action", "\":\""], "final_distribution": {"top": [{"id": 271, "piece": "\n\n", "logit": 67.4839, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1041, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3562, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5349, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5069, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5915, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4288, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3972, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1201, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7102, "probability": 0.0}], "top_probability_mass": 1.0, "vocabulary_size": 151669}, "greedy": [{"step": 1, "thought_piece": "\n\n", "free": {"sequence_length": 3460, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4839, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1041, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3562, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5349, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5069, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5915, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4288, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3972, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1201, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7102, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4839, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3460, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4839, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1041, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3562, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5349, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5069, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5915, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4288, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3972, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1201, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7102, "probability": 0.0}], "target": {"id": 4913, "piece": "{\"", "rank_in_full_vocab": 127200, "probability": 0.0, "logit": -7.8785}}}, {"step": 2, "thought_piece": "\n\n", "free": {"sequence_length": 3461, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4846, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.107, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.354, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5338, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5126, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5892, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4235, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3973, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1162, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7102, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4846, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3461, "top10": [{"id": 4913, "piece": "{\"", "logit": 68.1721, "probability": 1.0}, {"id": 135280, "piece": "แล้วก็", "logit": 36.9635, "probability": 0.0}, {"id": 23109, "piece": " adoles", "logit": 36.3694, "probability": 0.0}, {"id": 26046, "piece": " temps", "logit": 34.3797, "probability": 0.0}, {"id": 57214, "piece": "(hidden", "logit": 34.1984, "probability": 0.0}, {"id": 105675, "piece": "大脑", "logit": 33.2396, "probability": 0.0}, {"id": 99213, "piece": "领", "logit": 32.3018, "probability": 0.0}, {"id": 10222, "piece": "typeof", "logit": 32.2891, "probability": 0.0}, {"id": 140914, "piece": " 기억", "logit": 32.2185, "probability": 0.0}, {"id": 132123, "piece": " khảo", "logit": 32.1256, "probability": 0.0}], "target": {"id": 1311, "piece": "action", "rank_in_full_vocab": 97536, "probability": 0.0, "logit": -2.9862}}}, {"step": 3, "thought_piece": "\n\n", "free": {"sequence_length": 3462, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4845, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1097, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3521, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5264, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.516, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5908, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4209, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4002, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1119, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7108, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4845, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3462, "top10": [{"id": 1311, "piece": "action", "logit": 56.6876, "probability": 1.0}, {"id": 98257, "piece": " nanny", "logit": 34.6143, "probability": 0.0}, {"id": 99444, "piece": "�", "logit": 34.273, "probability": 0.0}, {"id": 27951, "piece": "uter", "logit": 32.9796, "probability": 0.0}, {"id": 111324, "piece": "刊登", "logit": 31.9831, "probability": 0.0}, {"id": 2221, "piece": "ived", "logit": 31.0108, "probability": 0.0}, {"id": 126632, "piece": "עיר", "logit": 31.0018, "probability": 0.0}, {"id": 101178, "piece": "道路", "logit": 30.9134, "probability": 0.0}, {"id": 108360, "piece": "被告人", "logit": 30.6294, "probability": 0.0}, {"id": 75130, "piece": " wissen", "logit": 30.4056, "probability": 0.0}], "target": {"id": 3252, "piece": "\":\"", "rank_in_full_vocab": 98509, "probability": 0.0, "logit": -3.0397}}}], "resample": [{"temperature": 1.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 1.0}, {"id": 48200, "piece": "osexual", "probability": 0.0}, {"id": 14330, "piece": " toString", "probability": 0.0}, {"id": 139831, "piece": " gấp", "probability": 0.0}, {"id": 82291, "piece": "iaux", "probability": 0.0}, {"id": 81264, "piece": "？”", "probability": 0.0}, {"id": 49414, "piece": "onta", "probability": 0.0}, {"id": 135237, "piece": "بش", "probability": 0.0}], "sampled": {"id": 271, "piece": "\n\n", "probability": 1.0}}, {"temperature": 10.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 0.004065}, {"id": 48200, "piece": "osexual", "probability": 0.000355}, {"id": 14330, "piece": " toString", "probability": 0.000298}, {"id": 139831, "piece": " gấp", "probability": 0.000225}, {"id": 82291, "piece": "iaux", "probability": 0.000136}, {"id": 81264, "piece": "？”", "probability": 0.000112}, {"id": 49414, "piece": "onta", "probability": 0.00011}, {"id": 135237, "piece": "بش", "probability": 0.00011}], "sampled": {"id": 44663, "piece": "_DI", "probability": 9e-06}}, {"temperature": 30.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 6e-05}, {"id": 48200, "piece": "osexual", "probability": 2.7e-05}, {"id": 14330, "piece": " toString", "probability": 2.5e-05}, {"id": 139831, "piece": " gấp", "probability": 2.3e-05}, {"id": 82291, "piece": "iaux", "probability": 1.9e-05}, {"id": 81264, "piece": "？”", "probability": 1.8e-05}, {"id": 49414, "piece": "onta", "probability": 1.8e-05}, {"id": 135237, "piece": "بش", "probability": 1.8e-05}], "sampled": {"id": 44663, "piece": "_DI", "probability": 8e-06}}]}, {"id": "TRAIN-39", "prompt_token_count": 3454, "reviewed_target_pieces": ["{\"", "action", "\":\""], "final_distribution": {"top": [{"id": 271, "piece": "\n\n", "logit": 67.4823, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1095, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3581, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5267, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5218, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.586, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4446, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4016, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1134, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7273, "probability": 0.0}], "top_probability_mass": 1.0, "vocabulary_size": 151669}, "greedy": [{"step": 1, "thought_piece": "\n\n", "free": {"sequence_length": 3454, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4823, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1095, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3581, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5267, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5218, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.586, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4446, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4016, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1134, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7273, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.4823, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3454, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.4823, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1095, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3581, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5267, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5218, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.586, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4446, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.4016, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1134, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7273, "probability": 0.0}], "target": {"id": 4913, "piece": "{\"", "rank_in_full_vocab": 127099, "probability": 0.0, "logit": -7.8625}}}, {"step": 2, "thought_piece": "\n\n", "free": {"sequence_length": 3455, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.483, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1096, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.356, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5285, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5278, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5791, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4382, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3946, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1189, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7287, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.483, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3455, "top10": [{"id": 4913, "piece": "{\"", "logit": 68.1701, "probability": 1.0}, {"id": 135280, "piece": "แล้วก็", "logit": 36.979, "probability": 0.0}, {"id": 23109, "piece": " adoles", "logit": 36.3464, "probability": 0.0}, {"id": 26046, "piece": " temps", "logit": 34.3891, "probability": 0.0}, {"id": 57214, "piece": "(hidden", "logit": 34.1958, "probability": 0.0}, {"id": 105675, "piece": "大脑", "logit": 33.2496, "probability": 0.0}, {"id": 99213, "piece": "领", "logit": 32.2977, "probability": 0.0}, {"id": 10222, "piece": "typeof", "logit": 32.2866, "probability": 0.0}, {"id": 140914, "piece": " 기억", "logit": 32.2281, "probability": 0.0}, {"id": 132123, "piece": " khảo", "logit": 32.1254, "probability": 0.0}], "target": {"id": 1311, "piece": "action", "rank_in_full_vocab": 97660, "probability": 0.0, "logit": -3.0047}}}, {"step": 3, "thought_piece": "\n\n", "free": {"sequence_length": 3456, "top10": [{"id": 271, "piece": "\n\n", "logit": 67.483, "probability": 1.0}, {"id": 48200, "piece": "osexual", "logit": 43.1101, "probability": 0.0}, {"id": 14330, "piece": " toString", "logit": 41.3567, "probability": 0.0}, {"id": 139831, "piece": " gấp", "logit": 38.5246, "probability": 0.0}, {"id": 82291, "piece": "iaux", "logit": 33.5315, "probability": 0.0}, {"id": 81264, "piece": "？”", "logit": 31.5759, "probability": 0.0}, {"id": 49414, "piece": "onta", "logit": 31.4302, "probability": 0.0}, {"id": 135237, "piece": "بش", "logit": 31.3911, "probability": 0.0}, {"id": 53616, "piece": " distraction", "logit": 31.1232, "probability": 0.0}, {"id": 107849, "piece": "格外", "logit": 30.7271, "probability": 0.0}], "chosen": {"id": 271, "piece": "\n\n", "logit": 67.483, "probability": 1.0}}, "teacher_forcing": {"sequence_length": 3456, "top10": [{"id": 1311, "piece": "action", "logit": 56.6865, "probability": 1.0}, {"id": 98257, "piece": " nanny", "logit": 34.6221, "probability": 0.0}, {"id": 99444, "piece": "�", "logit": 34.2538, "probability": 0.0}, {"id": 27951, "piece": "uter", "logit": 32.9872, "probability": 0.0}, {"id": 111324, "piece": "刊登", "logit": 31.9813, "probability": 0.0}, {"id": 2221, "piece": "ived", "logit": 31.0233, "probability": 0.0}, {"id": 126632, "piece": "עיר", "logit": 31.0199, "probability": 0.0}, {"id": 101178, "piece": "道路", "logit": 30.9139, "probability": 0.0}, {"id": 108360, "piece": "被告人", "logit": 30.6205, "probability": 0.0}, {"id": 75130, "piece": " wissen", "logit": 30.3971, "probability": 0.0}], "target": {"id": 3252, "piece": "\":\"", "rank_in_full_vocab": 98448, "probability": 0.0, "logit": -3.031}}}], "resample": [{"temperature": 1.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 1.0}, {"id": 48200, "piece": "osexual", "probability": 0.0}, {"id": 14330, "piece": " toString", "probability": 0.0}, {"id": 139831, "piece": " gấp", "probability": 0.0}, {"id": 82291, "piece": "iaux", "probability": 0.0}, {"id": 81264, "piece": "？”", "probability": 0.0}, {"id": 49414, "piece": "onta", "probability": 0.0}, {"id": 135237, "piece": "بش", "probability": 0.0}], "sampled": {"id": 271, "piece": "\n\n", "probability": 1.0}}, {"temperature": 10.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 0.004064}, {"id": 48200, "piece": "osexual", "probability": 0.000355}, {"id": 14330, "piece": " toString", "probability": 0.000298}, {"id": 139831, "piece": " gấp", "probability": 0.000225}, {"id": 82291, "piece": "iaux", "probability": 0.000136}, {"id": 81264, "piece": "？”", "probability": 0.000112}, {"id": 49414, "piece": "onta", "probability": 0.000111}, {"id": 135237, "piece": "بش", "probability": 0.00011}], "sampled": {"id": 44663, "piece": "_DI", "probability": 9e-06}}, {"temperature": 30.0, "seed": 7, "top10": [{"id": 271, "piece": "\n\n", "probability": 6e-05}, {"id": 48200, "piece": "osexual", "probability": 2.7e-05}, {"id": 14330, "piece": " toString", "probability": 2.5e-05}, {"id": 139831, "piece": " gấp", "probability": 2.3e-05}, {"id": 82291, "piece": "iaux", "probability": 1.9e-05}, {"id": 81264, "piece": "？”", "probability": 1.8e-05}, {"id": 49414, "piece": "onta", "probability": 1.8e-05}, {"id": 135237, "piece": "بش", "probability": 1.8e-05}], "sampled": {"id": 44663, "piece": "_DI", "probability": 8e-06}}]}]};
+
+const COLORS = {
+  'TRAIN-29': '#7c3aed', 'TRAIN-41': '#2563eb', 'TRAIN-22': '#0d9488',
+  'TRAIN-39': '#dc2626',
+};
+const state = { recId: null, run: 0, fast: false, advance: null };
+
+// ---- helpers (verbatim from the series' shared conventions) ---------------
+// classroom filter: an untrained brain's random guesses include a few rude words; show them as ✱✱✱
+const RUDE_PIECE = /fuck|osexual/i;
+function escapePiece(p) {
+  if (RUDE_PIECE.test(p)) return '\u2731\u2731\u2731'; return p.replace(/ /g, '␣').replace(/\n/g, '⏎'); }
+const CANCEL = new Error('cancelled');
+function wait(ms) {
+  const id = state.run;
+  return new Promise((res, rej) => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      if (id !== state.run) { clearInterval(iv); rej(CANCEL); }
+      else if (state.fast || Date.now() - t0 >= ms) { clearInterval(iv); res(); }
+    }, 30);
+  });
+}
+function gate() {
+  const id = state.run, btn = document.getElementById('nextBtn');
+  state.fast = false; btn.disabled = false;
+  return new Promise((res, rej) => {
+    state.advance = () => { state.advance = null; btn.disabled = true; id === state.run ? res() : rej(CANCEL); };
+  });
+}
+function next() {
+  if (state.advance) state.advance();
+  else state.fast = true;
+}
+function startRun() {
+  const release = state.advance;        // bump the run first, so the old gate sees
+  state.run++; state.fast = false;      // it is stale and cancels instead of continuing
+  document.getElementById('nextBtn').disabled = true;
+  if (release) release();
+  return state.run;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function recById(id) { return DATA.records.find(r => r.id === id); }
+function stepOn(n, color) {
+  const s = document.getElementById('step' + n);
+  s.classList.add('on'); s.style.background = color; s.style.borderColor = color;
+}
+function resetSteps() {
+  for (let n = 1; n <= 7; n++) {
+    const s = document.getElementById('step' + n);
+    s.classList.remove('on'); s.style.background = ''; s.style.borderColor = '';
+  }
+}
+function setCaption(html) { document.getElementById('caption').innerHTML = html; }
+
+// ---- pills ------------------------------------------------------------------
+function buildPills() {
+  const wrap = document.getElementById('records');
+  DATA.records.forEach(rec => {
+    const color = COLORS[rec.id];
+    const pill = document.createElement('button');
+    pill.className = 'record-pill';
+    pill.style.color = color;
+    pill.innerHTML = '<span class="dot" style="background:' + color + '"></span>' +
+      '<span class="rid">' + rec.id + '</span>' +
+      '<span class="rmsg">' + rec.prompt_token_count + ' real prompt pieces</span>';
+    pill.dataset.rid = rec.id;
+    pill.addEventListener('click', () => { selectPill(rec.id); state.recId = rec.id; runStory(rec); });
+    wrap.appendChild(pill);
+  });
+}
+function selectPill(id) {
+  document.querySelectorAll('.record-pill').forEach(p => p.classList.toggle('active', p.dataset.rid === id));
+}
+
+// ---- candidate bar rows -------------------------------------------------------
+function candRows(list, color, valueKey, fmt, winnerId, immediate) {
+  const max = Math.max(...list.map(c => c[valueKey]));
+  return list.map(c => {
+    const w = Math.max(3, c[valueKey] / max * 160);
+    const isWinner = winnerId !== undefined && c.id === winnerId;
+    return '<div class="cand-row' + (isWinner ? ' winner' : '') + (immediate ? ' shown' : '') + '">' +
+      '<span class="cp" title="' + JSON.stringify(c.piece).replace(/"/g, '&quot;') + '">' + escapePiece(c.piece) + '</span>' +
+      '<span class="bar" style="width:' + w.toFixed(1) + 'px; background:' + (isWinner ? color : '#c9cdd3') + '"></span>' +
+      '<span class="pv">' + fmt(c[valueKey]) + '</span></div>';
+  }).join('');
+}
+function revealCandRows(container) {
+  return Array.from(container.querySelectorAll('.cand-row'));
+}
+
+// ---- brain map (verbatim shape, same stations as viz #2/#5) ------------------
+function buildBrain() {
+  const svg = `
+<svg id="brainSvg" viewBox="0 0 460 360" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0 0 L7 4 L0 8" fill="none" stroke="#c9cdd3" stroke-width="1.5"/></marker></defs>
+  <path d="M 118 236 C 78 222 52 190 56 150 C 60 112 84 82 122 68 C 158 38 218 30 268 46
+           C 318 62 352 96 362 140 C 372 184 352 226 312 250 C 274 272 214 276 168 264
+           C 142 257 132 248 118 236 Z"
+        fill="#f7f8fa" stroke="#c9cdd3" stroke-width="2.5"/>
+  <path d="M 158 52 C 178 66 160 84 178 98" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 330 84 C 348 100 336 118 352 132" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 176 232 C 196 218 214 232 232 220" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g id="eye">
+    <ellipse cx="26" cy="150" rx="14" ry="16" fill="#fff" stroke="#9ca3af" stroke-width="2"/>
+    <circle cx="26" cy="150" r="5.5" fill="#9ca3af"/>
+    <line x1="42" y1="150" x2="66" y2="150" stroke="#c9cdd3" stroke-width="2" stroke-dasharray="4 4"/>
+  </g>
+  <path id="loopPath" d="M 326 160 C 340 240, 170 262, 106 132" stroke="#c9cdd3" stroke-width="2"
+        fill="none" stroke-dasharray="5 5" marker-end="url(#arr)"/>
+  <text x="218" y="286" text-anchor="middle" font-size="9" fill="#b3b8bf">keep + add → go again</text>
+  <path d="M 342 158 C 360 154 372 152 386 151" stroke="#c9cdd3" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <circle id="s1" cx="105" cy="95" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s2" cx="192" cy="72" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s3" cx="272" cy="95" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s4" cx="326" cy="160" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="decide" cx="406" cy="150" r="16" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <text x="105" y="127" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">STEADY</text>
+  <text x="192" y="46" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">CONSULT</text>
+  <text x="272" y="127" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">KEEP+ADD</text>
+  <text x="326" y="192" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">PROCESS</text>
+  <text x="406" y="184" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">DECIDE</text>
+  <text id="roundBadge" class="round-badge" x="218" y="322" text-anchor="middle" font-size="12" font-weight="800" fill="#6b7280" letter-spacing="1">↻ ROUND TWO — the chosen piece goes right back in</text>
+</svg>`;
+  document.getElementById('brainMount').innerHTML = svg;
+}
+function zoneActive(id, color) {
+  const z = document.getElementById(id);
+  z.setAttribute('fill', color); z.setAttribute('fill-opacity', '0.3');
+  z.setAttribute('stroke', color); z.setAttribute('stroke-width', '2.5');
+}
+function resetBrain() {
+  ['s1', 's2', 's3', 's4', 'decide'].forEach(id => {
+    const z = document.getElementById(id);
+    if (!z) return;
+    z.setAttribute('fill', '#eceef1'); z.setAttribute('fill-opacity', '1');
+    z.setAttribute('stroke', '#d7dade'); z.setAttribute('stroke-width', '1.5');
+  });
+  const b = document.getElementById('roundBadge');
+  if (b) b.classList.remove('shown');
+}
+function resetPanels() {
+  document.getElementById('scoreBars').innerHTML = '<div class="empty">Real support scores appear here.</div>';
+  document.getElementById('greedyChain').innerHTML = '';
+  document.getElementById('greedyBody').innerHTML = '<div class="empty">Real greedy steps appear here.</div>';
+  document.getElementById('tempBody').innerHTML = '<div class="empty">Real resampling appears here.</div>';
+  document.getElementById('answerBody').innerHTML = '<div class="empty">The comparison appears here.</div>';
+  document.getElementById('connectExamples').innerHTML = '';
+  document.getElementById('connectNote').innerHTML = '';
+  document.getElementById('mapNote').innerHTML = 'This is DECIDE &mdash; the exit of the block from viz #2.';
+  resetBrain();
+}
+
+// ---- the seven steps ---------------------------------------------------------
+async function runStory(rec) {
+  const id = startRun();
+  const color = COLORS[rec.id];
+  resetSteps(); resetPanels();
+  const lastPiece = rec.greedy[0].thought_piece;
+  document.getElementById('thoughtLine').innerHTML = '<span style="color:' + color + '">' + escapePiece(lastPiece) + '</span>';
+  document.getElementById('thoughtSub').textContent = rec.id + '’s real ' + rec.prompt_token_count + '-piece prompt, at its last real position — the pattern that is about to become a next piece.';
+  try {
+    // 1. THE HUMAN MIRROR
+    stepOn(1, color);
+    setCaption('THE HUMAN MIRROR. When you finish someone’s sentence, several words come to mind at once &mdash; and you settle on one. The decoder’s last station does the same thing to the refined pattern you’ve followed all series: <b>' + escapePiece(lastPiece) + '</b> is about to become a next piece, out of <b>151,669</b> real candidates.');
+    await gate();
+
+    // 2. SUPPORT SCORES
+    stepOn(2, color);
+    const top = rec.final_distribution.top;
+    const scoreEl = document.getElementById('scoreBars');
+    scoreEl.innerHTML = '<div class="fade" id="scoreWrap">' + candRows(top, color, 'logit', v => v.toFixed(2), top[0].id) + '</div>';
+    setCaption('SUPPORT SCORES. The tied output projection (the same table used to turn pieces into patterns, run backwards) gives every one of the <b>151,669</b> vocabulary pieces a real score against this pattern. Here are the real <b>top 10</b> &mdash; ' + escapePiece(top[0].piece) + ' scores highest for now.');
+    await wait(300); document.getElementById('scoreWrap').classList.add('shown');
+    for (const r of revealCandRows(scoreEl)) { r.classList.add('shown'); await wait(50); }
+    await gate();
+
+    // 3. PREFERENCE
+    stepOn(3, color);
+    scoreEl.innerHTML = '<div class="fade shown">' + candRows(top, color, 'probability', v => (v * 100).toFixed(1) + '%', top[0].id, true) + '<div style="font-size:.7rem; color:var(--soft); margin-top:8px;">these 10 pieces alone hold ' + (rec.final_distribution.top_probability_mass * 100).toFixed(1) + '% of the real softmax &mdash; the other ' + (rec.final_distribution.vocabulary_size - 10).toLocaleString() + ' pieces share the rest.</div></div>';
+    setCaption('PREFERENCE. <b>Softmax</b> turns raw scores into a real probability over the whole vocabulary &mdash; every one of the 151,669 numbers is non-negative and the full row sums to exactly 100%. The bars above are now real percentages, not raw scores.');
+    await gate();
+
+    // 4. CHOOSE, APPEND, ASK AGAIN
+    stepOn(4, color);
+    const chainEl = document.getElementById('greedyChain');
+    const gBody = document.getElementById('greedyBody');
+    chainEl.innerHTML = '<span class="chain-piece shown">' + escapePiece(lastPiece) + '</span>';
+    for (let i = 0; i < rec.greedy.length; i++) {
+      const g = rec.greedy[i];
+      const chosen = g.free.chosen;
+      gBody.innerHTML = '<div class="fade shown">' +
+        '<div style="font-size:.72rem; color:var(--soft); margin-bottom:6px;">step ' + g.step + ' &mdash; thought is <b style="font-family:\'SF Mono\',monospace;">' + escapePiece(g.thought_piece) + '</b> (position ' + (g.free.sequence_length - 1) + ' of the growing sequence)</div>' +
+        candRows(g.free.top10, color, 'probability', v => (v * 100).toFixed(1) + '%', chosen.id, true) + '</div>';
+      setCaption('CHOOSE. Greedy step <b>' + g.step + '</b>: the highest real preference wins &mdash; <b>' + escapePiece(chosen.piece) + '</b> (' + (chosen.probability * 100).toFixed(1) + '%). <b>APPEND</b>: it joins the sequence. Then it <b>becomes the thought</b> and the whole question is asked again.');
+      await wait(650);
+      const chip = document.createElement('span');
+      chip.className = 'chain-piece new';
+      chip.style.color = color; chip.style.borderColor = color;
+      chip.textContent = escapePiece(chosen.piece);
+      chainEl.appendChild(chip);
+      await wait(60); chip.classList.add('shown');
+      if (i < rec.greedy.length - 1) await wait(500);
+    }
+    await gate();
+
+    // 5. HOW ADVENTUROUS
+    stepOn(5, color);
+    const tempEl = document.getElementById('tempBody');
+    tempEl.innerHTML = rec.resample.map((t, i) =>
+      '<div class="temp-block" id="tb' + i + '"><div class="tt">temperature ' + t.temperature.toFixed(1) + (t.temperature <= 1 ? ' — as trained' : t.temperature < 20 ? ' — adventurous' : ' — wild') + '</div>' +
+      candRows(t.top10, color, 'probability', v => (v * 100).toFixed(3) + '%', t.sampled.id, true) +
+      '<div style="font-size:.68rem; color:var(--soft); margin-top:4px;">drawn (seed ' + t.seed + '): <b style="font-family:\'SF Mono\',monospace; color:' + color + ';">' + escapePiece(t.sampled.piece) + '</b> (' + (t.sampled.probability * 100).toFixed(3) + '%)</div></div>').join('');
+    setCaption('HOW ADVENTUROUS. Same real logits, only <b>temperature</b> changes before the real softmax. This untrained decoder is so confident in one piece that its real logit gap is about 24 &mdash; so even temperature <b>10</b> only pulls the top pick down to a few tenths of a percent, and temperature <b>30</b> flattens it further still. Same fixed seed each time, so only the shape of the distribution moves.');
+    for (let i = 0; i < rec.resample.length; i++) {
+      document.getElementById('tb' + i).classList.add('shown');
+      await wait(500);
+    }
+    await gate();
+
+    // 6. THE ANSWER KEY
+    stepOn(6, color);
+    const ansEl = document.getElementById('answerBody');
+    ansEl.innerHTML = rec.greedy.map((g, i) => {
+      const match = g.teacher_forcing.target.piece === g.free.chosen.piece;
+      return '<div class="answer-row' + (match ? ' match' : ' mismatch') + '" id="ar' + i + '">' +
+        '<span class="al">step ' + g.step + '</span>' +
+        '<span><span class="apiece">' + escapePiece(g.teacher_forcing.target.piece) + '</span><br><span class="asub">reviewed target &mdash; rank #' + (g.teacher_forcing.target.rank_in_full_vocab + 1) + ' of 151,669 in the untrained decoder, ' + (g.teacher_forcing.target.probability * 100).toFixed(2) + '%</span></span>' +
+        '<span><span class="apiece free">' + escapePiece(g.free.chosen.piece) + '</span><br><span class="asub">free choice &mdash; ' + (g.free.chosen.probability * 100).toFixed(1) + '%' + (match ? ' (matches)' : ' (differs)') + '</span></span></div>';
+    }).join('');
+    setCaption('THE ANSWER KEY. <b>Teacher forcing</b> feeds the record’s real reviewed target back in at each step (what training will use). <b>Free generation</b> lets the untrained decoder choose on its own. Right now they mostly <b>disagree</b> &mdash; the real reviewed target often ranks far outside the untrained top 10. That gap is exactly what training closes.');
+    for (let i = 0; i < rec.greedy.length; i++) { document.getElementById('ar' + i).classList.add('shown'); await wait(220); }
+    await gate();
+
+    // 7. CONNECT
+    stepOn(7, color);
+    zoneActive('decide', color);
+    setCaption('CONNECT. <b>Before</b> (viz #2–#8): the thought travelled steady &rarr; consult &rarr; keep+add &rarr; process, round after round. <b>Now</b>: the refined pattern finally meets the <b>vocabulary</b>, becomes preference, and a choice loops right back in as the next thought &mdash; for <b>every</b> real record.');
+    const el = document.getElementById('connectExamples');
+    el.innerHTML = '<span style="font-size:.72rem; color:var(--soft); text-transform:uppercase; letter-spacing:.07em;">every real record’s first greedy choice vs its reviewed target</span>';
+    for (const r of DATA.records) {
+      const g = r.greedy[0];
+      const match = g.teacher_forcing.target.piece === g.free.chosen.piece;
+      const chip = document.createElement('div');
+      chip.className = 'connect-chip';
+      chip.style.borderColor = COLORS[r.id];
+      chip.innerHTML = '<span style="color:' + COLORS[r.id] + ';">' + r.id + '</span> &middot; chose <b>' + escapePiece(g.free.chosen.piece) + '</b> &middot; reviewed target was <b>' + escapePiece(g.teacher_forcing.target.piece) + '</b>' + (match ? ' — matched' : ' — missed');
+      el.appendChild(chip);
+      chip.classList.add('shown');
+      await wait(300);
+    }
+    document.getElementById('mapNote').innerHTML = '<b>You are here: DECIDE</b> &mdash; the block’s exit.';
+    await wait(800);
+    document.getElementById('roundBadge').classList.add('shown');
+    document.getElementById('mapNote').innerHTML = 'The chosen piece is appended and the whole block runs again on the new, longer sequence: <b>the loop back to STEADY</b>.';
+    document.getElementById('connectNote').innerHTML = buildGrow(9) +
+      '<div style="margin-top:10px;">These choices are <b>untrained</b> (seed 701) &mdash; that is why the free choice keeps missing the reviewed target. <b>Learning</b> (viz #10) measures exactly this gap (the loss) and closes it, one update at a time.</div>';
+    await wait(300);
+    toast('Done — try another record, or replay');
+  } catch (e) { if (e !== CANCEL) throw e; }
+}
+
+// ---- the series: navigation + "the brain so far" -----------------------------
+const SERIES = [
+  ['brain-token-embedding.html', 'pieces → patterns'],
+  ['brain-open-the-decoder.html', 'the whole block'],
+  ['brain-attention-workbench.html', 'consult: one thought'],
+  ['brain-attention-layer.html', 'consult: every thought'],
+  ['brain-multiple-heads.html', 'two lenses'],
+  ['brain-rmsnorm.html', 'steady'],
+  ['brain-residual.html', 'keep + add'],
+  ['brain-ffn.html', 'process'],
+  ['brain-decide.html', 'decide'],
+  ['brain-learning.html', 'learning (backprop)'],
+  ['brain-lora.html', 'a small new habit (LoRA)'],
+  ['brain-kv-cache.html', 'notes already made (KV cache)'],
+  ['brain-the-whole-story.html', 'the whole story'],
+];
+function buildSeriesNav(here) {
+  const el = document.getElementById('seriesNav');
+  el.innerHTML = '<span class="records-label">The series &rarr;</span>' + SERIES.map((s, i) =>
+    '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : i === here ? 'next-up' : '') + '">' + (i + 1) + '. ' + s[1] + '</a>').join('');
+}
+function buildGrow(here) {
+  return '<div style="font-size:.72rem; color:var(--soft); text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px;">the brain so far</div>' +
+    '<div class="series-nav" style="padding:0; background:none;">' + SERIES.map((s, i) =>
+      '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : '') + '" style="' + (i + 1 < here ? 'color:var(--ink); border-color:var(--ink);' : i + 1 > here ? 'opacity:.45;' : '') + '">' +
+      (i + 1 < here ? '✓ ' : i + 1 === here ? '◉ ' : '') + s[1] + '</a>').join('') + '</div>';
+}
+
+function buildFooter() {
+  document.getElementById('footer').innerHTML =
+    'Real data — the lab’s <b>seeded teaching decoder</b> (seed 701), run on each record’s <b>real full prompt</b> (TRAIN-41: 3,452 pieces; others similarly full-length). ' +
+    'Support scores are the real logits from the <b>tied output projection</b> (the token-embedding table run backwards) over the real final-norm pattern. Preference is the real softmax over the full <b>151,669</b>-piece vocabulary (every row sums to 100%). ' +
+    'The 3 greedy steps re-run the real decoder on the growing real sequence with no cache shortcut, so every logit shown is freshly real. Teacher forcing feeds the record’s <b>real reviewed target</b>; free generation is the untrained decoder’s own real choice. ' +
+    'Resampling reuses the exact same real final-position logits with only temperature changed (fixed seed) — top_k=0, top_p=1. ' +
+    'The decoder is untrained (seed 701): the gap between its free choices and the reviewed target is real and expected. The brain story is a simplified intuition — <b>not neuroscience</b>.';
+}
+
+// ---- init ---------------------------------------------------------------------
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('replayBtn').addEventListener('click', () => { const r = recById(state.recId); if (r) runStory(r); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+});
+buildBrain();
+buildPills();
+buildFooter();
+buildSeriesNav(9);
+document.getElementById('replayBtn').disabled = false;
+(function () {
+  const rec = DATA.records[0];
+  selectPill(rec.id);
+  state.recId = rec.id;
+  setTimeout(() => runStory(rec), 400);
+})();
+</script>
+</body>
+</html>

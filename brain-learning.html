@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learning From Mistakes — loss, backprop, update</title>
+<style>
+  :root { --ink: #1a1a1a; --soft: #6b7280; --line: #e5e7eb; --wash: #fafafa; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: var(--ink); min-width: 320px; }
+  code, .mono { font-family: "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+  .header { display: flex; justify-content: space-between; align-items: baseline; padding: 26px 40px 18px; border-bottom: 1px solid var(--line); gap: 24px; flex-wrap: wrap; }
+  .header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.02em; font-weight: 750; }
+  .header .sub { margin: 4px 0 0; color: var(--soft); font-size: .85rem; }
+  .disclaimer { font-size: .72rem; color: var(--soft); max-width: 460px; line-height: 1.45; border-left: 3px solid #f59e0b; padding-left: 10px; }
+  .records { display: flex; gap: 10px; padding: 18px 40px; flex-wrap: wrap; align-items: center; }
+  .records-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); margin-right: 6px; }
+  .record-pill { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; border: 2px solid var(--line); border-radius: 12px; background: #fff; padding: 8px 13px; cursor: pointer; min-width: 120px; transition: border-color .2s, transform .15s, box-shadow .2s; }
+  .record-pill:hover { transform: translateY(-2px); }
+  .record-pill .rid { font-size: .76rem; font-weight: 700; font-family: "SF Mono", monospace; }
+  .record-pill .rmsg { font-size: .7rem; color: var(--soft); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .record-pill .dot { width: 9px; height: 9px; border-radius: 50%; margin-bottom: 4px; }
+  .record-pill.active { box-shadow: 0 4px 14px rgba(0,0,0,.09); }
+  .record-pill.special { border-style: dashed; }
+  .story { margin: 4px 40px 0; border: 1px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; }
+  .story-body { padding: 14px 16px 4px; }
+  .steps { display: flex; gap: 8px; flex-wrap: wrap; }
+  .step { flex: 1; min-width: 90px; text-align: center; font-size: .62rem; padding: 7px 3px 6px; border-radius: 8px; border: 1px solid var(--line); color: var(--soft); font-weight: 650; letter-spacing: .03em; transition: all .4s; }
+  .step small { display: block; font-weight: 500; font-size: .56rem; margin-top: 2px; letter-spacing: 0; }
+  .step.on { color: #fff; }
+  .caption { margin: 12px 0 10px; padding: 12px 14px; font-size: .84rem; line-height: 1.55; background: var(--wash); border-radius: 10px; min-height: 66px; }
+  .story-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 16px 14px; gap: 10px; flex-wrap: wrap; }
+  .replay { border: 1.5px solid var(--ink); background: #fff; border-radius: 9px; padding: 7px 13px; font-size: .74rem; font-weight: 650; cursor: pointer; transition: background .2s, color .2s; }
+  .replay:hover { background: var(--ink); color: #fff; }
+  .replay:disabled { opacity: .4; cursor: not-allowed; }
+  .next { border: 1.5px solid var(--ink); background: var(--ink); color: #fff; border-radius: 9px; padding: 7px 16px; font-size: .74rem; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .next:disabled { opacity: .4; cursor: not-allowed; }
+  .story-hint { font-size: .7rem; color: var(--soft); }
+  .stage { margin: 18px 40px 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+  .stage-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--wash); gap: 10px; flex-wrap: wrap; }
+  .stage-head .t { font-size: .8rem; font-weight: 700; }
+  .stage-head .h { font-size: .68rem; color: var(--soft); text-transform: uppercase; letter-spacing: .07em; }
+  .stage-body { padding: 14px 16px; }
+  .stage-body .empty { color: var(--soft); font-size: .85rem; line-height: 1.6; }
+  .fade { opacity: 0; transition: opacity .5s; }
+  .fade.shown { opacity: 1; }
+  .you-piece { font-family: "SF Mono", monospace; font-size: 1.05rem; font-weight: 700; }
+  .you-sub { font-size: .74rem; color: var(--soft); margin: 3px 0 10px; line-height: 1.5; }
+  .guess-row { display: grid; grid-template-columns: 130px 1fr; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .guess-tag { font-size: .68rem; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; color: var(--soft); }
+  .guess-val { font-family: "SF Mono", monospace; font-size: .95rem; font-weight: 700; }
+  .guess-note { font-size: .72rem; color: var(--soft); margin-top: 2px; }
+  .bar-row { display: grid; grid-template-columns: 150px 1fr 80px; gap: 10px; align-items: center; margin: 6px 0; opacity: 0; transition: opacity .5s; }
+  .bar-row.shown { opacity: 1; }
+  .bar-row .blabel { font-size: .72rem; font-weight: 650; }
+  .bar-row .btrack { display: block; height: 16px; border-radius: 8px; background: var(--wash); border: 1px solid var(--line); overflow: hidden; }
+  .bar-row .bfill { display: block; height: 100%; border-radius: 8px 0 0 8px; transition: width .6s; }
+  .bar-row .bval { font-family: "SF Mono", monospace; font-size: .72rem; text-align: right; }
+  .compare2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare2 .box { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .compare2 .box .k { font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); }
+  .compare2 .box .v { font-size: 1.15rem; font-weight: 750; font-family: "SF Mono", monospace; margin-top: 2px; }
+  .arrow2 { text-align: center; font-size: 1.1rem; color: var(--soft); }
+  .checktable { display: flex; flex-direction: column; gap: 6px; }
+  .checkrow { display: grid; grid-template-columns: 130px 1fr 70px 1fr 70px; gap: 8px; align-items: center; font-size: .76rem; opacity: 0; transition: opacity .5s; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+  .checkrow.shown { opacity: 1; }
+  .checkrow.anchor { font-weight: 750; }
+  .checkrow .rid { font-family: "SF Mono", monospace; font-weight: 700; }
+  .checkrow .num { font-family: "SF Mono", monospace; text-align: right; }
+  .checkrow .lbl { font-size: .64rem; color: var(--soft); text-transform: uppercase; }
+  .blockmap { display: grid; grid-template-columns: minmax(300px, 480px) 1fr; gap: 22px; align-items: start; }
+  #brainMount svg { width: 100%; height: auto; display: block; }
+  .round-badge { opacity: 0; transition: opacity .5s; }
+  .round-badge.shown { opacity: 1; }
+  .map-note { font-size: .78rem; line-height: 1.6; color: var(--ink); padding: 4px 0; }
+  .map-note b { font-family: "SF Mono", monospace; }
+  .pulse-log { font-size: .72rem; color: var(--soft); line-height: 1.8; }
+  .pulse-log .pl-row { opacity: 0; transition: opacity .4s; }
+  .pulse-log .pl-row.shown { opacity: 1; }
+  .pulse-log b { color: var(--ink); font-family: "SF Mono", monospace; }
+  .curve-wrap { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; }
+  .split-strip { display: flex; height: 26px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 10px; }
+  .split-seg { display: flex; align-items: center; justify-content: center; font-size: .64rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; }
+  .split-legend { font-size: .68rem; color: var(--soft); margin: -4px 0 10px; }
+  .connect-examples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+  .connect-chip { border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 11px; font-size: .72rem; font-weight: 650; font-family: "SF Mono", monospace; opacity: 0; transition: opacity .4s; background: #fff; }
+  .connect-chip.shown { opacity: 1; }
+  .connect-note { margin-top: 10px; font-size: .78rem; color: var(--soft); line-height: 1.6; }
+  .footer { margin-top: 22px; padding: 18px 40px 14px; border-top: 1px solid var(--line); font-size: .7rem; color: var(--soft); line-height: 1.6; background: var(--wash); }
+  .footer b { color: var(--ink); }
+  .series-nav { padding: 0 40px 22px; background: var(--wash); display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .series-nav a { color: var(--soft); text-decoration: none; font-size: .68rem; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: #fff; }
+  .series-nav a:hover { border-color: var(--ink); color: var(--ink); }
+  .series-nav a.here { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 700; }
+  .series-nav a.next-up { border: 2px solid var(--ink); color: var(--ink); font-weight: 750; }
+  #toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 999px; padding: 9px 18px; font-size: .78rem; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 60; }
+  #toast.show { opacity: 1; }
+  @media (max-width: 1120px) { .blockmap { grid-template-columns: 1fr; } .compare2 { grid-template-columns: 1fr; } .checkrow { grid-template-columns: 100px 1fr 50px 1fr 50px; font-size: .68rem; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>Learning From Mistakes</h1>
+    <p class="sub">predict &rarr; the teacher shows the real answer &rarr; trace the blame backward &rarr; adjust a little &rarr; check it transfers</p>
+  </div>
+  <div class="disclaimer">
+    A simplified cognitive story &mdash; <b>not neuroscience</b>. Every loss, gradient and update below is real,
+    computed on the lab's seeded decoder (seed 701) with real backprop and a real SGD step.
+  </div>
+</div>
+
+<div class="records" id="records">
+  <span class="records-label">Real training records &rarr;</span>
+</div>
+
+<div class="story">
+  <div class="story-body">
+    <div class="steps">
+      <div class="step" id="step1">1. PREDICT<small>your guess</small></div>
+      <div class="step" id="step2">2. SURPRISE<small>answer key + loss</small></div>
+      <div class="step" id="step3">3. TRACE THE BLAME<small>backprop, real</small></div>
+      <div class="step" id="step4">4. ADJUST<small>one real update</small></div>
+      <div class="step" id="step5">5. CHECK<small>held-out validation</small></div>
+      <div class="step" id="step6">6. MANY EXAMPLES<small>real loss curve</small></div>
+      <div class="step" id="step7">7. CONNECT<small>back into the brain</small></div>
+    </div>
+    <div class="caption" id="caption">As YOU read a sentence, you predict what comes next &mdash; then the world (or a teacher) shows you the real answer, and you feel surprised in proportion to how wrong you were. That surprise is exactly what trains a brain, and it is exactly what trains this decoder. Pick a real training record above, or just watch.</div>
+  </div>
+  <div class="story-foot">
+    <span class="story-hint" id="storyHint">&ldquo;Next&rdquo; steps through the story; the pills switch real records.</span>
+    <div style="display:flex; gap:8px;">
+      <button class="replay" id="replayBtn" disabled>&#8635; replay</button>
+      <button class="next" id="nextBtn" disabled>Next &#9656;</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Predict &mdash; before any training</span><span class="h">real distribution, untrained model</span></div>
+  <div class="stage-body">
+    <div class="you-piece" id="youPiece">&mdash;</div>
+    <div class="you-sub" id="youSub">The record being predicted appears here.</div>
+    <div id="predictWrap"><div class="empty">The model's real first guess for the first reviewed target piece appears here.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Answer key + surprise</span><span class="h">real reviewed target, real loss</span></div>
+  <div class="stage-body">
+    <div id="answerWrap"><div class="empty">The real reviewed target and the real loss (surprise) appear here.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Trace the blame backward</span><span class="h">real gradient size at every station, after loss.backward()</span></div>
+  <div class="stage-body">
+    <div class="blockmap">
+      <div id="brainMountA"></div>
+      <div class="map-note" id="mapNoteA">Watch the pulse travel backward from DECIDE to the pieces &mdash; each station lights in proportion to its real gradient size. This <i>is</i> backpropagation.</div>
+    </div>
+    <div class="pulse-log" id="pulseLog"></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Adjust a little</span><span class="h">one real SGD step, before &rarr; after</span></div>
+  <div class="stage-body">
+    <div id="adjustWrap"><div class="empty">One real update, computed from TRAIN-41's backward pass, appears here.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Check &mdash; did the habit transfer?</span><span class="h">every record &plus; a held-out validation record, real</span></div>
+  <div class="stage-body">
+    <div id="checkWrap"><div class="empty">The same tiny update, checked against records it never trained on.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Many examples</span><span class="h">real loss curve, train vs validation</span></div>
+  <div class="stage-body">
+    <div class="split-strip" id="splitStrip"></div>
+    <div class="split-legend" id="splitLegend"></div>
+    <div id="curveWrap"><div class="empty">A real loss curve over several updates on several training records appears here.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Connect &mdash; back into the brain</span><span class="h">every station, a small correction</span></div>
+  <div class="stage-body">
+    <div class="blockmap">
+      <div id="brainMountB"></div>
+      <div class="map-note" id="mapNoteB">Before (viz #1&ndash;#9): every station's habits were untrained &mdash; random seed 701. Now: one real update has nudged every one of them, a little.</div>
+    </div>
+    <div class="connect-examples" id="connectExamples"></div>
+    <div class="connect-note" id="connectNote"></div>
+  </div>
+</div>
+
+<div class="footer" id="footer"></div>
+<div class="series-nav" id="seriesNav"></div>
+<div id="toast"></div>
+<script>
+"use strict";
+const DATA = {"model": {"kind": "seeded_untrained_custom_decoder", "seed": 701, "width": 64, "layers": 2, "note": "the lab’s frozen seeded teaching decoder, cloned fresh (never the shared inference copy) and never saved back to disk"}, "split": {"train": 41, "validation": 8, "test": 1, "note": "the real frozen promoted split (video-plan/final-course/07-a-fair-split-and-an-honest-baseline.md; NUMBERS.md); the test record is never peeked at here"}, "records": [{"id": "TRAIN-41", "reviewed_target": {"action": "needs_clarification", "draft": "Are you looking for a job with SBL, or asking whether SBL can help with your job search?\n\n- responded by Sbl 😊"}, "target_token_count": 44, "prompt_token_count": 3452, "loss": 64.23239, "probe": {"loss": 64.23239, "per_token_loss": [75.3468, 71.1687, 59.7277, 72.352, 79.118, 57.6377, 71.0192, 61.0126, 53.1677, 55.5444, 74.5675, 70.8903, 71.9958, 66.9498, 55.5684, 47.0138, 87.234, 61.8872, 61.7691, 74.0863, 53.357, 66.9154, 53.5505, 51.1015, 61.7376, 68.5965, 61.6494, 71.6151, 59.4622, 77.9242, 53.2116, 59.5833, 72.5056, 70.3708, 54.9282, 47.3316, 57.2923, 72.4891, 67.9464, 57.0789, 55.705, 76.7805, 72.7479, 54.288], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "stations": [{"id": "decide", "label": "DECIDE (final norm)", "grad_norm": 8.45387}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "grad_norm": 4.17283}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "grad_norm": 0.7766}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "grad_norm": 0.24763}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "grad_norm": 4.32011}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "grad_norm": 0.97752}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "grad_norm": 0.31184}], "residual_highway": {"embedding": 1.24493, "after_l1_attn": 1.24452, "after_l1_ffn": 1.22819, "after_l2_attn": 1.22807, "after_l2_ffn": 1.21155, "final_norm_out": 1.72961}, "embedding_rows": [{"tid": 4913, "piece": "{\"", "grad_norm": 0.31901}, {"tid": 1311, "piece": "action", "grad_norm": 0.33496}, {"tid": 3252, "piece": "\":\"", "grad_norm": 0.49796}, {"tid": 55245, "piece": "needs", "grad_norm": 0.28986}, {"tid": 6794, "piece": "_cl", "grad_norm": 0.31525}, {"tid": 277, "piece": "ar", "grad_norm": 0.31195}, {"tid": 2404, "piece": "ification", "grad_norm": 0.34527}, {"tid": 2198, "piece": "\",\"", "grad_norm": 0.29566}, {"tid": 44997, "piece": "draft", "grad_norm": 0.31564}, {"tid": 11526, "piece": "Are", "grad_norm": 0.315}, {"tid": 498, "piece": " you", "grad_norm": 0.30989}, {"tid": 3330, "piece": " looking", "grad_norm": 0.33358}, {"tid": 369, "piece": " for", "grad_norm": 0.32788}, {"tid": 264, "piece": " a", "grad_norm": 0.30271}, {"tid": 2618, "piece": " job", "grad_norm": 0.52622}, {"tid": 448, "piece": " with", "grad_norm": 0.5701}, {"tid": 328, "piece": " S", "grad_norm": 0.82281}, {"tid": 9389, "piece": "BL", "grad_norm": 0.56098}, {"tid": 11, "piece": ",", "grad_norm": 0.34316}, {"tid": 476, "piece": " or", "grad_norm": 0.29038}, {"tid": 10161, "piece": " asking", "grad_norm": 0.33368}, {"tid": 3425, "piece": " whether", "grad_norm": 0.30905}, {"tid": 646, "piece": " can", "grad_norm": 0.31909}, {"tid": 1492, "piece": " help", "grad_norm": 0.29753}, {"tid": 697, "piece": " your", "grad_norm": 0.2763}, {"tid": 2711, "piece": " search", "grad_norm": 0.31896}, {"tid": 32620, "piece": "?\\", "grad_norm": 0.30241}, {"tid": 77, "piece": "n", "grad_norm": 0.30346}, {"tid": 1699, "piece": "\\n", "grad_norm": 0.3134}, {"tid": 12, "piece": "-", "grad_norm": 0.38223}, {"tid": 16441, "piece": " responded", "grad_norm": 0.31208}, {"tid": 553, "piece": " by", "grad_norm": 0.32446}, {"tid": 2024, "piece": "bl", "grad_norm": 0.35328}, {"tid": 26525, "piece": " �", "grad_norm": 0.31572}, {"tid": 232, "piece": "�", "grad_norm": 0.31342}, {"tid": 9207, "piece": "\"}", "grad_norm": 0.30503}, {"tid": 151645, "piece": "<|im_end|>", "grad_norm": 0.3299}, {"tid": 198, "piece": "\n", "grad_norm": 0.18151}]}, {"id": "TRAIN-29", "reviewed_target": {"action": "answer_in_text", "draft": "It's sent by AI ,  I'm an AI assistant built by the Sbl.so team to answer questions quickly and accurately. \n\n- responded by Sbl 😊"}, "target_token_count": 48, "prompt_token_count": 3772, "loss": 62.42133, "probe": {"loss": 62.42133, "per_token_loss": [75.3672, 71.1623, 59.6636, 61.445, 58.7025, 68.8814, 63.1517, 53.1703, 55.5024, 65.0321, 51.2571, 60.6873, 73.0994, 47.453, 57.2391, 74.6838, 73.5591, 69.8389, 51.2416, 59.7346, 66.4157, 63.3, 51.1792, 51.2756, 74.8021, 67.9717, 56.6255, 74.3182, 48.6456, 58.0267, 63.6982, 55.7631, 60.4125, 86.8459, 54.3247, 67.4991, 57.2413, 70.3607, 54.9186, 47.344, 57.2773, 72.5612, 67.9335, 57.1061, 55.7081, 76.8313, 72.6958, 54.2694], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "stations": [{"id": "decide", "label": "DECIDE (final norm)", "grad_norm": 8.02976}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "grad_norm": 3.87483}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "grad_norm": 0.74262}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "grad_norm": 0.24516}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "grad_norm": 3.953}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "grad_norm": 0.97143}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "grad_norm": 0.27927}], "residual_highway": {"embedding": 1.19536, "after_l1_attn": 1.19518, "after_l1_ffn": 1.17682, "after_l2_attn": 1.17693, "after_l2_ffn": 1.16423, "final_norm_out": 1.61637}, "embedding_rows": [{"tid": 4913, "piece": "{\"", "grad_norm": 0.29243}, {"tid": 1311, "piece": "action", "grad_norm": 0.30731}, {"tid": 3252, "piece": "\":\"", "grad_norm": 0.44057}, {"tid": 9217, "piece": "answer", "grad_norm": 0.28348}, {"tid": 1243, "piece": "_in", "grad_norm": 0.30504}, {"tid": 4326, "piece": "_text", "grad_norm": 0.28718}, {"tid": 2198, "piece": "\",\"", "grad_norm": 0.27112}, {"tid": 44997, "piece": "draft", "grad_norm": 0.28947}, {"tid": 2132, "piece": "It", "grad_norm": 0.32452}, {"tid": 594, "piece": "'s", "grad_norm": 0.28221}, {"tid": 3208, "piece": " sent", "grad_norm": 0.25993}, {"tid": 553, "piece": " by", "grad_norm": 0.63813}, {"tid": 15235, "piece": " AI", "grad_norm": 0.45235}, {"tid": 1154, "piece": " ,", "grad_norm": 0.26709}, {"tid": 220, "piece": " ", "grad_norm": 0.31047}, {"tid": 358, "piece": " I", "grad_norm": 0.29595}, {"tid": 2776, "piece": "'m", "grad_norm": 0.31353}, {"tid": 458, "piece": " an", "grad_norm": 0.29255}, {"tid": 17847, "piece": " assistant", "grad_norm": 0.3112}, {"tid": 5798, "piece": " built", "grad_norm": 0.29917}, {"tid": 279, "piece": " the", "grad_norm": 0.26265}, {"tid": 328, "piece": " S", "grad_norm": 0.55942}, {"tid": 2024, "piece": "bl", "grad_norm": 0.57817}, {"tid": 26476, "piece": ".so", "grad_norm": 0.30328}, {"tid": 2083, "piece": " team", "grad_norm": 0.29872}, {"tid": 311, "piece": " to", "grad_norm": 0.25341}, {"tid": 4226, "piece": " answer", "grad_norm": 0.30654}, {"tid": 4755, "piece": " questions", "grad_norm": 0.31481}, {"tid": 6157, "piece": " quickly", "grad_norm": 0.28957}, {"tid": 323, "piece": " and", "grad_norm": 0.28626}, {"tid": 29257, "piece": " accurately", "grad_norm": 0.27656}, {"tid": 13, "piece": ".", "grad_norm": 0.26289}, {"tid": 1124, "piece": " \\", "grad_norm": 0.28676}, {"tid": 77, "piece": "n", "grad_norm": 0.26879}, {"tid": 1699, "piece": "\\n", "grad_norm": 0.2871}, {"tid": 12, "piece": "-", "grad_norm": 0.34968}, {"tid": 16441, "piece": " responded", "grad_norm": 0.28557}, {"tid": 26525, "piece": " �", "grad_norm": 0.28957}, {"tid": 232, "piece": "�", "grad_norm": 0.2871}, {"tid": 9207, "piece": "\"}", "grad_norm": 0.27977}, {"tid": 151645, "piece": "<|im_end|>", "grad_norm": 0.30219}, {"tid": 198, "piece": "\n", "grad_norm": 0.16666}]}, {"id": "TRAIN-22", "reviewed_target": {"action": "human_handoff", "draft": "null"}, "target_token_count": 13, "prompt_token_count": 3460, "loss": 66.41091, "probe": {"loss": 66.41092, "per_token_loss": [75.3624, 71.1583, 59.7273, 72.3008, 49.3252, 73.5764, 78.2354, 53.1783, 55.5287, 84.2687, 63.715, 72.747, 54.2186], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "stations": [{"id": "decide", "label": "DECIDE (final norm)", "grad_norm": 9.28327}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "grad_norm": 6.97611}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "grad_norm": 1.31479}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "grad_norm": 0.35277}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "grad_norm": 7.86817}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "grad_norm": 1.69692}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "grad_norm": 0.47019}], "residual_highway": {"embedding": 2.28893, "after_l1_attn": 2.28904, "after_l1_ffn": 2.26259, "after_l2_attn": 2.26238, "after_l2_ffn": 2.23015, "final_norm_out": 3.24725}, "embedding_rows": [{"tid": 4913, "piece": "{\"", "grad_norm": 1.07971}, {"tid": 1311, "piece": "action", "grad_norm": 1.1338}, {"tid": 3252, "piece": "\":\"", "grad_norm": 1.67694}, {"tid": 25312, "piece": "human", "grad_norm": 1.07638}, {"tid": 23194, "piece": "_hand", "grad_norm": 1.1008}, {"tid": 1847, "piece": "off", "grad_norm": 1.12531}, {"tid": 2198, "piece": "\",\"", "grad_norm": 1.09629}, {"tid": 44997, "piece": "draft", "grad_norm": 1.06853}, {"tid": 2921, "piece": "null", "grad_norm": 1.08202}, {"tid": 9207, "piece": "\"}", "grad_norm": 0.95564}, {"tid": 151645, "piece": "<|im_end|>", "grad_norm": 1.11682}, {"tid": 198, "piece": "\n", "grad_norm": 0.61488}]}, {"id": "TRAIN-39", "reviewed_target": {"action": "answer_in_text", "draft": "Sorry this hasn't been useful.\n\n- responded by Sbl 😊"}, "target_token_count": 28, "prompt_token_count": 3454, "loss": 62.82201, "probe": {"loss": 62.82201, "per_token_loss": [75.3448, 71.1748, 59.7174, 61.4699, 58.7453, 68.8778, 63.2137, 53.1656, 55.5351, 74.5815, 53.6082, 62.5516, 70.2912, 50.6858, 63.1503, 65.1117, 64.9241, 70.3358, 54.9029, 47.3471, 57.299, 72.488, 67.9281, 57.0651, 55.742, 76.7845, 72.7502, 54.2249], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "stations": [{"id": "decide", "label": "DECIDE (final norm)", "grad_norm": 8.27711}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "grad_norm": 4.87359}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "grad_norm": 0.93059}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "grad_norm": 0.30739}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "grad_norm": 5.10498}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "grad_norm": 1.23231}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "grad_norm": 0.27572}], "residual_highway": {"embedding": 1.56121, "after_l1_attn": 1.56052, "after_l1_ffn": 1.5401, "after_l2_attn": 1.54003, "after_l2_ffn": 1.52398, "final_norm_out": 2.12291}, "embedding_rows": [{"tid": 4913, "piece": "{\"", "grad_norm": 0.50124}, {"tid": 1311, "piece": "action", "grad_norm": 0.5264}, {"tid": 3252, "piece": "\":\"", "grad_norm": 0.73051}, {"tid": 9217, "piece": "answer", "grad_norm": 0.48597}, {"tid": 1243, "piece": "_in", "grad_norm": 0.52312}, {"tid": 4326, "piece": "_text", "grad_norm": 0.49205}, {"tid": 2198, "piece": "\",\"", "grad_norm": 0.46483}, {"tid": 44997, "piece": "draft", "grad_norm": 0.49606}, {"tid": 19152, "piece": "Sorry", "grad_norm": 0.49104}, {"tid": 419, "piece": " this", "grad_norm": 0.52215}, {"tid": 12492, "piece": " hasn", "grad_norm": 0.4427}, {"tid": 944, "piece": "'t", "grad_norm": 0.52335}, {"tid": 1012, "piece": " been", "grad_norm": 0.49472}, {"tid": 5390, "piece": " useful", "grad_norm": 0.41208}, {"tid": 7110, "piece": ".\\", "grad_norm": 0.55229}, {"tid": 77, "piece": "n", "grad_norm": 0.51398}, {"tid": 1699, "piece": "\\n", "grad_norm": 0.49219}, {"tid": 12, "piece": "-", "grad_norm": 0.59899}, {"tid": 16441, "piece": " responded", "grad_norm": 0.49001}, {"tid": 553, "piece": " by", "grad_norm": 0.50901}, {"tid": 328, "piece": " S", "grad_norm": 0.49827}, {"tid": 2024, "piece": "bl", "grad_norm": 0.55367}, {"tid": 26525, "piece": " �", "grad_norm": 0.49611}, {"tid": 232, "piece": "�", "grad_norm": 0.49204}, {"tid": 9207, "piece": "\"}", "grad_norm": 0.4793}, {"tid": 151645, "piece": "<|im_end|>", "grad_norm": 0.51865}, {"tid": 198, "piece": "\n", "grad_norm": 0.28541}]}], "one_step": {"anchor": "TRAIN-41", "learning_rate": 0.05, "optimizer": "plain SGD (stated lr; the lab’s Adam path trains only a LoRA adapter, viz #11)", "grad_norms_used_for_the_step": [{"id": "decide", "label": "DECIDE (final norm)", "grad_norm": 8.45387}, {"id": "l2_process", "label": "layer 2 · PROCESS (FFN)", "grad_norm": 4.17283}, {"id": "l2_consult", "label": "layer 2 · CONSULT (attention)", "grad_norm": 0.7766}, {"id": "l2_steady", "label": "layer 2 · STEADY (RMSNorm)", "grad_norm": 0.24763}, {"id": "l1_process", "label": "layer 1 · PROCESS (FFN)", "grad_norm": 4.32011}, {"id": "l1_consult", "label": "layer 1 · CONSULT (attention)", "grad_norm": 0.97752}, {"id": "l1_steady", "label": "layer 1 · STEADY (RMSNorm)", "grad_norm": 0.31184}], "before": {"TRAIN-41": {"loss": 64.23239, "per_token_loss": [75.3468, 71.1687, 59.7277, 72.352, 79.118, 57.6377, 71.0192, 61.0126, 53.1677, 55.5444, 74.5675, 70.8903, 71.9958, 66.9498, 55.5684, 47.0138, 87.234, 61.8872, 61.7691, 74.0863, 53.357, 66.9154, 53.5505, 51.1015, 61.7376, 68.5965, 61.6494, 71.6151, 59.4622, 77.9242, 53.2116, 59.5833, 72.5056, 70.3708, 54.9282, 47.3316, 57.2923, 72.4891, 67.9464, 57.0789, 55.705, 76.7805, 72.7479, 54.288], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "TRAIN-29": {"loss": 62.42133, "per_token_loss": [75.3672, 71.1623, 59.6636, 61.445, 58.7025, 68.8814, 63.1517, 53.1703, 55.5024, 65.0321, 51.2571, 60.6873, 73.0994, 47.453, 57.2391, 74.6838, 73.5591, 69.8389, 51.2416, 59.7346, 66.4157, 63.3, 51.1792, 51.2756, 74.8021, 67.9717, 56.6255, 74.3182, 48.6456, 58.0267, 63.6982, 55.7631, 60.4125, 86.8459, 54.3247, 67.4991, 57.2413, 70.3607, 54.9186, 47.344, 57.2773, 72.5612, 67.9335, 57.1061, 55.7081, 76.8313, 72.6958, 54.2694], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "TRAIN-22": {"loss": 66.41092, "per_token_loss": [75.3624, 71.1583, 59.7273, 72.3008, 49.3252, 73.5764, 78.2354, 53.1783, 55.5287, 84.2687, 63.715, 72.747, 54.2186], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "TRAIN-39": {"loss": 62.82201, "per_token_loss": [75.3448, 71.1748, 59.7174, 61.4699, 58.7453, 68.8778, 63.2137, 53.1656, 55.5351, 74.5815, 53.6082, 62.5516, 70.2912, 50.6858, 63.1503, 65.1117, 64.9241, 70.3358, 54.9029, 47.3471, 57.299, 72.488, 67.9281, 57.0651, 55.742, 76.7845, 72.7502, 54.2249], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "VALIDATION-01": {"loss": 65.79856, "per_token_loss": [75.3466, 71.1691, 59.7183, 72.3471, 79.1202, 57.6345, 71.0231, 61.0234, 53.1693, 55.5392, 64.4651, 56.3846, 60.7136, 70.28, 77.8257, 88.1795, 75.8123, 71.6356, 61.7648, 74.0876, 53.3603, 51.1293, 81.9811, 80.7709, 62.9188, 60.5873, 56.2659, 68.2783, 72.4995, 70.3409, 54.9234, 47.3423, 57.3056, 72.4934, 67.9329, 57.0755, 55.7341, 76.7646, 72.749, 54.2495], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}}, "after": {"TRAIN-41": {"loss": 58.55046, "per_token_loss": [69.1915, 65.5002, 54.3184, 66.0455, 73.3088, 51.657, 65.1639, 55.0686, 49.2537, 50.2612, 68.8482, 65.7082, 66.422, 61.8364, 50.4281, 43.1678, 79.2311, 55.341, 52.1142, 68.3812, 48.8753, 62.3716, 48.4768, 45.7476, 52.0807, 62.8973, 56.6739, 66.299, 52.9465, 71.1535, 47.6195, 54.8511, 66.4476, 65.1626, 50.7106, 41.5252, 53.1868, 66.2347, 61.6254, 52.0555, 50.5587, 70.4151, 67.9984, 49.06], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "TRAIN-29": {"loss": 58.42919, "per_token_loss": [69.2156, 65.4935, 54.2672, 57.2425, 55.9016, 65.1787, 60.0684, 49.2599, 50.2273, 60.6693, 48.1381, 57.5322, 69.7839, 44.5332, 54.2189, 71.1043, 70.0055, 66.4691, 48.5309, 56.7966, 63.3607, 59.9019, 48.6403, 48.6162, 71.1201, 61.6502, 53.9613, 70.3094, 46.3959, 54.6937, 60.6214, 52.9784, 57.4668, 82.0262, 51.8515, 64.2129, 53.5141, 65.1568, 50.707, 41.5521, 53.1715, 66.3154, 61.6118, 52.0849, 50.5711, 70.4682, 67.9508, 49.0536], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "TRAIN-22": {"loss": 61.83721, "per_token_loss": [69.2064, 65.4907, 54.3187, 67.5682, 46.699, 69.7888, 74.4316, 49.2648, 50.2454, 79.3226, 60.5582, 67.9982, 48.9909], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "TRAIN-39": {"loss": 58.35691, "per_token_loss": [69.1901, 65.5061, 54.3082, 57.2632, 55.9427, 65.1717, 60.1299, 49.2518, 50.252, 69.7298, 50.8803, 59.6417, 67.1315, 47.7179, 59.9573, 61.9268, 61.541, 65.1277, 50.6868, 41.5438, 53.1923, 66.2388, 61.6059, 52.0422, 50.5966, 70.4194, 68.0008, 48.9971], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}, "VALIDATION-01": {"loss": 60.94902, "per_token_loss": [69.1917, 65.5004, 54.3094, 66.0404, 73.3108, 51.6535, 65.1679, 55.0797, 49.2554, 50.2563, 59.6751, 53.3697, 57.0542, 66.8575, 74.3087, 83.8368, 72.1554, 67.9709, 52.1101, 68.383, 48.8791, 48.6198, 78.0839, 76.6223, 59.8227, 57.0019, 53.7669, 64.7481, 66.4428, 65.1336, 50.7058, 41.5379, 53.2005, 66.2393, 61.609, 52.0526, 50.5883, 70.3989, 67.9997, 49.021], "correct_first_piece_probability": 0.0, "first_target_piece": "{\"", "top_guess_piece": "\n\n", "top_guess_probability": 1.0}}}, "loss_curve": [{"epoch": 1, "record_id": "TRAIN-41", "train_loss": 64.23239, "validation_loss": 60.94902}, {"epoch": 1, "record_id": "TRAIN-29", "train_loss": 58.42919, "validation_loss": 56.96241}, {"epoch": 1, "record_id": "TRAIN-22", "train_loss": 57.52204, "validation_loss": 52.35444}, {"epoch": 1, "record_id": "TRAIN-39", "train_loss": 48.81287, "validation_loss": 47.83924}, {"epoch": 2, "record_id": "TRAIN-41", "train_loss": 45.77788, "validation_loss": 42.95362}, {"epoch": 2, "record_id": "TRAIN-29", "train_loss": 40.78727, "validation_loss": 38.64091}, {"epoch": 2, "record_id": "TRAIN-22", "train_loss": 30.99207, "validation_loss": 34.09558}, {"epoch": 2, "record_id": "TRAIN-39", "train_loss": 27.93773, "validation_loss": 29.92542}, {"epoch": 3, "record_id": "TRAIN-41", "train_loss": 27.09842, "validation_loss": 26.39601}, {"epoch": 3, "record_id": "TRAIN-29", "train_loss": 24.57649, "validation_loss": 23.8854}, {"epoch": 3, "record_id": "TRAIN-22", "train_loss": 10.87724, "validation_loss": 22.91439}, {"epoch": 3, "record_id": "TRAIN-39", "train_loss": 15.34859, "validation_loss": 20.97666}]};
+
+const COLORS = { 'TRAIN-29': '#7c3aed', 'TRAIN-41': '#2563eb', 'TRAIN-22': '#0d9488', 'TRAIN-39': '#dc2626' };
+const VAL_COLOR = '#16a34a';
+const VAL_ID = 'VALIDATION-01';
+const state = { seqId: null, run: 0, fast: false, advance: null };
+
+// ---- helpers (verbatim shape from the series template) ---------------------
+// classroom filter: an untrained brain's random guesses include a few rude words; show them as ✱✱✱
+const RUDE_PIECE = /fuck|osexual/i;
+function escapePiece(p) {
+  if (RUDE_PIECE.test(p)) return '\u2731\u2731\u2731'; return p.replace(/ /g, '␣').replace(/\n/g, '⏎'); }
+const CANCEL = new Error('cancelled');
+function wait(ms) {
+  const id = state.run;
+  return new Promise((res, rej) => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      if (id !== state.run) { clearInterval(iv); rej(CANCEL); }
+      else if (state.fast || Date.now() - t0 >= ms) { clearInterval(iv); res(); }
+    }, 30);
+  });
+}
+function gate() {
+  const id = state.run, btn = document.getElementById('nextBtn');
+  state.fast = false; btn.disabled = false;
+  return new Promise((res, rej) => {
+    state.advance = () => { state.advance = null; btn.disabled = true; id === state.run ? res() : rej(CANCEL); };
+  });
+}
+function next() {
+  if (state.advance) state.advance();
+  else state.fast = true;
+}
+function startRun() {
+  const oldAdvance = state.advance;   // capture before bumping state.run, so a pending
+  state.run++; state.fast = false;    // old gate correctly sees id !== state.run and CANCELs
+  document.getElementById('nextBtn').disabled = true;
+  if (oldAdvance) oldAdvance();
+  return state.run;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function recById(id) { return DATA.records.find(r => r.id === id); }
+function stepOn(n, color) {
+  const s = document.getElementById('step' + n);
+  s.classList.add('on'); s.style.background = color; s.style.borderColor = color;
+}
+function resetSteps() {
+  for (let n = 1; n <= 7; n++) {
+    const s = document.getElementById('step' + n);
+    s.classList.remove('on'); s.style.background = ''; s.style.borderColor = '';
+  }
+}
+function setCaption(html) { document.getElementById('caption').innerHTML = html; }
+function fmt(n, d) { return Number(n).toFixed(d == null ? 2 : d); }
+function draftText(t) { return t.draft === null ? '(no draft — action "' + t.action + '")' : t.draft; }
+
+// ---- pills -------------------------------------------------------------------
+function buildPills() {
+  const wrap = document.getElementById('records');
+  DATA.records.forEach(r => {
+    const color = COLORS[r.id];
+    const pill = document.createElement('button');
+    pill.className = 'record-pill';
+    pill.style.color = color;
+    pill.innerHTML = '<span class="dot" style="background:' + color + '"></span>' +
+      '<span class="rid">' + r.id + '</span>' +
+      '<span class="rmsg">' + r.reviewed_target.action + '</span>';
+    pill.dataset.sid = r.id;
+    pill.addEventListener('click', () => { selectPill(r.id); state.seqId = r.id; runStory(r); });
+    wrap.appendChild(pill);
+  });
+  const vpill = document.createElement('button');
+  vpill.className = 'record-pill special';
+  vpill.style.color = VAL_COLOR;
+  vpill.innerHTML = '<span class="dot" style="background:' + VAL_COLOR + '"></span>' +
+    '<span class="rid">' + VAL_ID + '</span><span class="rmsg">held out — never trained on</span>';
+  vpill.dataset.sid = VAL_ID;
+  vpill.addEventListener('click', () => { selectPill(VAL_ID); state.seqId = VAL_ID; runStory(null); });
+  wrap.appendChild(vpill);
+}
+function selectPill(id) {
+  document.querySelectorAll('.record-pill').forEach(p => p.classList.toggle('active', p.dataset.sid === id));
+}
+
+// ---- brain map (same SVG as viz #2/#5) --------------------------------------
+function brainSvg() {
+  return `
+<svg class="brainSvg" viewBox="0 0 460 360" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0 0 L7 4 L0 8" fill="none" stroke="#c9cdd3" stroke-width="1.5"/></marker></defs>
+  <path d="M 118 236 C 78 222 52 190 56 150 C 60 112 84 82 122 68 C 158 38 218 30 268 46
+           C 318 62 352 96 362 140 C 372 184 352 226 312 250 C 274 272 214 276 168 264
+           C 142 257 132 248 118 236 Z"
+        fill="#f7f8fa" stroke="#c9cdd3" stroke-width="2.5"/>
+  <g class="eye">
+    <ellipse cx="26" cy="150" rx="14" ry="16" fill="#fff" stroke="#9ca3af" stroke-width="2"/>
+    <circle cx="26" cy="150" r="5.5" fill="#9ca3af"/>
+    <line x1="42" y1="150" x2="66" y2="150" stroke="#c9cdd3" stroke-width="2" stroke-dasharray="4 4"/>
+  </g>
+  <path class="loopPath" d="M 326 160 C 340 240, 170 262, 106 132" stroke="#c9cdd3" stroke-width="2"
+        fill="none" stroke-dasharray="5 5" marker-end="url(#arr)"/>
+  <text x="218" y="286" text-anchor="middle" font-size="9" fill="#b3b8bf">keep + add → go again</text>
+  <path d="M 342 158 C 360 154 372 152 386 151" stroke="#c9cdd3" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <circle class="s1" cx="105" cy="95" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle class="s2" cx="192" cy="72" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle class="s3" cx="272" cy="95" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle class="s4" cx="326" cy="160" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle class="decide" cx="406" cy="150" r="16" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <text x="105" y="127" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">STEADY</text>
+  <text x="192" y="46" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">CONSULT</text>
+  <text x="272" y="127" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">KEEP+ADD</text>
+  <text x="326" y="192" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">PROCESS</text>
+  <text x="406" y="184" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">DECIDE</text>
+  <text class="roundBadge round-badge" x="218" y="322" text-anchor="middle" font-size="12" font-weight="800" fill="#6b7280" letter-spacing="1">↻ layer 1 — the pulse keeps travelling back</text>
+</svg>`;
+}
+function buildBrainA() { document.getElementById('brainMountA').innerHTML = brainSvg(); }
+function buildBrainB() { document.getElementById('brainMountB').innerHTML = brainSvg(); }
+function zoneActive(mount, cls, color, opacity) {
+  const z = mount.querySelector('.' + cls); if (!z) return;
+  z.setAttribute('fill', color); z.setAttribute('fill-opacity', String(opacity == null ? 0.32 : opacity));
+  z.setAttribute('stroke', color); z.setAttribute('stroke-width', '2.5');
+}
+function resetBrain(mount) {
+  ['s1', 's2', 's3', 's4', 'decide'].forEach(cls => {
+    const z = mount.querySelector('.' + cls); if (!z) return;
+    z.setAttribute('fill', '#eceef1'); z.setAttribute('fill-opacity', '1');
+    z.setAttribute('stroke', '#d7dade'); z.setAttribute('stroke-width', '1.5');
+  });
+  const b = mount.querySelector('.roundBadge'); if (b) b.classList.remove('shown');
+}
+
+// ---- stage 1: predict --------------------------------------------------------
+function buildPredict(r, color) {
+  document.getElementById('youPiece').innerHTML = '<span style="color:' + color + '">' + r.id + '</span>';
+  document.getElementById('youSub').textContent = 'real reviewed target has ' + r.target_token_count + ' pieces, on the record’s real ' + r.prompt_token_count + '-piece prompt.';
+  document.getElementById('predictWrap').innerHTML =
+    '<div class="guess-row"><span class="guess-tag">model’s real guess</span><span class="guess-val">' + escapePiece(r.probe.top_guess_piece) + '</span></div>' +
+    '<div class="guess-note">probability ' + fmt(r.probe.top_guess_probability * 100, 1) + '% &mdash; this untrained seed collapses onto one dominant vocabulary piece almost no matter the input; watch how that changes only after <b>many</b> updates (step 6).</div>';
+}
+
+// ---- stage 2: answer key + surprise ------------------------------------------
+function buildAnswer(r, color) {
+  const surprise = r.probe.per_token_loss[0];
+  const maxSurprise = 90;
+  document.getElementById('answerWrap').innerHTML =
+    '<div class="compare2">' +
+    '<div class="box"><div class="k">real reviewed target</div><div class="v" style="font-size:.8rem; font-weight:600; font-family:inherit;">' + r.reviewed_target.action + (r.reviewed_target.draft ? ': “' + escapePiece(r.reviewed_target.draft.slice(0, 70)) + (r.reviewed_target.draft.length > 70 ? '…' : '') + '”' : '') + '</div></div>' +
+    '<div class="box"><div class="k">first target piece</div><div class="v">' + escapePiece(r.probe.first_target_piece) + '</div></div>' +
+    '</div>' +
+    '<div class="bar-row shown" style="margin-top:14px;"><span class="blabel">surprise on 1st piece (nats)</span>' +
+    '<span class="btrack"><span class="bfill" style="width:' + Math.min(100, surprise / maxSurprise * 100) + '%; background:' + color + ';"></span></span>' +
+    '<span class="bval">' + fmt(surprise, 2) + '</span></div>' +
+    '<div class="bar-row shown"><span class="blabel">real loss (mean over ' + r.target_token_count + ' pieces)</span>' +
+    '<span class="btrack"><span class="bfill" style="width:' + Math.min(100, r.loss / maxSurprise * 100) + '%; background:' + color + ';"></span></span>' +
+    '<span class="bval">' + fmt(r.loss, 2) + '</span></div>' +
+    '<div class="guess-note" style="margin-top:8px;">Surprise (nats) is exactly &minus;log(probability the model gave the real answer). The model guessed <b>' + escapePiece(r.probe.top_guess_piece) + '</b>; the real answer started with <b>' + escapePiece(r.probe.first_target_piece) + '</b> &mdash; nearly total surprise. This number is the loss.</div>';
+}
+
+// ---- stage 3: trace the blame backward ---------------------------------------
+function pulseSequence(r) {
+  const s = {}; r.stations.forEach(x => s[x.id] = x.grad_norm);
+  const h = r.residual_highway;
+  return [
+    { cls: 'decide', label: 'DECIDE (final norm)', val: s.decide, round: 2 },
+    { cls: 's4', label: 'layer 2 · PROCESS', val: s.l2_process, round: 2 },
+    { cls: 's3', label: 'layer 2 · KEEP+ADD (residual)', val: h.after_l2_ffn, round: 2 },
+    { cls: 's2', label: 'layer 2 · CONSULT', val: s.l2_consult, round: 2 },
+    { cls: 's1', label: 'layer 2 · STEADY', val: s.l2_steady, round: 2 },
+    { cls: 's4', label: 'layer 1 · PROCESS', val: s.l1_process, round: 1 },
+    { cls: 's3', label: 'layer 1 · KEEP+ADD (residual)', val: h.after_l1_ffn, round: 1 },
+    { cls: 's2', label: 'layer 1 · CONSULT', val: s.l1_consult, round: 1 },
+    { cls: 's1', label: 'layer 1 · STEADY', val: s.l1_steady, round: 1 },
+    { cls: 'eye', label: 'embedding rows of the pieces', val: h.embedding, round: 1 },
+  ];
+}
+async function runPulse(r, color) {
+  const mount = document.getElementById('brainMountA');
+  resetBrain(mount);
+  const log = document.getElementById('pulseLog'); log.innerHTML = '';
+  const seq = pulseSequence(r);
+  const maxVal = Math.max(...seq.map(p => p.val), 0.001);
+  const badge = mount.querySelector('.roundBadge');
+  for (const p of seq) {
+    resetBrain(mount);
+    if (p.cls === 'eye') {
+      const e = mount.querySelector('.eye');
+      e.querySelectorAll('ellipse, circle').forEach(el => el.setAttribute('stroke', color));
+    } else {
+      zoneActive(mount, p.cls, color, 0.18 + 0.7 * (p.val / maxVal));
+    }
+    if (p.round === 1 && badge) badge.classList.add('shown');
+    const row = document.createElement('div');
+    row.className = 'pl-row';
+    row.innerHTML = '<span style="display:inline-block; vertical-align:middle; height:8px; border-radius:3px; margin-right:8px; background:' + color + '; width:' + Math.max(3, p.val / maxVal * 140) + 'px"></span>' + p.label + ' &mdash; blame size <b>' + fmt(p.val, 3) + '</b>';
+    log.appendChild(row);
+    await wait(60);
+    row.classList.add('shown');
+    await wait(520);
+  }
+  // end state: every station stays lit by the biggest blame it received (either round)
+  resetBrain(mount);
+  const most = {};
+  seq.forEach(p => { if (p.cls !== 'eye') most[p.cls] = Math.max(most[p.cls] || 0, p.val); });
+  Object.keys(most).forEach(c => zoneActive(mount, c, color, 0.18 + 0.7 * (most[c] / maxVal)));
+  mount.querySelector('.eye').querySelectorAll('ellipse, circle').forEach(el => el.setAttribute('stroke', color));
+  document.getElementById('mapNoteA').innerHTML = 'This is backpropagation: the same real number (loss) hands blame backward, station by station, in proportion to how much each one contributed. <b>' + r.id + '</b>&rsquo;s biggest correction lands at <b>' + seq.reduce((a, b) => b.val > a.val ? b : a).label + '</b>.';
+}
+
+// ---- stage 4: adjust -----------------------------------------------------------
+function buildAdjust(anchorId) {
+  const os = DATA.one_step;
+  const b = os.before[anchorId], a = os.after[anchorId];
+  document.getElementById('adjustWrap').innerHTML =
+    '<div class="guess-note" style="margin-bottom:10px;">One real update, computed from <b>' + os.anchor + '</b>&rsquo;s real backward pass: every parameter moves by <b>&minus; lr &times; its own real gradient</b> (' + os.optimizer + ', lr = ' + os.learning_rate + ').</div>' +
+    '<div class="compare2 fade shown" id="adjLoss">' +
+    '<div class="box"><div class="k">loss before</div><div class="v">' + fmt(b.loss, 3) + '</div></div>' +
+    '<div class="box"><div class="k">loss after</div><div class="v" style="color:#059669;">' + fmt(a.loss, 3) + '</div></div></div>' +
+    '<div class="compare2 fade shown" id="adjSurp" style="margin-top:10px;">' +
+    '<div class="box"><div class="k">surprise on 1st piece, before</div><div class="v">' + fmt(b.per_token_loss[0], 2) + ' nats</div></div>' +
+    '<div class="box"><div class="k">surprise on 1st piece, after</div><div class="v" style="color:#059669;">' + fmt(a.per_token_loss[0], 2) + ' nats</div></div></div>' +
+    '<div class="guess-note" style="margin-top:10px;">' + os.anchor + ' got <b>less</b> surprising to the model &mdash; a real, if tiny, correction from one real step.</div>';
+}
+
+// ---- stage 5: check --------------------------------------------------------------
+function buildCheck() {
+  const os = DATA.one_step;
+  const ids = DATA.records.map(r => r.id).concat([VAL_ID]);
+  const rows = ids.map(id => {
+    const b = os.before[id], a = os.after[id];
+    const color = id === VAL_ID ? VAL_COLOR : COLORS[id];
+    const anchor = id === os.anchor;
+    return '<div class="checkrow' + (anchor ? ' anchor' : '') + '" data-id="' + id + '">' +
+      '<span class="rid" style="color:' + color + ';">' + id + (id === VAL_ID ? ' (held out)' : anchor ? ' (trained on)' : '') + '</span>' +
+      '<span class="lbl">loss ' + fmt(b.loss, 2) + ' &rarr;</span><span class="num">' + fmt(a.loss, 2) + '</span>' +
+      '<span class="lbl">1st-piece surprise ' + fmt(b.per_token_loss[0], 2) + ' &rarr;</span><span class="num">' + fmt(a.per_token_loss[0], 2) + '</span></div>';
+  }).join('');
+  document.getElementById('checkWrap').innerHTML =
+    '<div class="checktable" id="checkTable">' + rows + '</div>' +
+    '<div class="guess-note" style="margin-top:10px;">Every real record got a little less surprising &mdash; including <b style="color:' + VAL_COLOR + ';">' + VAL_ID + '</b>, which the update never saw. That is what &ldquo;the habit transfers&rdquo; means: the correction was to shared parameters, not memorization of one record. The 1st-piece surprise looks nearly identical across records because every real reviewed target opens with the same JSON piece <code>{&quot;</code> &mdash; the full-record <b>loss</b> (left column) is where the records visibly diverge.</div>';
+  return Array.from(document.querySelectorAll('#checkTable .checkrow'));
+}
+
+// ---- stage 6: loss curve -----------------------------------------------------------
+function buildSplit() {
+  const total = DATA.split.train + DATA.split.validation + DATA.split.test;
+  const seg = (n, label, color) => '<div class="split-seg" title="' + label + '" style="width:' + (n / total * 100) + '%; background:' + color + ';">' + (n / total > 0.08 ? label : '') + '</div>';
+  document.getElementById('splitStrip').innerHTML =
+    seg(DATA.split.train, DATA.split.train + ' train', '#374151') +
+    seg(DATA.split.validation, DATA.split.validation + ' val', '#0d9488') +
+    seg(DATA.split.test, DATA.split.test + ' test', '#dc2626');
+  document.getElementById('splitLegend').innerHTML =
+    '<span style="color:#374151;">&#9632; ' + DATA.split.train + ' train</span> &nbsp; ' +
+    '<span style="color:#0d9488;">&#9632; ' + DATA.split.validation + ' validation</span> &nbsp; ' +
+    '<span style="color:#dc2626;">&#9632; ' + DATA.split.test + ' test — never peeked at, anywhere in this series</span>';
+}
+function buildCurve() {
+  const curve = DATA.loss_curve;
+  const w = 640, h = 200, pad = 30;
+  const maxLoss = Math.max(...curve.map(c => Math.max(c.train_loss, c.validation_loss)));
+  const x = i => pad + (i / (curve.length - 1)) * (w - 2 * pad);
+  const y = v => h - pad - (v / maxLoss) * (h - 2 * pad);
+  const path = key => curve.map((c, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ' ' + y(c[key]).toFixed(1)).join(' ');
+  const dots = key => curve.map((c, i) => '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(c[key]).toFixed(1) + '" r="3" fill="' + (COLORS[c.record_id] || '#374151') + '"><title>' + c.record_id + ' epoch ' + c.epoch + ': ' + key + ' = ' + c[key] + '</title></circle>').join('');
+  document.getElementById('curveWrap').innerHTML =
+    '<div class="curve-wrap"><svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:auto;">' +
+    '<line x1="' + pad + '" y1="' + (h - pad) + '" x2="' + (w - pad) + '" y2="' + (h - pad) + '" stroke="#e5e7eb"/>' +
+    '<path d="' + path('train_loss') + '" fill="none" stroke="#374151" stroke-width="2"/>' +
+    dots('train_loss') +
+    '<path d="' + path('validation_loss') + '" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="4 3"/>' +
+    dots('validation_loss') +
+    '<text x="' + pad + '" y="14" font-size="10" fill="#374151">&#9679; train loss (record just updated on)</text>' +
+    '<text x="' + pad + '" y="28" font-size="10" fill="#0d9488">&#9679; validation loss (VALIDATION-01, never trained on)</text>' +
+    '</svg></div>' +
+    '<div class="guess-note" style="margin-top:8px;">' + curve.length + ' real updates across ' + DATA.records.length + ' training records (' + (curve.length / DATA.records.length) + ' passes each), plain SGD, lr ' + DATA.one_step.learning_rate + '. Both curves fall together &mdash; the correction is transferring, not just memorizing one record. On a real production run this is watched closely: if validation loss stopped falling while train loss kept falling, that would be overfitting.</div>';
+}
+
+// ---- stage 7: connect --------------------------------------------------------------
+function buildConnectExamples() {
+  const el = document.getElementById('connectExamples');
+  el.innerHTML = '<span style="font-size:.72rem; color:var(--soft); text-transform:uppercase; letter-spacing:.07em; width:100%;">every record’s real loss, before this series of updates &rarr; after</span>';
+  DATA.records.forEach(r => {
+    const chip = document.createElement('span');
+    chip.className = 'connect-chip';
+    chip.style.color = COLORS[r.id]; chip.style.borderColor = COLORS[r.id];
+    const last = DATA.loss_curve.filter(c => c.record_id === r.id).pop();
+    chip.textContent = r.id + ': ' + fmt(r.loss, 1) + ' → ' + fmt(last.train_loss, 1);
+    el.appendChild(chip);
+  });
+  return el.querySelectorAll('.connect-chip');
+}
+
+// ---- series + grow -------------------------------------------------------------------
+const SERIES = [
+  ['brain-token-embedding.html', 'pieces → patterns'],
+  ['brain-open-the-decoder.html', 'the whole block'],
+  ['brain-attention-workbench.html', 'consult: one thought'],
+  ['brain-attention-layer.html', 'consult: every thought'],
+  ['brain-multiple-heads.html', 'two lenses'],
+  ['brain-rmsnorm.html', 'steady'],
+  ['brain-residual.html', 'keep + add'],
+  ['brain-ffn.html', 'process'],
+  ['brain-decide.html', 'decide'],
+  ['brain-learning.html', 'learning (backprop)'],
+  ['brain-lora.html', 'a small new habit (LoRA)'],
+  ['brain-kv-cache.html', 'notes already made (KV cache)'],
+  ['brain-the-whole-story.html', 'the whole story'],
+];
+function buildSeriesNav(here) {
+  const el = document.getElementById('seriesNav');
+  el.innerHTML = '<span class="records-label">The series &rarr;</span>' + SERIES.map((s, i) =>
+    '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : i === here ? 'next-up' : '') + '">' + (i + 1) + '. ' + s[1] + '</a>').join('');
+}
+function buildGrow(here) {
+  return '<div style="font-size:.72rem; color:var(--soft); text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px;">the brain so far</div>' +
+    '<div class="series-nav" style="padding:0; background:none;">' + SERIES.map((s, i) =>
+      '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : '') + '" style="' + (i + 1 < here ? 'color:var(--ink); border-color:var(--ink);' : i + 1 > here ? 'opacity:.45;' : '') + '">' +
+      (i + 1 < here ? '✓ ' : i + 1 === here ? '◉ ' : '') + s[1] + '</a>').join('') + '</div>';
+}
+function buildFooter() {
+  document.getElementById('footer').innerHTML =
+    'Real data — the lab’s <b>seeded teaching decoder</b> (seed 701, 64 wide, 2 layers), cloned fresh and <b>never saved</b>. ' +
+    'Loss is the real teacher-forced cross-entropy over each record’s real reviewed target pieces; gradients are the real result of <code>loss.backward()</code> on that same real forward pass, grouped by brain-map station; the residual-highway values are the real gradient of the loss with respect to the real hidden state at each keep+add point. ' +
+    'The one real update is plain SGD (lr ' + DATA.one_step.learning_rate + ') on every parameter of a fresh clone &mdash; the lab’s Adam optimizer path is reserved for the small LoRA adapter in viz #11. ' +
+    'The loss curve is ' + DATA.loss_curve.length + ' further real SGD steps across the real training records, checked against a real held-out validation record. ' +
+    'The split (' + DATA.split.train + ' train / ' + DATA.split.validation + ' validation / ' + DATA.split.test + ' test) is the real frozen promoted split; the test record is never touched anywhere in this series. ' +
+    'The brain story is a simplified intuition — <b>not neuroscience</b>.';
+}
+
+// ---- the seven steps -----------------------------------------------------------------
+async function runStory(r) {
+  const id = startRun();
+  resetSteps();
+  document.getElementById('answerWrap').innerHTML = '<div class="empty">The real reviewed target and the real loss appear here.</div>';
+  document.getElementById('adjustWrap').innerHTML = '<div class="empty">One real update appears here.</div>';
+  document.getElementById('checkWrap').innerHTML = '<div class="empty">Held-out check appears here.</div>';
+  document.getElementById('connectExamples').innerHTML = '';
+  document.getElementById('connectNote').innerHTML = '';
+  resetBrain(document.getElementById('brainMountA'));
+  resetBrain(document.getElementById('brainMountB'));
+  document.getElementById('pulseLog').innerHTML = '';
+  const isVal = !r;
+  const color = isVal ? VAL_COLOR : COLORS[r.id];
+  try {
+    // 1. PREDICT
+    stepOn(1, color);
+    if (isVal) {
+      const p = DATA.one_step.before[VAL_ID];
+      document.getElementById('youPiece').innerHTML = '<span style="color:' + color + '">' + VAL_ID + '</span>';
+      document.getElementById('youSub').textContent = 'a held-out validation record — never trained on, only ever checked.';
+      document.getElementById('predictWrap').innerHTML =
+        '<div class="guess-row"><span class="guess-tag">model’s real guess</span><span class="guess-val">' + escapePiece(p.top_guess_piece) + '</span></div>' +
+        '<div class="guess-note">probability ' + fmt(p.top_guess_probability * 100, 1) + '% — same untrained collapse as the training records.</div>';
+      setCaption('PREDICT. <b>' + VAL_ID + '</b> is held out: the training loop never sees it. We still ask the untrained model to predict its real reviewed target, so we can check later whether learning on <i>other</i> records helps <i>here</i>.');
+    } else {
+      buildPredict(r, color);
+      setCaption('PREDICT. As YOU read <b>' + r.id + '</b>, you would guess what a teammate says next. The untrained decoder guesses too — a real top-1 piece from a real softmax over the full vocabulary. Watch how confident (and how wrong) it is.');
+    }
+    await gate();
+
+    // 2. SURPRISE
+    stepOn(2, color);
+    if (isVal) {
+      const p = DATA.one_step.before[VAL_ID];
+      document.getElementById('answerWrap').innerHTML =
+        '<div class="bar-row shown"><span class="blabel">surprise on 1st piece (nats)</span>' +
+        '<span class="btrack"><span class="bfill" style="width:' + Math.min(100, p.per_token_loss[0] / 90 * 100) + '%; background:' + color + ';"></span></span>' +
+        '<span class="bval">' + fmt(p.per_token_loss[0], 2) + '</span></div>' +
+        '<div class="bar-row shown"><span class="blabel">real loss</span>' +
+        '<span class="btrack"><span class="bfill" style="width:' + Math.min(100, p.loss / 90 * 100) + '%; background:' + color + ';"></span></span>' +
+        '<span class="bval">' + fmt(p.loss, 2) + '</span></div>';
+      setCaption('SURPRISE. The real answer key still exists for a held-out record — we just never let training look at it. Its real loss (surprise) is measured the exact same way.');
+    } else {
+      buildAnswer(r, color);
+      setCaption('ANSWER KEY + SURPRISE. The teacher (the real reviewed target) is revealed. Surprise = <b>&minus;log(probability given to the truth)</b>. The bigger the gap between guess and answer, the bigger the loss — a single real number that captures exactly how wrong the model was.');
+    }
+    await gate();
+
+    // 3. TRACE THE BLAME BACKWARD
+    stepOn(3, color);
+    if (isVal) {
+      document.getElementById('mapNoteA').innerHTML = '<b>' + VAL_ID + '</b> never runs <code>loss.backward()</code> — held-out records are only ever scored, never trained on. No pulse to trace here; that is exactly what makes it a fair check.';
+      document.getElementById('pulseLog').innerHTML = '<div class="pl-row shown">no backward pass — this record is held out</div>';
+      setCaption('TRACE THE BLAME BACKWARD. Skipped for a held-out record on purpose: it must never shape the update, or the check in step 5 would be meaningless.');
+      await gate();
+    } else {
+      setCaption('TRACE THE BLAME BACKWARD. <code>loss.backward()</code> sends the surprise back through every station it passed through, in reverse: DECIDE &rarr; PROCESS &rarr; KEEP+ADD &rarr; CONSULT &rarr; STEADY, twice (once per layer), down to the embedding rows of the actual pieces. Each station’s real gradient size (norm) shows how much of the blame landed there. <b>This is backpropagation.</b>');
+      await runPulse(r, color);
+      await gate();
+    }
+
+    // 4. ADJUST
+    stepOn(4, color);
+    buildAdjust('TRAIN-41');
+    setCaption('ADJUST A LITTLE. Every parameter moves opposite its gradient, scaled by a small learning rate — nudging the whole network toward less surprise next time, without erasing anything else it knows. One step, computed on TRAIN-41.');
+    await gate();
+
+    // 5. CHECK
+    stepOn(5, color);
+    const rows = buildCheck();
+    for (const row of rows) { row.classList.add('shown'); await wait(160); }
+    setCaption('CHECK. The same tiny update is now measured on every record — the one it trained on, the other real training records, and a real validation record it never saw. If only the trained-on record improved, that would be memorization; here the correction transfers, even after one step.');
+    await gate();
+
+    // 6. MANY EXAMPLES
+    stepOn(6, color);
+    buildSplit(); buildCurve();
+    setCaption('MANY EXAMPLES. One update barely moves things. Many real updates — plain SGD across the real training records, checked every step against the real held-out validation record — is how the untrained habits from viz #1&ndash;#9 actually get filled in. The frozen split is 41 train / 8 validation / 1 test; test is never peeked at.');
+    await gate();
+
+    // 7. CONNECT
+    stepOn(7, color);
+    zoneActive(document.getElementById('brainMountB'), 'decide', color, 0.28);
+    document.getElementById('mapNoteB').innerHTML = '<b>Before</b> (viz #1&ndash;#9): DECIDE, PROCESS, CONSULT, STEADY and every embedding row were random (seed 701). <b>Now</b>: a real loss, a real backward pass, and real updates have nudged every one of them, a little, toward the real reviewed targets.';
+    const chips = buildConnectExamples();
+    for (let i = 0; i < chips.length; i++) { chips[i].classList.add('shown'); await wait(300); }
+    await wait(300);
+    ['s4', 's3', 's2', 's1'].forEach(cls => zoneActive(document.getElementById('brainMountB'), cls, color, 0.22));
+    document.getElementById('connectNote').innerHTML = buildGrow(10) +
+      '<div style="margin-top:10px;">You do not have to retrain the whole brain to teach it one new trick. <b>Viz #11 (LoRA)</b> freezes everything above and bolts on a tiny correction instead — a real 16-number adapter, not a full update like this one.</div>';
+    await wait(300);
+    toast('Done — click any record pill, including the held-out one, to replay');
+  } catch (e) { if (e !== CANCEL) throw e; }
+}
+
+// ---- init ------------------------------------------------------------------------------
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('replayBtn').addEventListener('click', () => {
+  runStory(state.seqId === VAL_ID ? null : recById(state.seqId));
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+});
+buildBrainA(); buildBrainB();
+buildPills();
+buildFooter();
+buildSeriesNav(10);
+document.getElementById('replayBtn').disabled = false;
+(function () {
+  const r = DATA.records[0];
+  selectPill(r.id); state.seqId = r.id;
+  setTimeout(() => runStory(r), 400);
+})();
+</script>
+</body>
+</html>

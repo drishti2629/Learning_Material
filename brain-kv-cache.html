@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes You Already Made</title>
+<style>
+  :root { --ink: #1a1a1a; --soft: #6b7280; --line: #e5e7eb; --wash: #fafafa; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: var(--ink); min-width: 320px; }
+  code, .mono { font-family: "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+  .header { display: flex; justify-content: space-between; align-items: baseline; padding: 26px 40px 18px; border-bottom: 1px solid var(--line); gap: 24px; flex-wrap: wrap; }
+  .header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.02em; font-weight: 750; }
+  .header .sub { margin: 4px 0 0; color: var(--soft); font-size: .85rem; }
+  .disclaimer { font-size: .72rem; color: var(--soft); max-width: 460px; line-height: 1.45; border-left: 3px solid #f59e0b; padding-left: 10px; }
+  .records { display: flex; gap: 10px; padding: 18px 40px; flex-wrap: wrap; align-items: center; }
+  .records-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); margin-right: 6px; }
+  .record-pill { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; border: 2px solid var(--line); border-radius: 12px; background: #fff; padding: 8px 13px; cursor: pointer; min-width: 120px; transition: border-color .2s, transform .15s, box-shadow .2s; }
+  .record-pill:hover { transform: translateY(-2px); }
+  .record-pill .rid { font-size: .76rem; font-weight: 700; font-family: "SF Mono", monospace; }
+  .record-pill .rmsg { font-size: .7rem; color: var(--soft); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .record-pill .dot { width: 9px; height: 9px; border-radius: 50%; margin-bottom: 4px; }
+  .record-pill.active { box-shadow: 0 4px 14px rgba(0,0,0,.09); }
+  .record-pill.special { border-style: dashed; }
+  .seq-panel { margin: 4px 40px 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--wash); gap: 10px; flex-wrap: wrap; }
+  .panel-head .t { font-size: .8rem; font-weight: 700; }
+  .panel-head .h { font-size: .68rem; color: var(--soft); text-transform: uppercase; letter-spacing: .07em; }
+  .seq-body { padding: 14px 16px; }
+  .seq-empty { color: var(--soft); font-size: .85rem; }
+  .seq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .seq-chip { border: 1.5px solid var(--line); border-radius: 9px; padding: 6px 10px; font-family: "SF Mono", monospace; font-size: .82rem; background: #fff; color: var(--soft); }
+  .seq-chip.notebook { color: var(--ink); }
+  .seq-chip.newpiece { border-width: 2.5px; border-style: dashed; font-weight: 700; }
+  .seq-note { margin: 10px 0 0; font-size: .7rem; color: var(--soft); line-height: 1.5; }
+</style>
+<style>
+  .story { margin: 18px 40px 0; border: 1px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; }
+  .story-body { padding: 14px 16px 4px; }
+  .steps { display: flex; gap: 8px; }
+  .step { flex: 1; text-align: center; font-size: .63rem; padding: 7px 3px 6px; border-radius: 8px; border: 1px solid var(--line); color: var(--soft); font-weight: 650; letter-spacing: .03em; transition: all .4s; }
+  .step small { display: block; font-weight: 500; font-size: .57rem; margin-top: 2px; letter-spacing: 0; }
+  .step.on { color: #fff; }
+  .caption { margin: 12px 0 10px; padding: 12px 14px; font-size: .84rem; line-height: 1.55; background: var(--wash); border-radius: 10px; min-height: 66px; }
+  .story-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 16px 14px; gap: 10px; flex-wrap: wrap; }
+  .replay { border: 1.5px solid var(--ink); background: #fff; border-radius: 9px; padding: 7px 13px; font-size: .74rem; font-weight: 650; cursor: pointer; transition: background .2s, color .2s; }
+  .replay:hover { background: var(--ink); color: #fff; }
+  .replay:disabled { opacity: .4; cursor: not-allowed; }
+  .next { border: 1.5px solid var(--ink); background: var(--ink); color: #fff; border-radius: 9px; padding: 7px 16px; font-size: .74rem; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .next:disabled { opacity: .4; cursor: not-allowed; }
+  .story-hint { font-size: .7rem; color: var(--soft); }
+  .stage { margin: 18px 40px 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+  .stage-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--wash); gap: 10px; flex-wrap: wrap; }
+  .stage-head .t { font-size: .8rem; font-weight: 700; }
+  .stage-head .h { font-size: .68rem; color: var(--soft); text-transform: uppercase; letter-spacing: .07em; }
+  .stage-body { padding: 14px 16px; }
+  .stage-body .empty { color: var(--soft); font-size: .85rem; line-height: 1.6; }
+  .strip-label { font-size: .7rem; color: var(--soft); margin: 12px 0 6px; font-weight: 650; }
+  .fade { opacity: 0; transition: opacity .5s; }
+  .fade.shown { opacity: 1; }
+  .work-rows { display: flex; flex-direction: column; gap: 8px; }
+  .work-row { display: grid; grid-template-columns: 90px 1fr 70px; gap: 10px; align-items: center; opacity: 0; transition: opacity .4s; }
+  .work-row.shown { opacity: 1; }
+  .work-row .wlabel { font-size: .72rem; font-family: "SF Mono", monospace; color: var(--soft); }
+  .work-row .wbar-wrap { display: block; background: var(--wash); border-radius: 5px; height: 18px; overflow: hidden; border: 1px solid var(--line); }
+  .work-row .wbar { display: block; height: 100%; border-radius: 5px 0 0 5px; transition: width .5s; }
+  .work-row .wcount { font-size: .72rem; font-family: "SF Mono", monospace; text-align: right; font-weight: 700; }
+  .notebook-shelf { display: flex; flex-direction: column; gap: 6px; }
+  .note-page { display: grid; grid-template-columns: 60px 1fr 1fr; gap: 10px; align-items: center; border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 11px; background: #fff; opacity: 0; transition: opacity .4s; font-size: .74rem; }
+  .note-page.shown { opacity: 1; }
+  .note-page .npos { font-family: "SF Mono", monospace; font-size: .68rem; color: var(--soft); }
+  .note-page .npiece { font-family: "SF Mono", monospace; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note-page .ntag { font-size: .66rem; color: var(--soft); }
+  .parity-row { display: grid; grid-template-columns: 90px 1fr 1fr; gap: 12px; align-items: center; border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; margin-bottom: 8px; opacity: 0; transition: opacity .4s; }
+  .parity-row.shown { opacity: 1; }
+  .parity-row .plabel { font-size: .72rem; font-weight: 700; font-family: "SF Mono", monospace; }
+  .parity-row .pstat { font-size: .72rem; color: var(--soft); }
+  .parity-row .pstat b { color: var(--ink); font-family: "SF Mono", monospace; }
+  .mem-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mem-card { border: 1.5px solid var(--line); border-radius: 12px; padding: 14px; opacity: 0; transition: opacity .5s; }
+  .mem-card.shown { opacity: 1; }
+  .mem-card .mtitle { font-size: .78rem; font-weight: 750; margin-bottom: 6px; }
+  .mem-card .mformula { font-family: "SF Mono", monospace; font-size: .7rem; color: var(--soft); margin-bottom: 8px; line-height: 1.6; }
+  .mem-card .mtotal { font-size: 1.15rem; font-weight: 800; }
+  .mem-card .msub { font-size: .68rem; color: var(--soft); margin-top: 4px; }
+  .ka-row { display: grid; grid-template-columns: 150px 1fr 18px 1fr 18px 1fr; gap: 10px; align-items: center; opacity: 0; transition: opacity .5s; }
+  .ka-row.shown { opacity: 1; }
+  .blockmap { display: grid; grid-template-columns: minmax(300px, 480px) 1fr; gap: 22px; align-items: start; }
+  #brainMount svg { width: 100%; height: auto; display: block; }
+  .round-badge { opacity: 0; transition: opacity .5s; }
+  .round-badge.shown { opacity: 1; }
+  .map-note { font-size: .78rem; line-height: 1.6; color: var(--ink); padding: 4px 0; }
+  .map-note b { font-family: "SF Mono", monospace; }
+  .connect-examples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+  .connect-chip { border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 11px; font-size: .72rem; font-weight: 650; font-family: "SF Mono", monospace; opacity: 0; transition: opacity .4s; background: #fff; }
+  .connect-chip.shown { opacity: 1; }
+  .connect-note { margin-top: 10px; font-size: .78rem; color: var(--soft); line-height: 1.6; }
+  .footer { margin-top: 22px; padding: 18px 40px 14px; border-top: 1px solid var(--line); font-size: .7rem; color: var(--soft); line-height: 1.6; background: var(--wash); }
+  .footer b { color: var(--ink); }
+  .series-nav { padding: 0 40px 22px; background: var(--wash); display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .series-nav a { color: var(--soft); text-decoration: none; font-size: .68rem; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: #fff; }
+  .series-nav a:hover { border-color: var(--ink); color: var(--ink); }
+  .series-nav a.here { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 700; }
+  .series-nav a.next-up { border: 2px solid var(--ink); color: var(--ink); font-weight: 750; }
+  #toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 999px; padding: 9px 18px; font-size: .78rem; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 60; }
+  #toast.show { opacity: 1; }
+  @media (max-width: 1120px) { .blockmap { grid-template-columns: 1fr; } .mem-cards { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>Notes You Already Made</h1>
+    <p class="sub">while reading, you don&rsquo;t re-read the whole page for every new word &mdash; the transformer keeps a notebook too: the KV cache</p>
+  </div>
+  <div class="disclaimer">
+    A simplified cognitive story &mdash; <b>not neuroscience</b>. Every cache length, timing, parity difference
+    and memory byte count below is real, from the lab&rsquo;s real generation code path.
+  </div>
+</div>
+
+<div class="records" id="records">
+  <span class="records-label">Real sequences &rarr;</span>
+</div>
+
+<div class="seq-panel">
+  <div class="panel-head">
+    <span class="t">The notebook, then 3 real new pieces</span>
+    <span class="h">solid = already noted &middot; dashed = new, real greedy choice</span>
+  </div>
+  <div class="seq-body">
+    <div class="seq-empty" id="seqEmpty">Pick a sequence above &mdash; or just watch; it starts by itself.</div>
+    <div class="seq-row" id="seqRow" style="display:none;"></div>
+    <p class="seq-note" id="seqNote" style="display:none;"></p>
+  </div>
+</div>
+
+<div class="story">
+  <div class="story-body">
+    <div class="steps">
+      <div class="step" id="step1">1. YOU DO THIS<small>the human mirror</small></div>
+      <div class="step" id="step2">2. WITHOUT NOTES<small>re-ask everyone</small></div>
+      <div class="step" id="step3">3. THE NOTEBOOK<small>write it once</small></div>
+      <div class="step" id="step4">4. WITH NOTES<small>same answer</small></div>
+      <div class="step" id="step5">5. THE PRICE<small>memory</small></div>
+      <div class="step" id="step6">6. CONNECT<small>back into the brain</small></div>
+    </div>
+    <div class="caption" id="caption">While you read this sentence, you don&rsquo;t re-read every earlier word to understand the next one &mdash; you keep notes as you go. The decoder&rsquo;s notebook is called the <b>KV cache</b>.</div>
+  </div>
+  <div class="story-foot">
+    <span class="story-hint" id="storyHint">&ldquo;Next&rdquo; steps through the story; the pills switch real records.</span>
+    <div style="display:flex; gap:8px;">
+      <button class="replay" id="replayBtn" disabled>&#8635; replay</button>
+      <button class="next" id="nextBtn" disabled>Next &#9656;</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Reading without notes</span><span class="h">every new piece, everyone re-asked and re-answered</span></div>
+  <div class="stage-body">
+    <div id="workWrap"><div class="empty">If nothing were kept, each new piece would force <b>every</b> earlier piece to be re-asked and re-answered &mdash; real work counts appear here.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">The notebook</span><span class="h">real name tags (K) and contents (V), written down once</span></div>
+  <div class="stage-body">
+    <div class="notebook-shelf" id="notebookShelf"><div class="empty">Every already-read piece&rsquo;s real key (name tag) and value (contents) sit here, computed once.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">A new piece arrives</span><span class="h">real cached-vs-uncached parity</span></div>
+  <div class="stage-body">
+    <div id="parityWrap"><div class="empty">The new piece computes only its own question and name tag, reads the notebook for the rest &mdash; and gets the exact same answer as redoing everything from scratch.</div></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">The price: memory</span><span class="h">real arithmetic &mdash; layers &times; kv heads &times; width &times; pieces &times; 2 &times; bytes</span></div>
+  <div class="stage-body">
+    <div class="mem-cards" id="memCards"></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="stage-head"><span class="t">Connect &mdash; back into the brain</span><span class="h">you are here: CONSULT &rarr; DECIDE, faster</span></div>
+  <div class="stage-body">
+    <div class="blockmap">
+      <div id="brainMount"></div>
+      <div class="map-note" id="mapNote">Every CONSULT still runs the same math &mdash; the notebook only spares the earlier pieces from being redone.</div>
+    </div>
+    <div class="connect-examples" id="connectExamples"></div>
+    <div class="connect-note" id="connectNote"></div>
+  </div>
+</div>
+
+<div class="footer" id="footer"></div>
+<div class="series-nav" id="seriesNav"></div>
+<div id="toast"></div>
+<script>
+"use strict";
+const DATA = {"model": {"kind": "seeded_untrained_custom_decoder", "seed": 701, "layers": 2, "query_heads": 2, "kv_heads": 1, "head_width": 32, "width": 64, "bytes_per_number": 4, "note": "real K/V from the lab’s real _last_cached path (campaignlab/laboratory/operations.py), the exact code the real generation lab uses; cached vs uncached parity is a real forward-pass comparison, not simulated"}, "sequences": [{"id": "TRAIN-41 (prompt start)", "kind": "prompt_start", "note": "the real first 13 pieces of TRAIN-41’s real 3,452-piece prompt, then 3 real greedy new pieces", "pieces": ["<|im_start|>", "system", "\n", "Return", " exactly", " one", " JSON", " object", " with", " exactly", " action", " and", " draft"], "tids": [151644, 8948, 198, 5598, 6896, 825, 4718, 1633, 448, 6896, 1917, 323, 9960], "notebook_pieces": 13, "prefill_ms": 72.5205, "new_pieces": [{"step": 1, "chosen_id": 9960, "chosen_piece": " draft", "cache_length_before": 13, "cache_length_after": 14, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 14, "cached_elapsed_ms": 4.6995, "uncached_elapsed_ms": 8.6326, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.1444091796875e-05, "cache_layers": [{"layer": 0, "cache_length": 14, "k_shape": [1, 14, 1, 32], "v_shape": [1, 14, 1, 32], "raw_bytes": 3584, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 14, "k_shape": [1, 14, 1, 32], "v_shape": [1, 14, 1, 32], "raw_bytes": 3584, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}, {"step": 2, "chosen_id": 9960, "chosen_piece": " draft", "cache_length_before": 14, "cache_length_after": 15, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 15, "cached_elapsed_ms": 3.322, "uncached_elapsed_ms": 3.965, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.52587890625e-05, "cache_layers": [{"layer": 0, "cache_length": 15, "k_shape": [1, 15, 1, 32], "v_shape": [1, 15, 1, 32], "raw_bytes": 3840, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 15, "k_shape": [1, 15, 1, 32], "v_shape": [1, 15, 1, 32], "raw_bytes": 3840, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}, {"step": 3, "chosen_id": 9960, "chosen_piece": " draft", "cache_length_before": 15, "cache_length_after": 16, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 16, "cached_elapsed_ms": 2.0179, "uncached_elapsed_ms": 3.8487, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.33514404296875e-05, "cache_layers": [{"layer": 0, "cache_length": 16, "k_shape": [1, 16, 1, 32], "v_shape": [1, 16, 1, 32], "raw_bytes": 4096, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 16, "k_shape": [1, 16, 1, 32], "v_shape": [1, 16, 1, 32], "raw_bytes": 4096, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}], "triangle_total_kv_without_cache": 45, "line_total_kv_with_cache": 3}, {"id": "TRAIN-29", "kind": "message", "note": "the record’s real message pieces, then 3 real greedy new pieces", "pieces": ["is", " this", " sent", " by", " ai", " or", " human", "?"], "tids": [285, 419, 3208, 553, 16391, 476, 3738, 30], "notebook_pieces": 8, "prefill_ms": 1.6153, "new_pieces": [{"step": 1, "chosen_id": 30, "chosen_piece": "?", "cache_length_before": 8, "cache_length_after": 9, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 9, "cached_elapsed_ms": 2.1742, "uncached_elapsed_ms": 2.9367, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.049041748046875e-05, "cache_layers": [{"layer": 0, "cache_length": 9, "k_shape": [1, 9, 1, 32], "v_shape": [1, 9, 1, 32], "raw_bytes": 2304, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 9, "k_shape": [1, 9, 1, 32], "v_shape": [1, 9, 1, 32], "raw_bytes": 2304, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}, {"step": 2, "chosen_id": 30, "chosen_piece": "?", "cache_length_before": 9, "cache_length_after": 10, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 10, "cached_elapsed_ms": 2.0529, "uncached_elapsed_ms": 3.5991, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.1444091796875e-05, "cache_layers": [{"layer": 0, "cache_length": 10, "k_shape": [1, 10, 1, 32], "v_shape": [1, 10, 1, 32], "raw_bytes": 2560, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 10, "k_shape": [1, 10, 1, 32], "v_shape": [1, 10, 1, 32], "raw_bytes": 2560, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}, {"step": 3, "chosen_id": 30, "chosen_piece": "?", "cache_length_before": 10, "cache_length_after": 11, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 11, "cached_elapsed_ms": 3.7566, "uncached_elapsed_ms": 4.2753, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.9073486328125e-05, "cache_layers": [{"layer": 0, "cache_length": 11, "k_shape": [1, 11, 1, 32], "v_shape": [1, 11, 1, 32], "raw_bytes": 2816, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 11, "k_shape": [1, 11, 1, 32], "v_shape": [1, 11, 1, 32], "raw_bytes": 2816, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}], "triangle_total_kv_without_cache": 30, "line_total_kv_with_cache": 3}, {"id": "TRAIN-22", "kind": "message", "note": "the record’s real message pieces, then 3 real greedy new pieces", "pieces": ["Hi", "\n\n", "We", " just", " need", " LinkedIn", " profiles", " on", " rent"], "tids": [13048, 271, 1654, 1101, 1184, 32767, 20872, 389, 8016], "notebook_pieces": 9, "prefill_ms": 3.6441, "new_pieces": [{"step": 1, "chosen_id": 8016, "chosen_piece": " rent", "cache_length_before": 9, "cache_length_after": 10, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 10, "cached_elapsed_ms": 3.0818, "uncached_elapsed_ms": 3.9506, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.1444091796875e-05, "cache_layers": [{"layer": 0, "cache_length": 10, "k_shape": [1, 10, 1, 32], "v_shape": [1, 10, 1, 32], "raw_bytes": 2560, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 10, "k_shape": [1, 10, 1, 32], "v_shape": [1, 10, 1, 32], "raw_bytes": 2560, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}, {"step": 2, "chosen_id": 8016, "chosen_piece": " rent", "cache_length_before": 10, "cache_length_after": 11, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 11, "cached_elapsed_ms": 1.6068, "uncached_elapsed_ms": 3.5153, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.1444091796875e-05, "cache_layers": [{"layer": 0, "cache_length": 11, "k_shape": [1, 11, 1, 32], "v_shape": [1, 11, 1, 32], "raw_bytes": 2816, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 11, "k_shape": [1, 11, 1, 32], "v_shape": [1, 11, 1, 32], "raw_bytes": 2816, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}, {"step": 3, "chosen_id": 8016, "chosen_piece": " rent", "cache_length_before": 11, "cache_length_after": 12, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 12, "cached_elapsed_ms": 1.7786, "uncached_elapsed_ms": 4.0762, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.1444091796875e-05, "cache_layers": [{"layer": 0, "cache_length": 12, "k_shape": [1, 12, 1, 32], "v_shape": [1, 12, 1, 32], "raw_bytes": 3072, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 12, "k_shape": [1, 12, 1, 32], "v_shape": [1, 12, 1, 32], "raw_bytes": 3072, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}], "triangle_total_kv_without_cache": 33, "line_total_kv_with_cache": 3}, {"id": "TRAIN-39", "kind": "message", "note": "the record’s real message pieces, then 3 real greedy new pieces", "pieces": ["W", "aste", " of", " time"], "tids": [54, 5525, 315, 882], "notebook_pieces": 4, "prefill_ms": 2.655, "new_pieces": [{"step": 1, "chosen_id": 882, "chosen_piece": " time", "cache_length_before": 4, "cache_length_after": 5, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 5, "cached_elapsed_ms": 1.7758, "uncached_elapsed_ms": 2.5914, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.1444091796875e-05, "cache_layers": [{"layer": 0, "cache_length": 5, "k_shape": [1, 5, 1, 32], "v_shape": [1, 5, 1, 32], "raw_bytes": 1280, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 5, "k_shape": [1, 5, 1, 32], "v_shape": [1, 5, 1, 32], "raw_bytes": 1280, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}, {"step": 2, "chosen_id": 882, "chosen_piece": " time", "cache_length_before": 5, "cache_length_after": 6, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 6, "cached_elapsed_ms": 3.4216, "uncached_elapsed_ms": 2.4513, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.1444091796875e-05, "cache_layers": [{"layer": 0, "cache_length": 6, "k_shape": [1, 6, 1, 32], "v_shape": [1, 6, 1, 32], "raw_bytes": 1536, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 6, "k_shape": [1, 6, 1, 32], "v_shape": [1, 6, 1, 32], "raw_bytes": 1536, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}, {"step": 3, "chosen_id": 882, "chosen_piece": " time", "cache_length_before": 6, "cache_length_after": 7, "kv_vectors_computed_with_cache": 1, "kv_vectors_computed_without_cache": 7, "cached_elapsed_ms": 2.4722, "uncached_elapsed_ms": 2.9472, "uncached_greedy_matches_cached": true, "max_abs_logit_diff_cached_vs_uncached": 1.33514404296875e-05, "cache_layers": [{"layer": 0, "cache_length": 7, "k_shape": [1, 7, 1, 32], "v_shape": [1, 7, 1, 32], "raw_bytes": 1792, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 7, "k_shape": [1, 7, 1, 32], "v_shape": [1, 7, 1, 32], "raw_bytes": 1792, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}]}], "triangle_total_kv_without_cache": 18, "line_total_kv_with_cache": 3}], "full_prompt_timing": {"prompt_tokens": 3452, "prefill_elapsed_ms": 1173.4156250000183, "prefill_cache_layers": [{"layer": 0, "cache_length": 3452, "k_shape": [1, 3452, 1, 32], "v_shape": [1, 3452, 1, 32], "raw_bytes": 883712, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}, {"layer": 1, "cache_length": 3452, "k_shape": [1, 3452, 1, 32], "v_shape": [1, 3452, 1, 32], "raw_bytes": 883712, "k_representation": "post-RoPE positional K", "v_representation": "unrotated V"}], "prefill_raw_kv_bytes": 1767424, "cached_decode_steps_elapsed_ms": [39.646624999988944, 9.17291700000078, 4.854540999986057], "cached_total_elapsed_ms": 53.67408299997578, "uncached_full_reforward_elapsed_ms": 514.8963339999568, "max_abs_logit_difference": 7.62939453125e-06, "tolerance": 5e-05, "generated_pieces": ["ĊĊ", "ĊĊ", "ĊĊ"], "generated_text": "\n\n\n\n\n\n"}, "memory": {"lab_decoder": {"layers": 2, "kv_heads": 1, "head_width": 32, "pieces": 3452, "bytes_per_number": 4, "formula": "layers x kv_heads x head_width x pieces x 2 (K and V) x bytes_per_number", "total_bytes": 1767424, "matches_real_prefill_raw_kv_bytes": true}, "qwen3_8b_same_piece_count": {"source": "huggingface.co/Qwen/Qwen3-8B model card (.firecrawl/hf-qwen3-8b.md in this repo) — published figures, not re-derived from a local config.json (only tokenizer files are cached locally for Qwen3-8B in this environment)", "layers": 36, "query_heads": 32, "kv_heads": 8, "head_width": 128, "dtype_bytes_bf16": 2, "pieces": 3452, "formula": "layers x kv_heads x head_width x pieces x 2 (K and V) x bytes_per_number (bf16)", "total_bytes": 509018112}, "qwen3_8b_published": {"source": "huggingface.co/Qwen/Qwen3-8B model card (.firecrawl/hf-qwen3-8b.md in this repo) — published figures, not re-derived from a local config.json (only tokenizer files are cached locally for Qwen3-8B in this environment)", "layers": 36, "query_heads": 32, "kv_heads": 8, "head_width": 128, "dtype_bytes_bf16": 2}}};
+
+const COLORS = {
+  'TRAIN-29': '#7c3aed', 'TRAIN-41': '#2563eb', 'TRAIN-22': '#0d9488',
+  'TRAIN-39': '#dc2626',
+  'TRAIN-41 (prompt start)': '#2563eb',
+};
+const NOTE_COLOR = '#92400e';
+const NEW_COLOR = '#0f766e';
+
+const state = { seqId: null, run: 0, fast: false, advance: null };
+
+// ---- helpers ---------------------------------------------------------------
+// classroom filter: an untrained brain's random guesses include a few rude words; show them as ✱✱✱
+const RUDE_PIECE = /fuck|osexual/i;
+function escapePiece(p) {
+  if (RUDE_PIECE.test(p)) return '\u2731\u2731\u2731'; return p.replace(/ /g, '␣').replace(/\n/g, '⏎'); }
+// ---- Next stepper: every step plays, then waits for Next (button, → or space) ----
+const CANCEL = new Error('cancelled');
+function wait(ms) {
+  const id = state.run;
+  return new Promise((res, rej) => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      if (id !== state.run) { clearInterval(iv); rej(CANCEL); }
+      else if (state.fast || Date.now() - t0 >= ms) { clearInterval(iv); res(); }
+    }, 30);
+  });
+}
+function gate() {
+  const id = state.run, btn = document.getElementById('nextBtn');
+  state.fast = false; btn.disabled = false;
+  return new Promise((res, rej) => {
+    state.advance = () => { state.advance = null; btn.disabled = true; id === state.run ? res() : rej(CANCEL); };
+  });
+}
+function next() {
+  if (state.advance) state.advance();   // step finished: go on
+  else state.fast = true;               // step still animating: finish it now
+}
+function startRun() {
+  const release = state.advance;        // bump the run first, so the old gate sees
+  state.run++; state.fast = false;      // it is stale and cancels instead of continuing
+  document.getElementById('nextBtn').disabled = true;
+  if (release) release();
+  return state.run;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function seqById(id) { return DATA.sequences.find(s => s.id === id); }
+function stepOn(n, color) {
+  const s = document.getElementById('step' + n);
+  s.classList.add('on'); s.style.background = color; s.style.borderColor = color;
+}
+function resetSteps() {
+  for (let n = 1; n <= 6; n++) {
+    const s = document.getElementById('step' + n);
+    s.classList.remove('on'); s.style.background = ''; s.style.borderColor = '';
+  }
+}
+function setCaption(html) { document.getElementById('caption').innerHTML = html; }
+function fmtBytes(n) {
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MB';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + ' KB';
+  return n + ' B';
+}
+
+// ---- pills + sequence ------------------------------------------------------
+function buildPills() {
+  const wrap = document.getElementById('records');
+  DATA.sequences.forEach(seq => {
+    const color = COLORS[seq.id];
+    const pill = document.createElement('button');
+    pill.className = 'record-pill' + (seq.kind === 'prompt_start' ? ' special' : '');
+    pill.style.color = color;
+    pill.innerHTML = '<span class="dot" style="background:' + color + '"></span>' +
+      '<span class="rid">' + seq.id + '</span>' +
+      '<span class="rmsg">' + seq.pieces.map(escapePiece).join('').replace(/⏎/g, ' ').slice(0, 36) + '</span>';
+    pill.dataset.sid = seq.id;
+    pill.addEventListener('click', () => { selectPill(seq.id); state.seqId = seq.id; runStory(seq); });
+    wrap.appendChild(pill);
+  });
+}
+function selectPill(id) {
+  document.querySelectorAll('.record-pill').forEach(p => p.classList.toggle('active', p.dataset.sid === id));
+}
+function buildSeqRow(seq) {
+  document.getElementById('seqEmpty').style.display = 'none';
+  const row = document.getElementById('seqRow');
+  row.style.display = ''; row.innerHTML = '';
+  seq.pieces.forEach(p => {
+    const chip = document.createElement('span');
+    chip.className = 'seq-chip notebook';
+    chip.style.color = COLORS[seq.id];
+    chip.textContent = escapePiece(p);
+    row.appendChild(chip);
+  });
+  seq.new_pieces.forEach(s => {
+    const chip = document.createElement('span');
+    chip.className = 'seq-chip newpiece';
+    chip.style.color = NEW_COLOR; chip.style.borderColor = NEW_COLOR;
+    chip.textContent = escapePiece(s.chosen_piece);
+    row.appendChild(chip);
+  });
+  document.getElementById('seqNote').style.display = '';
+  document.getElementById('seqNote').textContent = seq.notebook_pieces + ' real notebook pieces + 3 real greedy new pieces (' + seq.note + ').';
+}
+
+// ---- brain map (same as viz #2/#5) ------------------------------------------------
+function buildBrain() {
+  const svg = `
+<svg id="brainSvg" viewBox="0 0 460 360" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0 0 L7 4 L0 8" fill="none" stroke="#c9cdd3" stroke-width="1.5"/></marker></defs>
+  <path d="M 118 236 C 78 222 52 190 56 150 C 60 112 84 82 122 68 C 158 38 218 30 268 46
+           C 318 62 352 96 362 140 C 372 184 352 226 312 250 C 274 272 214 276 168 264
+           C 142 257 132 248 118 236 Z"
+        fill="#f7f8fa" stroke="#c9cdd3" stroke-width="2.5"/>
+  <path d="M 158 52 C 178 66 160 84 178 98" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 330 84 C 348 100 336 118 352 132" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 176 232 C 196 218 214 232 232 220" stroke="#dde1e6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g id="eye">
+    <ellipse cx="26" cy="150" rx="14" ry="16" fill="#fff" stroke="#9ca3af" stroke-width="2"/>
+    <circle cx="26" cy="150" r="5.5" fill="#9ca3af"/>
+    <line x1="42" y1="150" x2="66" y2="150" stroke="#c9cdd3" stroke-width="2" stroke-dasharray="4 4"/>
+  </g>
+  <path id="loopPath" d="M 326 160 C 340 240, 170 262, 106 132" stroke="#c9cdd3" stroke-width="2"
+        fill="none" stroke-dasharray="5 5" marker-end="url(#arr)"/>
+  <text x="218" y="286" text-anchor="middle" font-size="9" fill="#b3b8bf">keep + add → go again</text>
+  <path d="M 342 158 C 360 154 372 152 386 151" stroke="#c9cdd3" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <circle id="s1" cx="105" cy="95" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s2" cx="192" cy="72" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s3" cx="272" cy="95" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="s4" cx="326" cy="160" r="15" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <circle id="decide" cx="406" cy="150" r="16" fill="#eceef1" stroke="#d7dade" stroke-width="1.5"/>
+  <text x="105" y="127" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">STEADY</text>
+  <text x="192" y="46" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">CONSULT</text>
+  <text x="272" y="127" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">KEEP+ADD</text>
+  <text x="326" y="192" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">PROCESS</text>
+  <text x="406" y="184" text-anchor="middle" font-size="10" font-weight="700" fill="#9ca3af" letter-spacing=".5">DECIDE</text>
+  <text id="roundBadge" class="round-badge" x="218" y="322" text-anchor="middle" font-size="12" font-weight="800" fill="#6b7280" letter-spacing="1">↻ ROUND TWO — same stations, second pass, notebook still open</text>
+</svg>`;
+  document.getElementById('brainMount').innerHTML = svg;
+}
+function zoneActive(id, color) {
+  const z = document.getElementById(id);
+  z.setAttribute('fill', color); z.setAttribute('fill-opacity', '0.3');
+  z.setAttribute('stroke', color); z.setAttribute('stroke-width', '2.5');
+}
+function resetBrain() {
+  ['s1', 's2', 's3', 's4', 'decide'].forEach(id => {
+    const z = document.getElementById(id);
+    if (!z) return;
+    z.setAttribute('fill', '#eceef1'); z.setAttribute('fill-opacity', '1');
+    z.setAttribute('stroke', '#d7dade'); z.setAttribute('stroke-width', '1.5');
+  });
+  const b = document.getElementById('roundBadge');
+  if (b) b.classList.remove('shown');
+}
+
+// ---- stage builders ----------------------------------------------------------------
+function buildWork(seq, color) {
+  const maxLine = Math.max(...seq.new_pieces.map(s => s.kv_vectors_computed_without_cache));
+  const rows = seq.new_pieces.map((s, i) => {
+    const wUncached = Math.max(6, s.kv_vectors_computed_without_cache / maxLine * 100);
+    return '<div class="work-row" id="wrow' + i + '">' +
+      '<span class="wlabel">new piece ' + (i + 1) + '</span>' +
+      '<span class="wbar-wrap"><span class="wbar" style="width:' + wUncached + '%; background:' + color + '"></span></span>' +
+      '<span class="wcount">' + s.kv_vectors_computed_without_cache + ' re-asked</span></div>';
+  }).join('');
+  document.getElementById('workWrap').innerHTML =
+    '<div class="strip-label">without a notebook, each new piece forces a full re-read (real position counts &mdash; the triangle):</div>' +
+    '<div class="work-rows">' + rows + '</div>';
+  return Array.from(document.querySelectorAll('.work-row'));
+}
+function buildNotebook(seq, color) {
+  const pages = seq.pieces.map((p, i) =>
+    '<div class="note-page" id="npage' + i + '"><span class="npos">pos ' + i + '</span>' +
+    '<span class="npiece" style="color:' + color + '">' + escapePiece(p) + '</span>' +
+    '<span class="ntag">real k (name tag) + v (contents) written once, layer 1 &amp; 2</span></div>').join('');
+  document.getElementById('notebookShelf').innerHTML = pages;
+  return Array.from(document.querySelectorAll('.note-page'));
+}
+function buildParity(seq) {
+  const rows = seq.new_pieces.map((s, i) =>
+    '<div class="parity-row" id="prow' + i + '"><span class="plabel" style="color:' + NEW_COLOR + '">' + escapePiece(s.chosen_piece) + '</span>' +
+    '<span class="pstat">only <b>1</b> new k/v computed per layer, reads <b>' + s.cache_length_before + '</b> notebook pages &mdash; cached <b>' + s.cached_elapsed_ms.toFixed(2) + ' ms</b></span>' +
+    '<span class="pstat">vs re-deriving all <b>' + s.kv_vectors_computed_without_cache + '</b> from scratch: <b>' + s.uncached_elapsed_ms.toFixed(2) + ' ms</b> &middot; same next piece, real parity diff <b>' + s.max_abs_logit_diff_cached_vs_uncached.toExponential(2) + '</b></span></div>').join('');
+  document.getElementById('parityWrap').innerHTML =
+    '<div class="strip-label">with the notebook, the same real next piece is chosen &mdash; only faster:</div>' + rows;
+  return Array.from(document.querySelectorAll('.parity-row'));
+}
+function buildMemCards() {
+  const lab = DATA.memory.lab_decoder, qwen = DATA.memory.qwen3_8b_same_piece_count;
+  document.getElementById('memCards').innerHTML =
+    '<div class="mem-card fade" id="mem1"><div class="mtitle">This lab decoder &mdash; TRAIN-41&rsquo;s real 3,452-piece prompt</div>' +
+    '<div class="mformula">' + lab.layers + ' layers &times; ' + lab.kv_heads + ' kv head &times; ' + lab.head_width + ' width &times; ' + lab.pieces + ' pieces &times; 2 (K,V) &times; ' + lab.bytes_per_number + ' bytes</div>' +
+    '<div class="mtotal">' + fmtBytes(lab.total_bytes) + '</div>' +
+    '<div class="msub">matches the real cache the lab produced for this exact prompt: ' + (lab.matches_real_prefill_raw_kv_bytes ? 'yes, exactly' : 'no') + '</div></div>' +
+    '<div class="mem-card fade" id="mem2"><div class="mtitle">Qwen3-8B &mdash; same 3,452 pieces (published config)</div>' +
+    '<div class="mformula">' + qwen.layers + ' layers &times; ' + qwen.kv_heads + ' kv heads &times; ' + qwen.head_width + ' width &times; ' + qwen.pieces + ' pieces &times; 2 (K,V) &times; ' + qwen.dtype_bytes_bf16 + ' bytes (bf16)</div>' +
+    '<div class="mtotal">' + fmtBytes(qwen.total_bytes) + '</div>' +
+    '<div class="msub">' + (qwen.total_bytes / lab.total_bytes).toFixed(0) + '&times; this lab decoder&rsquo;s notebook &mdash; ' + DATA.memory.qwen3_8b_published.source.split(' —')[0] + '</div></div>';
+  return [document.getElementById('mem1'), document.getElementById('mem2')];
+}
+function resetPanels() {
+  document.getElementById('workWrap').innerHTML = '<div class="empty">Real re-ask counts appear here.</div>';
+  document.getElementById('notebookShelf').innerHTML = '<div class="empty">The notebook pages appear here.</div>';
+  document.getElementById('parityWrap').innerHTML = '<div class="empty">Cached-vs-uncached parity appears here.</div>';
+  document.getElementById('memCards').innerHTML = '';
+  document.getElementById('connectExamples').innerHTML = '';
+  document.getElementById('connectNote').innerHTML = '';
+  document.getElementById('mapNote').innerHTML = 'Every CONSULT still runs the same math &mdash; the notebook only spares the earlier pieces from being redone.';
+  resetBrain();
+}
+function buildConnectExamples() {
+  const el = document.getElementById('connectExamples');
+  el.innerHTML = '<span style="font-size:.72rem; color:var(--soft); text-transform:uppercase; letter-spacing:.07em; width:100%;">every real record: work with vs without notes, for its 3 new pieces</span>';
+  DATA.sequences.forEach(seq => {
+    const chip = document.createElement('span');
+    chip.className = 'connect-chip';
+    chip.style.color = COLORS[seq.id]; chip.style.borderColor = COLORS[seq.id];
+    chip.textContent = seq.id + ' · without notes: ' + seq.triangle_total_kv_without_cache + ' re-asks · with notes: ' + seq.line_total_kv_with_cache;
+    el.appendChild(chip);
+  });
+  return el.querySelectorAll('.connect-chip');
+}
+
+// ---- the six steps -------------------------------------------------------------------
+async function runStory(seq) {
+  const id = startRun();
+  const color = COLORS[seq.id];
+  resetSteps(); resetPanels(); buildSeqRow(seq);
+  try {
+    // 1. YOU DO THIS (human mirror)
+    stepOn(1, color);
+    setCaption('YOU DO THIS. While reading <b>' + escapePiece(seq.pieces.join(''))
+      .replace(/␣/g, ' ') + '&hellip;</b>, you don&rsquo;t re-read the whole passage for every new word &mdash; you keep notes as you go: who was mentioned, what mattered. The decoder keeps the same kind of notes: its <b>KV cache</b>, ' + seq.notebook_pieces + ' real pieces already read.');
+    await wait(1200);
+    await gate();
+
+    // 2. WITHOUT NOTES
+    stepOn(2, '#b45309');
+    const wrows = buildWork(seq, '#b45309');
+    setCaption('WITHOUT NOTES. If nothing were kept, every new piece would force <b>every earlier piece</b> to be re-asked and re-answered from scratch. Real counts for ' + seq.id + '&rsquo;s 3 real new pieces: work grows like a <b>triangle</b>, not a line.');
+    for (const r of wrows) { r.classList.add('shown'); await wait(280); }
+    await gate();
+
+    // 3. THE NOTEBOOK
+    stepOn(3, NOTE_COLOR);
+    const pages = buildNotebook(seq, color);
+    setCaption('THE NOTEBOOK. Each already-read piece&rsquo;s real name tag (<b>K</b>) and real contents (<b>V</b>) are computed <b>once</b> and written down &mdash; for both layers of this decoder. A new piece never needs to ask any of them to repeat themselves.');
+    for (const p of pages) { p.classList.add('shown'); await wait(40); }
+    await gate();
+
+    // 4. WITH NOTES
+    stepOn(4, NEW_COLOR);
+    const prows = buildParity(seq);
+    setCaption('A NEW PIECE ARRIVES. It computes only <b>its own</b> question and name tag, then reads the notebook for everything before it. Real check: the answer (next piece, and every logit) matches redoing the whole thing from scratch &mdash; parity difference of about <b>1&times;10<sup>-5</sup></b>, floating-point noise, not a different answer.');
+    for (const r of prows) { r.classList.add('shown'); await wait(500); }
+    await gate();
+
+    // 5. THE PRICE: MEMORY
+    stepOn(5, '#7c3aed');
+    const mems = buildMemCards();
+    setCaption('THE PRICE. The notebook is not free &mdash; every page it keeps is real memory: <b>layers &times; kv heads &times; width &times; pieces &times; 2 (K and V) &times; bytes per number</b>. For this lab decoder on TRAIN-41&rsquo;s real 3,452-piece prompt, and for Qwen3-8B at the same length (published config).');
+    await wait(400); mems[0].classList.add('shown');
+    await wait(700); mems[1].classList.add('shown');
+    await gate();
+
+    // 6. CONNECT
+    stepOn(6, color);
+    zoneActive('s2', color); zoneActive('decide', color);
+    setCaption('CONNECT. <b>Before</b> (viz #4, #5): CONSULT recomputed every piece&rsquo;s question and name tags from scratch, every time. <b>Now</b>: earlier pieces&rsquo; notes are reused, and only the new piece does fresh work &mdash; all the way to DECIDE. Watch every real record&rsquo;s real work count, with vs without notes.');
+    const chips = buildConnectExamples();
+    for (let i = 0; i < chips.length; i++) { chips[i].classList.add('shown'); await wait(350); }
+    document.getElementById('mapNote').innerHTML = '<b>You are here: CONSULT</b>, notebook open &mdash; the same math, spared the repeats.';
+    await wait(900);
+    document.getElementById('roundBadge').classList.add('shown');
+    document.getElementById('connectNote').innerHTML = buildGrow(12) +
+      '<div style="margin-top:10px;">The notebook changes <b>speed</b>, never <b>what the brain decides</b>: cached and uncached give the same next piece, every time. This is why generation can keep going piece by piece without redoing the whole prompt.</div>';
+    await wait(300);
+    toast('Done — click another record to compare its real notebook');
+  } catch (e) { if (e !== CANCEL) throw e; }
+}
+
+// ---- the series: navigation + "the brain so far" --------------------------------------
+const SERIES = [
+  ['brain-token-embedding.html', 'pieces → patterns'],
+  ['brain-open-the-decoder.html', 'the whole block'],
+  ['brain-attention-workbench.html', 'consult: one thought'],
+  ['brain-attention-layer.html', 'consult: every thought'],
+  ['brain-multiple-heads.html', 'two lenses'],
+  ['brain-rmsnorm.html', 'steady'],
+  ['brain-residual.html', 'keep + add'],
+  ['brain-ffn.html', 'process'],
+  ['brain-decide.html', 'decide'],
+  ['brain-learning.html', 'learning (backprop)'],
+  ['brain-lora.html', 'a small new habit (LoRA)'],
+  ['brain-kv-cache.html', 'notes already made (KV cache)'],
+  ['brain-the-whole-story.html', 'the whole story'],
+];
+function buildSeriesNav(here) {
+  const el = document.getElementById('seriesNav');
+  el.innerHTML = '<span class="records-label">The series &rarr;</span>' + SERIES.map((s, i) =>
+    '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : i === here ? 'next-up' : '') + '">' + (i + 1) + '. ' + s[1] + '</a>').join('');
+}
+function buildGrow(here) {
+  return '<div style="font-size:.72rem; color:var(--soft); text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px;">the brain so far</div>' +
+    '<div class="series-nav" style="padding:0; background:none;">' + SERIES.map((s, i) =>
+      '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : '') + '" style="' + (i + 1 < here ? 'color:var(--ink); border-color:var(--ink);' : i + 1 > here ? 'opacity:.45;' : '') + '">' +
+      (i + 1 < here ? '✓ ' : i + 1 === here ? '◉ ' : '') + s[1] + '</a>').join('') + '</div>';
+}
+
+function buildFooter() {
+  document.getElementById('footer').innerHTML =
+    'Real data — the lab&rsquo;s <b>seeded teaching decoder</b> (seed 701, ' + DATA.model.layers + ' layers, ' + DATA.model.query_heads + ' query heads sharing ' + DATA.model.kv_heads + ' KV head, width ' + DATA.model.width + '). ' +
+    'The notebook stages use the real <code>_last_cached</code> code path (<code>campaignlab/laboratory/operations.py</code>) that the actual generation lab runs: real greedy next-piece choices, a real cached-vs-uncached logit comparison (max abs diff), and real cache shapes/bytes from <code>campaignlab/cache.py</code>. ' +
+    'The full-prompt timing (prefill ' + DATA.full_prompt_timing.prefill_elapsed_ms.toFixed(1) + ' ms, cached decode ' + DATA.full_prompt_timing.cached_total_elapsed_ms.toFixed(1) + ' ms total, one uncached full re-forward ' + DATA.full_prompt_timing.uncached_full_reforward_elapsed_ms.toFixed(1) + ' ms) is a single real local wall-clock measurement on TRAIN-41&rsquo;s real ' + DATA.full_prompt_timing.prompt_tokens + '-piece prompt &mdash; not a throughput claim. ' +
+    'Memory arithmetic for this lab decoder matches the real cache bytes the lab produced for the same prompt exactly. Qwen3-8B&rsquo;s layer/head numbers are the model card&rsquo;s published figures (not re-derived from a local config.json, which is not present in this environment). ' +
+    'The brain story is a simplified intuition — <b>not neuroscience</b>.';
+}
+
+// ---- init ------------------------------------------------------------------------------
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('replayBtn').addEventListener('click', () => { const s = seqById(state.seqId); if (s) runStory(s); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+});
+buildBrain();
+buildPills();
+buildFooter();
+buildSeriesNav(12);
+document.getElementById('replayBtn').disabled = false;
+(function () {
+  const seq = DATA.sequences[0];
+  selectPill(seq.id);
+  state.seqId = seq.id;
+  setTimeout(() => runStory(seq), 400);
+})();
+</script>
+</body>
+</html>

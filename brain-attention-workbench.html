@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the Brain Decides What to Consult — attention workbench</title>
+<style>
+  :root {
+    --ink: #1a1a1a; --soft: #6b7280; --line: #e5e7eb; --wash: #fafafa;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: var(--ink); min-width: 320px; }
+  code, .mono { font-family: "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+
+  .header { display: flex; justify-content: space-between; align-items: baseline; padding: 26px 40px 18px; border-bottom: 1px solid var(--line); gap: 24px; flex-wrap: wrap; }
+  .header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.02em; font-weight: 750; }
+  .header .sub { margin: 4px 0 0; color: var(--soft); font-size: .85rem; }
+  .disclaimer { font-size: .72rem; color: var(--soft); max-width: 460px; line-height: 1.45; border-left: 3px solid #f59e0b; padding-left: 10px; }
+
+  .records { display: flex; gap: 10px; padding: 18px 40px; flex-wrap: wrap; align-items: center; }
+  .records-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); margin-right: 6px; }
+  .record-pill { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; border: 2px solid var(--line); border-radius: 12px; background: #fff; padding: 8px 13px; cursor: pointer; min-width: 120px; transition: border-color .2s, transform .15s, box-shadow .2s; }
+  .record-pill:hover { transform: translateY(-2px); }
+  .record-pill .rid { font-size: .76rem; font-weight: 700; font-family: "SF Mono", monospace; }
+  .record-pill .rmsg { font-size: .7rem; color: var(--soft); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .record-pill .dot { width: 9px; height: 9px; border-radius: 50%; margin-bottom: 4px; }
+  .record-pill.active { box-shadow: 0 4px 14px rgba(0,0,0,.09); }
+  .record-pill.special { border-style: dashed; }
+
+  .seq-panel { margin: 4px 40px 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--wash); gap: 10px; flex-wrap: wrap; }
+  .panel-head .t { font-size: .8rem; font-weight: 700; }
+  .panel-head .h { font-size: .68rem; color: var(--soft); text-transform: uppercase; letter-spacing: .07em; }
+  .seq-body { padding: 14px 16px; }
+  .seq-empty { color: var(--soft); font-size: .85rem; }
+  .seq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .seq-note { margin: 10px 0 0; font-size: .7rem; color: var(--soft); line-height: 1.5; }
+</style>
+<style>
+  .seq-chip {
+    border: 1.5px solid var(--line); border-radius: 9px; padding: 6px 10px;
+    font-family: "SF Mono", monospace; font-size: .82rem; background: #fff;
+    color: var(--soft); cursor: pointer; transition: all .25s;
+  }
+  .seq-chip:hover { transform: translateY(-2px); border-color: var(--ink); color: var(--ink); }
+  .seq-chip.you { border-color: currentColor; border-width: 2.5px; font-weight: 700; color: var(--ink); }
+  .seq-chip.you::after { content: " \25C2 YOU"; font-size: .6rem; font-weight: 600; }
+
+  .stage { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(380px, 1.6fr); gap: 22px; padding: 20px 40px 0; align-items: start; }
+  .panel { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+
+  /* YOU panel */
+  .you-piece { font-family: "SF Mono", monospace; font-size: 1.05rem; font-weight: 700; }
+  .you-sub { font-size: .74rem; color: var(--soft); margin: 3px 0 10px; line-height: 1.5; }
+  .strip-label { font-size: .7rem; color: var(--soft); margin: 12px 0 6px; font-weight: 650; }
+  .strip-big { display: block; width: 100%; height: 52px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .steps { display: flex; gap: 8px; padding: 0 16px 14px; }
+  .step { flex: 1; text-align: center; font-size: .64rem; padding: 7px 3px 6px; border-radius: 8px; border: 1px solid var(--line); color: var(--soft); font-weight: 650; letter-spacing: .03em; transition: all .4s; }
+  .step small { display: block; font-weight: 500; font-size: .58rem; margin-top: 2px; letter-spacing: 0; }
+  .step.on { color: #fff; }
+  .caption { margin: 2px 16px 16px; padding: 12px 14px; font-size: .84rem; line-height: 1.55; background: var(--wash); border-radius: 10px; min-height: 66px; }
+  .caption .num { font-family: "SF Mono", monospace; font-weight: 700; }
+  .replay { border: 1.5px solid var(--ink); background: #fff; border-radius: 9px; padding: 7px 13px; font-size: .74rem; font-weight: 650; cursor: pointer; transition: background .2s, color .2s; }
+  .replay:hover { background: var(--ink); color: #fff; }
+  .replay:disabled { opacity: .4; cursor: not-allowed; }
+  .replay:disabled:hover { background: #fff; color: var(--ink); }
+  .next { border: 1.5px solid var(--ink); background: var(--ink); color: #fff; border-radius: 9px; padding: 7px 16px; font-size: .74rem; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .next:disabled { opacity: .4; cursor: not-allowed; }
+  .story-hint { font-size: .7rem; color: var(--soft); }
+
+  /* memory cards */
+  .cards { display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow-y: auto; padding: 14px 16px; }
+  .cards-empty { color: var(--soft); font-size: .85rem; padding: 18px 16px; line-height: 1.6; }
+  .card {
+    display: grid; grid-template-columns: 46px 120px 1fr 110px 92px; gap: 10px;
+    align-items: center; border: 1.5px solid var(--line); border-radius: 11px;
+    padding: 8px 11px; background: #fff; transition: border-color .4s, opacity .4s, box-shadow .4s;
+  }
+  .card.locked { opacity: .38; border-style: dashed; }
+  .card .cpos { font-size: .62rem; color: var(--soft); font-family: "SF Mono", monospace; }
+  .card .cpiece { font-family: "SF Mono", monospace; font-size: .84rem; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .cstrip { display: block; width: 100%; height: 22px; border: 1px solid var(--line); border-radius: 4px; opacity: 0; transition: opacity .5s; }
+  .card .cstrip.shown { opacity: 1; }
+  .cstrip svg, .strip-big svg { width: 100%; height: 100%; display: block; }
+  .card .cbars { display: flex; flex-direction: column; gap: 4px; opacity: 0; transition: opacity .5s; }
+  .card .cbars.shown { opacity: 1; }
+  .card .crow { display: flex; align-items: center; gap: 6px; font-size: .62rem; color: var(--soft); font-family: "SF Mono", monospace; }
+  .card .crow .b { height: 8px; border-radius: 3px; min-width: 1px; }
+  .card .cl { font-size: .58rem; color: var(--soft); width: 38px; }
+  .card.locked .cpiece { text-decoration: line-through; }
+  .card .lock { font-size: .8rem; }
+  .gather-note { padding: 0 16px 16px; font-size: .74rem; color: var(--soft); line-height: 1.55; }
+
+  .connect-block { margin: 20px 40px 0; border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 16px; }
+  .connect-block .before-now { font-size: .84rem; line-height: 1.6; margin-bottom: 4px; }
+  .connect-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .connect-chip { border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 11px; font-size: .72rem; font-weight: 650; font-family: "SF Mono", monospace; background: #fff; }
+
+  .footer { margin-top: 22px; padding: 18px 40px 26px; border-top: 1px solid var(--line); font-size: .7rem; color: var(--soft); line-height: 1.6; background: var(--wash); }
+  .footer b { color: var(--ink); }
+  .series-nav { padding: 0 40px 22px; background: var(--wash); display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .series-nav a { color: var(--soft); text-decoration: none; font-size: .68rem; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: #fff; }
+  .series-nav a:hover { border-color: var(--ink); color: var(--ink); }
+  .series-nav a.here { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 700; }
+  .series-nav a.next-up { border: 2px solid var(--ink); color: var(--ink); font-weight: 750; }
+
+  #toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 999px; padding: 9px 18px; font-size: .78rem; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 60; }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 1120px) { .stage { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>How the Brain Decides What to Consult</h1>
+    <p class="sub">you ask &rarr; memories advertise &rarr; match &rarr; how much to listen &rarr; gather &mdash; attention, opened up</p>
+  </div>
+  <div class="disclaimer">
+    A simplified cognitive story &mdash; <b>not neuroscience</b>. Every query, key, score, weight and value
+    below is the real decoder's real layer-1 head-1 attention, computed on real pieces.
+  </div>
+</div>
+
+<div class="records" id="records">
+  <span class="records-label">Real sequences &rarr;</span>
+</div>
+
+<div class="seq-panel">
+  <div class="panel-head">
+    <span class="t">The sequence</span>
+    <span class="h">click any piece to make it &ldquo;YOU&rdquo;</span>
+  </div>
+  <div class="seq-body">
+    <div class="seq-empty" id="seqEmpty">Pick a sequence above. One piece becomes YOU &mdash; the current thought. The rest become memories it can (or cannot) consult.</div>
+    <div class="seq-row" id="seqRow" style="display:none;"></div>
+    <p class="seq-note" id="seqNote" style="display:none;"></p>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="panel">
+    <div class="panel-head"><span class="t">YOU &mdash; the current thought</span><span class="h">the query</span></div>
+    <div style="padding: 14px 16px;">
+      <div class="you-piece" id="youPiece">&mdash;</div>
+      <div class="you-sub" id="youSub">Click a sequence above to begin.</div>
+      <div id="youBody"></div>
+    </div>
+    <div class="steps">
+      <div class="step" id="step1">1. YOU ASK<small>the query</small></div>
+      <div class="step" id="step2">2. MEMORIES ANSWER<small>their keys</small></div>
+      <div class="step" id="step3">3. MATCH<small>score = q&middot;k</small></div>
+      <div class="step" id="step4">4. LISTEN<small>softmax %</small></div>
+      <div class="step" id="step5">5. GATHER<small>weighted values</small></div>
+      <div class="step" id="step6">6. CONNECT<small>back into the brain</small></div>
+    </div>
+    <div class="caption" id="caption">Attention = a memory search. One piece asks; every earlier piece answers; the brain blends what it hears.</div>
+    <div style="padding: 0 16px 16px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <button class="replay" id="replayBtn" disabled>&#8635; replay the six steps</button>
+      <button class="next" id="nextBtn" disabled>Next &#9656;</button>
+      <span class="story-hint">&ldquo;Next&rdquo; steps through the story (also &rarr; or space)</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><span class="t">The memories</span><span class="h">every earlier piece &mdash; and the locked future</span></div>
+    <div class="cards" id="cards">
+      <div class="cards-empty">Each consulted piece becomes a memory card here. Locked pieces (&#128274;) come later in the sequence &mdash; the brain cannot peek at what it has not read yet (the causal mask).</div>
+    </div>
+    <div class="gather-note" id="gatherNote"></div>
+  </div>
+</div>
+
+<div class="connect-block" id="connectBlock">
+  <div class="before-now" id="beforeNow"></div>
+  <div id="connectGrow"></div>
+  <div class="connect-chips" id="connectChips"></div>
+</div>
+
+<div class="footer" id="footer"></div>
+<div class="series-nav" id="seriesNav"></div>
+<div id="toast"></div>
+<script>
+"use strict";
+const DATA = {"model": {"kind": "seeded_untrained_custom_decoder", "seed": 701, "layer": 1, "head": 1, "head_width": 32, "query_heads": 2, "kv_heads": 1, "note": "real Q/K/V (RoPE applied) from the lab decoder, layer 1, head 1 of 2; scores are q\u00b7k/\u221a32; weights are the real softmax row; gathered is the real weighted value mixture"}, "sequences": [{"id": "TRAIN-29", "kind": "message", "note": "the record\u2019s real message pieces, run as a standalone sequence through the real decoder so every key is visible", "pieces": ["is", " this", " sent", " by", " ai", " or", " human", "?"], "tids": [285, 419, 3208, 553, 16391, 476, 3738, 30], "positions": [{"pos": 0, "piece": "is", "tid": 285, "q": [0.1578, 0.0836, 0.3657, -0.3371, 0.3004, -0.3584, -0.2145, 0.492, -0.0922, 0.078, -0.3397, 0.1115, 0.0725, 0.9622, 0.2916, 0.173, 0.1191, -0.7271, 0.3267, 0.164, 0.1577, 0.255, 0.6436, -1.0301, -0.2507, 0.7385, -0.0179, -0.4764, 1.0323, -0.154, -0.9692, -0.0728], "k": [-0.4528, -0.486, 0.7677, -0.4975, 0.0158, 0.0197, 0.1179, 1.0314, 0.1268, 0.6878, -1.4107, -0.4503, 0.3408, 0.1157, -0.1967, -0.337, -1.2389, 0.5696, -0.3256, -1.0215, 0.2098, -0.9588, -0.0655, -0.4215, 0.9398, 0.2405, -0.0964, 0.0976, -0.0033, -0.5132, 0.046, -0.9784], "v": [-1.055, 0.4013, -0.8522, -0.0387, -0.323, 0.6534, -0.1995, 0.0391, -0.4311, 0.4211, -0.5047, -1.4094, -0.4319, 0.5641, 0.3634, -0.4904, -0.3963, -0.1532, -0.8141, 1.1804, 0.2664, 1.6421, 0.8799, -0.2027, -0.3358, -0.2019, 0.1499, 1.0579, -0.4133, 0.0686, 0.0177, 0.1516], "allowed": [{"pos": 0, "piece": "is", "score": 0.1153, "weight": 1.0}], "locked": [{"pos": 1, "piece": " this"}, {"pos": 2, "piece": " sent"}, {"pos": 3, "piece": " by"}, {"pos": 4, "piece": " ai"}, {"pos": 5, "piece": " or"}, {"pos": 6, "piece": " human"}, {"pos": 7, "piece": "?"}], "gathered": [-1.055, 0.4013, -0.8522, -0.0387, -0.323, 0.6534, -0.1995, 0.0391, -0.4311, 0.4211, -0.5047, -1.4094, -0.4319, 0.5641, 0.3634, -0.4904, -0.3963, -0.1532, -0.8141, 1.1804, 0.2664, 1.6421, 0.8799, -0.2027, -0.3358, -0.2019, 0.1499, 1.0579, -0.4133, 0.0686, 0.0177, 0.1516]}, {"pos": 1, "piece": " this", "tid": 419, "q": [0.8697, 0.234, 0.5407, 0.5021, 0.772, 0.0528, 0.2854, -0.398, -0.076, 0.8233, -0.5803, -0.4922, -0.5195, 0.4564, 0.2127, 0.6081, -0.2491, -0.6052, -0.3312, 0.565, 0.5864, -0.7296, -0.1859, -0.6506, -0.0875, 0.5648, -0.0535, 0.7257, 1.4401, -0.9007, -0.5102, -0.5597], "k": [-1.3848, -1.1449, -0.4494, 0.497, 0.3897, -0.6556, -0.1466, 0.4387, 0.0813, 0.4269, -0.9795, 0.4466, -1.0886, 0.1591, -0.552, -0.811, -0.3873, -0.0818, -0.1894, -0.7569, -0.266, 0.0133, 0.6014, 0.378, -0.4281, 0.3312, 0.8417, -0.2899, 0.2079, -0.096, -0.01, 0.6531], "v": [-0.4605, 0.9631, -1.0116, -0.7149, 0.0897, -0.4656, 0.3996, -0.0228, -0.957, 1.1425, -0.7126, -0.2408, -0.0765, 0.0678, -0.3353, -0.651, 0.7285, 0.0247, 0.1759, 0.2837, -0.5079, 0.1645, 0.6386, -0.181, -0.5257, -0.6668, 0.2279, -0.179, 0.8483, 0.1604, -0.9699, -0.392], "allowed": [{"pos": 0, "piece": "is", "score": 0.3951, "weight": 0.65702}, {"pos": 1, "piece": " this", "score": -0.255, "weight": 0.34298}], "locked": [{"pos": 2, "piece": " sent"}, {"pos": 3, "piece": " by"}, {"pos": 4, "piece": " ai"}, {"pos": 5, "piece": " or"}, {"pos": 6, "piece": " human"}, {"pos": 7, "piece": "?"}], "gathered": [-0.8511, 0.594, -0.9069, -0.2707, -0.1815, 0.2696, 0.006, 0.0179, -0.6115, 0.6685, -0.576, -1.0086, -0.31, 0.3939, 0.1237, -0.5455, -0.0105, -0.0922, -0.4746, 0.8728, 0.0008, 1.1353, 0.7972, -0.1953, -0.4009, -0.3613, 0.1766, 0.6337, 0.0194, 0.1001, -0.321, -0.0349]}, {"pos": 2, "piece": " sent", "tid": 3208, "q": [-0.8311, 0.2345, 0.6503, -1.1347, -0.4814, 1.0364, -0.9266, 0.3583, 0.7544, -0.4372, -0.0787, 0.2033, 0.0426, -0.0657, 0.9782, 0.0065, -0.3533, 0.7161, 0.7427, 0.5097, -0.4999, -0.1502, 0.0708, 0.0715, 0.5653, 0.3792, -0.3397, 0.4187, -0.752, -0.0778, -0.4812, 0.3174], "k": [0.0178, 0.7186, -0.7222, 0.2792, 0.0222, 0.5079, -0.1368, 0.1769, -0.5123, 0.0716, 0.7685, -0.4394, 0.7347, 0.1381, -0.4473, 0.5834, -0.4111, -0.206, -0.2141, 0.0355, -0.7672, -0.0375, 0.3633, -1.2077, 2.0576, -0.3623, -0.8166, 0.0508, -0.1664, 0.0773, -0.3331, -0.2035], "v": [-0.0534, -0.0385, 0.8408, 0.2768, -0.0462, 0.3979, -0.5653, -0.3134, 0.2184, -1.0052, 0.0504, -1.1337, -0.0719, -0.5645, 0.1053, -0.3598, -0.1985, -0.1644, -0.0975, -0.3408, 0.44, 0.2763, 0.6827, -0.8074, -0.4871, 0.6454, -0.0926, 1.0591, -1.3205, 0.0085, 0.2805, -0.4848], "allowed": [{"pos": 0, "piece": "is", "score": 0.3039, "weight": 0.41873}, {"pos": 1, "piece": " this", "score": -0.3209, "weight": 0.22416}, {"pos": 2, "piece": " sent", "score": 0.1447, "weight": 0.35711}], "locked": [{"pos": 3, "piece": " by"}, {"pos": 4, "piece": " ai"}, {"pos": 5, "piece": " or"}, {"pos": 6, "piece": " human"}, {"pos": 7, "piece": "?"}], "gathered": [-0.564, 0.3702, -0.2833, -0.0776, -0.1317, 0.3113, -0.1958, -0.1007, -0.3171, 0.0735, -0.3531, -1.049, -0.2237, 0.0498, 0.1146, -0.4798, -0.0735, -0.1173, -0.3363, 0.4361, 0.1548, 0.8231, 0.7554, -0.4138, -0.4324, -0.0035, 0.0808, 0.7811, -0.4545, 0.0677, -0.1098, -0.1975]}, {"pos": 3, "piece": " by", "tid": 553, "q": [-0.8374, 0.5505, 0.1716, 0.176, -0.8712, -0.7744, 0.8474, -0.2772, -0.3446, -0.3905, 0.0597, 0.995, -0.7523, -0.921, 0.4835, -0.347, -0.4615, -0.0371, 0.1546, 0.5045, -0.6495, -0.6513, -0.7226, -0.2071, -0.3082, -0.1264, 0.5019, 0.4754, 0.383, 0.1131, -0.2022, 0.5318], "k": [-0.4157, -0.1774, -0.5209, -0.4333, 0.7022, 0.7821, -0.3633, -1.3089, -0.2682, -0.0475, 0.8341, -1.2152, -0.0831, -0.6736, -0.4476, 0.1077, 0.269, 0.4603, 0.7568, 0.0581, -0.2701, 0.2744, 0.1155, 0.0074, 0.0545, 0.3205, 0.2901, 1.2081, -0.0864, 0.1965, -0.3482, -0.5474], "v": [0.0647, -0.4675, -0.8077, 0.7912, -0.8033, -0.2287, 0.6666, 0.5902, 0.1959, -0.5517, -0.2071, 0.3905, 0.2922, -1.328, 0.5792, -0.8333, -0.4968, -0.2252, 1.2113, 0.272, 0.2128, -0.1638, 0.1612, 0.5805, -0.1186, 0.6461, 0.6195, 0.0181, 0.631, 0.085, 0.1911, -0.0455], "allowed": [{"pos": 0, "piece": "is", "score": -0.2736, "weight": 0.21317}, {"pos": 1, "piece": " this", "score": 0.2749, "weight": 0.36892}, {"pos": 2, "piece": " sent", "score": -0.3519, "weight": 0.19712}, {"pos": 3, "piece": " by", "score": -0.2385, "weight": 0.22079}], "locked": [{"pos": 4, "piece": " ai"}, {"pos": 5, "piece": " or"}, {"pos": 6, "piece": " human"}, {"pos": 7, "piece": "?"}], "gathered": [-0.391, 0.33, -0.5674, -0.0427, -0.2222, -0.0045, 0.1406, 0.0685, -0.3587, 0.1913, -0.4063, -0.5266, -0.07, -0.2592, 0.1024, -0.5996, 0.0355, -0.1057, 0.1396, 0.3492, 0.0031, 0.429, 0.5933, -0.141, -0.3877, -0.0191, 0.2346, 0.3723, 0.1038, 0.0942, -0.2566, -0.2179]}, {"pos": 4, "piece": " ai", "tid": 16391, "q": [0.4011, -0.569, 0.1893, 0.1941, -0.8792, 0.0752, 1.0847, -0.3847, 0.4358, 0.4497, -0.0307, 0.3391, -0.4558, -0.7423, 0.7021, -0.2237, 0.2921, 0.0063, -0.2019, 0.0206, 0.0589, 0.0313, 0.2116, 0.6634, 0.2871, -0.3464, 0.2142, 0.3492, -0.4845, -0.2543, 0.7107, -0.1774], "k": [-0.608, -0.6362, 0.4547, -0.5147, -0.0487, 0.8159, -0.106, 1.2116, -0.1125, -0.2241, -0.4113, 0.2107, -0.6189, 0.3878, 0.6715, -0.6991, 0.2572, 0.6041, -0.3823, -0.3752, -0.2976, 0.8661, -0.4808, -0.358, 1.0269, -0.0877, 0.0159, -1.0102, 1.717, -0.5565, -0.8789, 0.3385], "v": [0.662, 0.9026, 0.7997, 0.3244, 0.5245, -0.265, -0.426, -0.4036, -0.5775, 0.4235, 0.298, -0.6765, -0.6541, -0.7925, 0.1808, -0.8565, 1.0106, 0.4134, -0.3156, -0.364, -0.6645, 0.2278, 0.818, 0.0589, 0.995, -0.0136, 0.1136, 1.2802, 0.4398, 0.1555, 0.5628, -0.4394], "allowed": [{"pos": 0, "piece": "is", "score": -0.0482, "weight": 0.22544}, {"pos": 1, "piece": " this", "score": -0.0208, "weight": 0.2317}, {"pos": 2, "piece": " sent", "score": -0.4165, "weight": 0.15598}, {"pos": 3, "piece": " by", "score": -0.1577, "weight": 0.20206}, {"pos": 4, "piece": " ai", "score": -0.2469, "weight": 0.18482}], "locked": [{"pos": 5, "piece": " or"}, {"pos": 6, "piece": " human"}, {"pos": 7, "piece": "?"}], "gathered": [-0.2174, 0.38, -0.3108, 0.0886, -0.1246, 0.0063, 0.0154, -0.0007, -0.352, 0.1697, -0.2578, -0.5965, -0.1882, -0.36, 0.1711, -0.6442, 0.1349, -0.0236, 0.0284, 0.2664, -0.0688, 0.4604, 0.6366, -0.0854, -0.1136, 0.0287, 0.2183, 0.6025, 0.1062, 0.0999, -0.0344, -0.2227]}, {"pos": 5, "piece": " or", "tid": 476, "q": [1.1417, -0.0039, 0.8362, 0.9911, -0.6861, 0.3638, 0.0929, -0.5306, 0.7434, -0.4093, 0.7721, 0.164, 0.1267, 0.6285, 0.2841, 0.4076, 0.6539, 0.0535, -0.9609, -0.8399, -0.1919, -0.0643, -0.4619, 0.1104, 0.352, 0.4878, -0.0295, 0.4631, -1.204, 0.402, -0.5103, -0.3708], "k": [0.7629, -0.5904, 0.0698, -0.5415, -0.8398, 0.5402, 0.6634, 0.1231, 0.6443, 0.1402, 0.6891, -0.5316, 0.2211, -0.245, -0.551, 0.9656, -0.4963, 0.1056, -0.8924, 0.6668, 0.2722, 0.2824, 0.7169, -0.6728, 0.7096, -0.1142, -0.8145, -0.4603, -0.8635, -0.095, 0.611, -0.148], "v": [-0.2906, -0.181, 1.1056, 0.7955, -0.3795, 0.3732, 0.0227, 0.4038, 0.4577, -0.8419, 1.3021, -0.9307, -0.079, 0.1018, 0.6157, -0.9492, -1.188, 0.1328, 0.0647, -0.3991, 0.0257, 0.2816, 0.3306, 0.7244, -0.3725, 0.3935, -0.6809, -0.4175, -2.096, -0.4967, -0.3419, -0.2024], "allowed": [{"pos": 0, "piece": "is", "score": -0.2305, "weight": 0.14188}, {"pos": 1, "piece": " this", "score": -0.6779, "weight": 0.09071}, {"pos": 2, "piece": " sent", "score": 0.1718, "weight": 0.21215}, {"pos": 3, "piece": " by", "score": -0.0763, "weight": 0.16554}, {"pos": 4, "piece": " ai", "score": -0.424, "weight": 0.11693}, {"pos": 5, "piece": " or", "score": 0.4232, "weight": 0.2728}], "locked": [{"pos": 6, "piece": " human"}, {"pos": 7, "piece": "?"}], "gathered": [-0.1939, 0.1149, 0.2271, 0.3743, -0.2227, 0.1679, -0.0452, 0.0977, -0.0119, -0.3214, 0.2302, -0.7307, -0.1331, -0.3183, 0.3285, -0.702, -0.3204, -0.0071, 0.061, 0.0145, 0.0496, 0.3828, 0.5401, 0.0841, -0.2036, 0.2605, -0.0476, 0.3973, -0.6778, -0.0772, -0.0218, -0.231]}, {"pos": 6, "piece": " human", "tid": 3738, "q": [0.1008, 0.8351, 0.298, 1.0004, 0.6994, 0.7042, 0.149, 0.0711, -0.9817, -0.0239, -0.2727, -0.2309, 0.1718, 1.6775, 0.2151, 0.3196, 0.163, 0.062, 0.4452, -0.1649, 0.5205, -0.1179, 0.0204, -0.7264, 0.0014, 0.0626, -0.1815, 0.1363, 0.8123, 0.5331, -0.3881, -0.3698], "k": [-1.3742, -0.5436, -0.6274, 0.3314, 0.7898, 0.6274, 0.1088, 1.356, -0.1935, -0.3047, -0.2739, 0.1535, 0.4276, 0.09, -0.294, -0.6616, 0.4198, -0.6062, 0.4891, 0.7984, -0.5224, -0.5054, 0.2132, -0.3237, 0.6763, -0.1392, 0.2788, 0.9413, 0.3201, -0.2171, -0.3878, -0.0011], "v": [-1.4445, -0.0814, -0.645, -0.0456, -0.4577, 1.7131, 0.5106, 0.7302, -0.3023, -0.5301, -0.5549, -0.1837, 0.5904, 0.1012, -0.9785, -0.6224, -0.4, -0.2661, -0.656, 0.9098, 1.3549, -0.0144, -0.2416, 0.1962, 0.5604, -0.0398, -0.0989, 0.3012, -0.2026, -0.0221, 0.0599, 0.2411], "allowed": [{"pos": 0, "piece": "is", "score": 0.0609, "weight": 0.14205}, {"pos": 1, "piece": " this", "score": -0.3285, "weight": 0.09624}, {"pos": 2, "piece": " sent", "score": 0.4291, "weight": 0.2053}, {"pos": 3, "piece": " by", "score": -0.0079, "weight": 0.13262}, {"pos": 4, "piece": " ai", "score": 0.2504, "weight": 0.1717}, {"pos": 5, "piece": " or", "score": -0.4854, "weight": 0.08226}, {"pos": 6, "piece": " human", "score": 0.2395, "weight": 0.16983}], "locked": [{"pos": 7, "piece": "?"}], "gathered": [-0.3521, 0.2061, -0.0342, 0.2009, -0.1722, 0.3755, -0.0021, 0.1052, -0.1954, -0.1963, -0.0933, -0.6283, -0.0633, -0.3159, 0.0333, -0.6475, -0.085, -0.0463, -0.1184, 0.2203, 0.2256, 0.3439, 0.4746, -0.032, 0.0213, 0.1486, 0.0531, 0.5895, -0.2958, 0.0203, 0.0708, -0.1729]}, {"pos": 7, "piece": "?", "tid": 30, "q": [-0.462, -0.2815, 0.0352, 0.1027, 0.1686, -0.1591, 0.0575, 0.15, -0.4473, 0.902, 0.2553, 0.7675, -0.9583, 0.1488, 0.6736, 0.809, -0.2971, 0.3105, -0.1732, -0.8981, -0.55, 0.4926, -0.0294, 0.612, -0.6818, -0.4417, -0.0614, 0.6535, 0.6368, -0.1358, 0.5117, -0.0777], "k": [-0.9243, -1.0694, 0.3568, 0.0188, 0.3473, 0.2949, -0.2949, 1.0215, 0.4042, -0.2912, 0.3114, 0.5112, 0.0216, 0.5434, 0.4794, -0.1064, 0.7873, 0.1953, -0.0093, -0.2987, 0.549, 1.1771, 0.5891, 0.4952, -1.2635, 0.0848, 0.8952, -0.3724, -0.2047, -0.0521, 0.2527, -0.1959], "v": [-0.284, 0.0732, 0.1958, -0.6156, 1.0098, -0.5986, 0.2603, 0.53, -0.1215, 0.9971, 0.1047, -0.1609, -0.3828, -0.1732, 0.4694, -0.4908, 1.6169, 0.517, -0.3376, -0.1458, -0.8033, -0.1613, -0.3292, -0.8886, 1.027, -0.3876, 0.8539, 0.2343, -0.2057, 0.6827, -0.5278, -0.5097], "allowed": [{"pos": 0, "piece": "is", "score": -0.0369, "weight": 0.11398}, {"pos": 1, "piece": " this", "score": 0.507, "weight": 0.19635}, {"pos": 2, "piece": " sent", "score": -0.4135, "weight": 0.07821}, {"pos": 3, "piece": " by", "score": -0.0675, "weight": 0.11055}, {"pos": 4, "piece": " ai", "score": 0.2074, "weight": 0.14552}, {"pos": 5, "piece": " or", "score": -0.3972, "weight": 0.07949}, {"pos": 6, "piece": " human", "score": -0.2253, "weight": 0.09441}, {"pos": 7, "piece": "?", "score": 0.4283, "weight": 0.1815}], "locked": [], "gathered": [-0.3224, 0.3027, -0.1404, -0.0413, 0.0746, 0.0331, 0.1205, 0.1792, -0.2966, 0.2584, -0.1029, -0.4724, -0.1528, -0.2425, 0.1159, -0.6519, 0.3357, 0.089, -0.096, 0.1684, -0.124, 0.2479, 0.3596, -0.1342, 0.1618, -0.0768, 0.2311, 0.3943, -0.0732, 0.1543, -0.1808, -0.2524]}]}, {"id": "TRAIN-41", "kind": "message", "note": "the record\u2019s real message pieces, run as a standalone sequence through the real decoder so every key is visible", "pieces": ["Job", " search"], "tids": [12245, 2711], "positions": [{"pos": 0, "piece": "Job", "tid": 12245, "q": [-0.384, -0.5169, -0.0698, 0.2003, 0.9607, -0.5037, -0.7659, -0.5436, 0.2459, 0.6573, 0.1116, -1.0329, -0.4027, 0.5782, 0.0744, -0.6586, 0.7503, 0.2051, -0.889, -1.1269, 0.1672, -0.4592, 0.8745, -0.344, -0.4681, -0.144, -1.1655, 0.2292, -0.7799, 0.7202, 0.5936, 0.2516], "k": [0.233, -0.5298, -0.4608, -0.3039, -0.3225, 1.1446, -0.1493, -0.5104, -0.5731, -0.5411, 0.4251, 0.8582, -0.3154, -0.2686, 0.5978, 0.5739, -0.1892, -0.3389, -0.6895, -0.4084, 0.1729, 0.7382, -0.7704, 1.4099, -1.2074, 0.4186, 0.275, -0.4055, -0.6039, 0.0504, 0.6528, -0.0368], "v": [0.1964, -1.0571, 0.8419, -0.5828, -0.7205, -0.8491, 0.4099, -0.0963, 0.7052, 0.3912, 0.4151, 0.4012, -0.727, 0.7311, -0.5261, -0.4101, -0.0119, 1.2327, -0.5305, -1.133, -0.4879, 0.4895, 0.0297, -0.1846, 1.0358, 0.4093, 0.3277, -0.0994, 0.6813, -0.4822, -0.5631, -0.822], "allowed": [{"pos": 0, "piece": "Job", "score": -0.2946, "weight": 1.0}], "locked": [{"pos": 1, "piece": " search"}], "gathered": [0.1964, -1.0571, 0.8419, -0.5828, -0.7205, -0.8491, 0.4099, -0.0963, 0.7052, 0.3912, 0.4151, 0.4012, -0.727, 0.7311, -0.5261, -0.4101, -0.0119, 1.2327, -0.5305, -1.133, -0.4879, 0.4895, 0.0297, -0.1846, 1.0358, 0.4093, 0.3277, -0.0994, 0.6813, -0.4822, -0.5631, -0.822]}, {"pos": 1, "piece": " search", "tid": 2711, "q": [-0.2155, 0.1952, -0.1005, -0.1845, 0.1968, 0.9491, 0.4358, 0.3263, 1.1904, -0.6212, 0.7414, 1.5955, -0.4203, -1.0698, 0.9769, 0.54, -0.4656, 0.1795, -0.0137, 1.1493, -0.2522, 0.4321, -0.9144, 0.409, 0.5157, 0.1129, -0.1759, 0.3113, -0.4347, 1.3505, 0.2366, -0.1045], "k": [0.5247, 1.8933, -0.3062, -0.117, -0.8269, 0.4835, -0.2039, 0.2008, 0.4292, 0.0385, -0.6926, -0.6194, 0.5016, 0.941, -0.4514, 0.1915, 1.4246, 0.1722, 0.5252, 0.2424, -0.4875, -0.2589, 0.4729, -1.4437, -0.1042, -0.6105, 0.8354, -1.1371, 0.1465, -0.002, 0.2722, 0.1489], "v": [0.5624, -0.3082, -0.2702, 1.6481, 0.3335, 0.5914, -0.3856, -0.8497, -0.2707, -0.8103, 0.1985, -0.1022, 1.048, 0.1455, 0.7008, 0.6395, 0.1983, -1.0465, 0.3647, 0.7682, -0.277, 0.1716, 1.2246, 0.3229, -0.5317, -0.9875, -0.5231, 0.0938, -0.7548, 1.4968, 0.0951, 0.1571], "allowed": [{"pos": 0, "piece": "Job", "score": 0.7522, "weight": 0.81149}, {"pos": 1, "piece": " search", "score": -0.7075, "weight": 0.18851}], "locked": [], "gathered": [0.2654, -0.9159, 0.6322, -0.1622, -0.5218, -0.5775, 0.26, -0.2383, 0.5213, 0.1647, 0.3743, 0.3063, -0.3924, 0.6207, -0.2948, -0.2122, 0.0277, 0.803, -0.3617, -0.7746, -0.4482, 0.4295, 0.255, -0.0889, 0.7403, 0.146, 0.1673, -0.063, 0.4106, -0.1092, -0.439, -0.6374]}]}, {"id": "TRAIN-22", "kind": "message", "note": "the record\u2019s real message pieces, run as a standalone sequence through the real decoder so every key is visible", "pieces": ["Hi", "\n\n", "We", " just", " need", " LinkedIn", " profiles", " on", " rent"], "tids": [13048, 271, 1654, 1101, 1184, 32767, 20872, 389, 8016], "positions": [{"pos": 0, "piece": "Hi", "tid": 13048, "q": [0.6105, 0.5112, 0.8844, 0.2356, -0.7283, -0.4301, -0.4065, -0.6273, 0.0887, -0.4605, 1.0807, 0.1121, 1.3666, 0.04, -0.76, 0.175, 0.5441, -0.1194, 0.3854, -0.8271, 0.6343, 0.5446, 1.1583, 0.8993, 1.1242, -0.2779, 0.7069, -0.3456, -0.6709, -0.1069, -0.4958, -0.0328], "k": [0.4444, -0.3202, 0.2372, -0.4418, 0.8419, 0.0537, 0.5461, -0.4831, 0.269, -0.2523, -0.0463, -0.3263, 0.2808, 0.4565, 0.3783, -0.0701, -0.1018, 0.0479, 0.0533, 0.7048, 0.1318, -0.0765, -0.0979, 0.6066, -0.4821, 1.042, -0.4075, -1.2733, 0.0165, -0.8437, 0.3412, -0.3503], "v": [-0.0432, 0.2317, 1.2979, 0.0284, -0.6504, -0.0355, -0.4863, 0.5389, -0.429, -0.482, -0.4083, 0.267, -0.7294, 0.2683, 0.8505, -0.0032, 0.6149, -0.535, -0.3667, -0.88, -0.7475, -0.3752, -0.0996, 0.4765, 0.0545, -0.3543, 0.2145, -0.2385, 0.3664, -1.2552, 0.4096, 0.6397], "allowed": [{"pos": 0, "piece": "Hi", "score": -0.1934, "weight": 1.0}], "locked": [{"pos": 1, "piece": "\n\n"}, {"pos": 2, "piece": "We"}, {"pos": 3, "piece": " just"}, {"pos": 4, "piece": " need"}, {"pos": 5, "piece": " LinkedIn"}, {"pos": 6, "piece": " profiles"}, {"pos": 7, "piece": " on"}, {"pos": 8, "piece": " rent"}], "gathered": [-0.0432, 0.2317, 1.2979, 0.0284, -0.6504, -0.0355, -0.4863, 0.5389, -0.429, -0.482, -0.4083, 0.267, -0.7294, 0.2683, 0.8505, -0.0032, 0.6149, -0.535, -0.3667, -0.88, -0.7475, -0.3752, -0.0996, 0.4765, 0.0545, -0.3543, 0.2145, -0.2385, 0.3664, -1.2552, 0.4096, 0.6397]}, {"pos": 1, "piece": "\n\n", "tid": 271, "q": [-0.2701, 0.0461, -0.406, 0.5415, -0.6876, -0.7356, 0.3948, 0.3142, -0.0333, -0.0998, 0.8956, 0.8485, 0.5556, 0.0191, -0.1605, 0.4477, -0.6733, -0.4549, -0.1423, -0.2711, 0.0505, 0.5663, 0.5923, 0.9723, -0.2925, -0.3299, 0.3654, -0.4258, -0.5648, -0.0725, 0.5651, -0.7633], "k": [0.5108, -0.0158, -0.1153, 0.4855, 0.9375, -0.2049, -0.3632, -1.866, -0.3536, -0.2347, 0.7125, -0.4543, 0.7943, -0.4948, 0.2237, -0.3341, 0.9167, -0.1811, 0.4377, 0.3305, 0.0869, -0.2237, 1.0631, -0.0163, -0.1911, 0.5141, -0.156, -0.5261, -0.6788, 0.5999, -0.0109, -0.0714], "v": [0.3251, -0.4048, -0.127, 0.4263, 0.3427, 0.5411, 0.2128, 0.8459, -0.007, -0.946, 0.1405, 1.061, 0.2831, 0.1278, 0.3041, 0.9202, 0.6769, -0.5777, 0.2073, -0.0995, -0.4694, -0.8042, -0.0075, 1.2165, -0.6239, -0.1266, -0.1016, -1.3314, 0.2107, 0.4517, 0.3814, -0.1923], "allowed": [{"pos": 0, "piece": "Hi", "score": -0.0369, "weight": 0.50279}, {"pos": 1, "piece": "\n\n", "score": -0.0481, "weight": 0.49721}], "locked": [{"pos": 2, "piece": "We"}, {"pos": 3, "piece": " just"}, {"pos": 4, "piece": " need"}, {"pos": 5, "piece": " LinkedIn"}, {"pos": 6, "piece": " profiles"}, {"pos": 7, "piece": " on"}, {"pos": 8, "piece": " rent"}], "gathered": [0.1399, -0.0848, 0.5895, 0.2263, -0.1566, 0.2512, -0.1387, 0.6916, -0.2192, -0.7127, -0.1354, 0.6617, -0.226, 0.1985, 0.5788, 0.4559, 0.6457, -0.5563, -0.0813, -0.4919, -0.6092, -0.5885, -0.0538, 0.8445, -0.2828, -0.2411, 0.0574, -0.7819, 0.289, -0.4065, 0.3956, 0.226]}, {"pos": 2, "piece": "We", "tid": 1654, "q": [0.0523, -0.3776, -1.1978, 0.5283, 0.0652, -0.403, 1.0207, 0.6697, -0.1441, -0.3524, -0.3629, 0.6087, -0.4735, -0.082, 0.9758, -0.4732, -0.4639, -0.1203, -0.3471, -0.179, -0.035, -0.9543, -0.6712, -0.5749, -0.3422, -0.5084, -0.2951, 0.3407, 1.2275, -0.7063, -0.0692, -0.0304], "k": [-0.2752, -0.4544, 0.1181, -0.1558, -0.7053, -0.6533, 0.19, -0.3366, -0.1047, 0.5835, 0.7684, -0.2726, -0.1481, 0.1434, 0.0674, 0.0532, 0.1455, 0.1852, -0.3379, -0.634, -0.1843, 0.1536, -0.0493, 0.3802, -1.0841, -0.6821, 0.9581, 0.0048, 0.0476, 0.1677, 0.0409, 0.2137], "v": [0.087, 0.1308, -0.4128, -0.8467, -0.2076, -1.3514, 0.0045, -0.1131, -0.0827, 1.13, -0.5376, -0.2868, 0.2198, -0.4285, -0.0576, -0.4355, 0.4222, 0.331, 0.3751, 0.5813, -1.4168, -0.327, -0.4348, -0.9052, -0.0617, -0.3978, 0.2183, 0.1141, -0.0228, 0.5774, -0.6974, -0.401], "allowed": [{"pos": 0, "piece": "Hi", "score": -0.0705, "weight": 0.39228}, {"pos": 1, "piece": "\n\n", "score": -0.725, "weight": 0.20387}, {"pos": 2, "piece": "We", "score": -0.0415, "weight": 0.40385}], "locked": [{"pos": 3, "piece": " just"}, {"pos": 4, "piece": " need"}, {"pos": 5, "piece": " LinkedIn"}, {"pos": 6, "piece": " profiles"}, {"pos": 7, "piece": " on"}, {"pos": 8, "piece": " rent"}], "gathered": [0.0845, 0.0612, 0.3166, -0.2439, -0.2691, -0.4494, -0.1456, 0.3382, -0.2031, 0.0744, -0.3486, 0.2052, -0.1397, -0.0417, 0.3724, 0.0104, 0.5497, -0.194, 0.0499, -0.1307, -0.9611, -0.4432, -0.2162, 0.0694, -0.1308, -0.3254, 0.1516, -0.3189, 0.1775, -0.1671, -0.0432, 0.0498]}, {"pos": 3, "piece": " just", "tid": 1101, "q": [0.0428, 0.2709, -0.664, 0.3564, -0.5331, -0.0699, 0.4096, -0.0615, -0.1009, 0.4584, -0.4502, 0.0704, -0.7629, -0.3429, 0.5574, 0.0387, 0.2175, 0.9814, -1.1394, -0.1318, -0.1433, -0.2467, 0.0688, 0.8193, 0.3397, -0.0904, 0.8809, 0.79, -0.6487, 0.6266, 0.0151, -0.1427], "k": [-0.185, -0.4838, -0.2992, -0.1283, -0.7005, 0.2933, -0.2292, 0.6384, 0.0708, 0.1311, 1.5097, 0.5765, 0.3131, -0.5484, -0.0732, -0.4414, -0.1591, 1.0515, -0.0147, 0.8489, 0.6477, 0.9629, -0.0367, 0.1141, -0.7104, 0.0056, -0.9328, -0.0143, 0.7232, -0.3068, -0.5647, 0.3868], "v": [0.2359, 0.6502, 1.0194, -0.2537, 0.4054, 0.477, -0.4399, -0.4168, 0.3341, 0.3443, 0.2609, 0.5023, -0.6959, -0.5755, 0.1353, -0.7251, -0.0018, -0.2103, 0.5347, -1.3314, -0.8326, -0.068, 0.3373, 0.4411, -0.7221, 0.3074, 0.2074, -0.4324, 0.676, 0.8484, -0.5472, 0.0937], "allowed": [{"pos": 0, "piece": "Hi", "score": -0.4658, "weight": 0.17607}, {"pos": 1, "piece": "\n\n", "score": -0.2223, "weight": 0.22462}, {"pos": 2, "piece": "We", "score": 0.3238, "weight": 0.38782}, {"pos": 3, "piece": " just", "score": -0.2825, "weight": 0.21149}], "locked": [{"pos": 4, "piece": " need"}, {"pos": 5, "piece": " LinkedIn"}, {"pos": 6, "piece": " profiles"}, {"pos": 7, "piece": " on"}, {"pos": 8, "piece": " rent"}], "gathered": [0.1491, 0.1381, 0.2555, -0.2812, -0.0323, -0.3079, -0.1291, 0.1529, -0.0385, 0.2137, -0.1936, 0.2803, -0.1268, -0.2119, 0.2243, -0.1161, 0.4236, -0.1401, 0.2405, -0.2334, -0.9626, -0.3879, -0.1165, 0.0994, -0.3072, -0.1801, 0.1435, -0.3882, 0.246, 0.2838, -0.2284, -0.0662]}, {"pos": 4, "piece": " need", "tid": 1184, "q": [0.5047, 0.7526, 0.0654, -1.5077, 0.3396, -0.1772, -0.485, 0.212, -0.0204, -0.0332, -0.4341, 0.983, -0.5971, 0.4199, -0.3167, 0.3431, 0.9707, 0.275, 0.9926, -0.3693, -0.0884, 0.3825, 0.0798, -0.6896, -0.5609, -0.5339, -0.1634, 0.787, 0.1819, -0.8557, -0.2241, 0.9221], "k": [-0.3345, 0.9839, 0.6895, 0.1205, 0.574, 0.003, -0.1699, 0.1002, -0.0451, -0.3897, 0.0101, 0.7757, -0.3164, -1.4558, -0.3743, -0.2792, 0.0095, 0.3173, 0.6951, -0.2181, 0.2115, -0.4686, -0.1293, 0.0611, -0.3257, -0.0146, 0.6733, -0.1065, -0.2235, 0.6965, -0.1939, -0.9447], "v": [-0.4375, -1.1187, -0.7295, -1.5525, -1.0148, -0.5037, -0.2596, 0.0795, 0.4975, 0.0211, -1.4904, -0.0999, -1.7173, -0.1156, 0.4922, -0.0949, 0.4723, 0.4212, -0.2788, -0.9988, -0.5488, 1.0203, -0.5121, -1.3276, -0.1415, -0.3973, 1.2461, -0.0769, -0.1986, 0.3833, 0.434, 0.7617], "allowed": [{"pos": 0, "piece": "Hi", "score": -0.2651, "weight": 0.16835}, {"pos": 1, "piece": "\n\n", "score": -0.3655, "weight": 0.15226}, {"pos": 2, "piece": "We", "score": -0.04, "weight": 0.21084}, {"pos": 3, "piece": " just", "score": 0.0854, "weight": 0.23901}, {"pos": 4, "piece": " need", "score": 0.045, "weight": 0.22954}], "locked": [{"pos": 5, "piece": " LinkedIn"}, {"pos": 6, "piece": " profiles"}, {"pos": 7, "piece": " on"}, {"pos": 8, "piece": " rent"}], "gathered": [0.0165, -0.0964, 0.1883, -0.5258, -0.2371, -0.2101, -0.2133, 0.1143, 0.1034, 0.1002, -0.4404, 0.2431, -0.5939, -0.1898, 0.3227, -0.1473, 0.4036, -0.0618, 0.1127, -0.5882, -0.821, -0.0366, -0.1465, -0.1247, -0.3039, -0.1805, 0.4023, -0.3398, 0.2049, 0.27, -0.0512, 0.1911]}, {"pos": 5, "piece": " LinkedIn", "tid": 32767, "q": [-0.1871, -0.8468, 0.2552, -0.0394, 0.132, -0.5372, 1.3289, 0.1091, 0.0574, -0.3615, -0.2558, 0.579, 0.4763, -0.8758, 0.2892, 0.1341, 0.1574, 0.5419, -1.1263, 0.3402, -0.4991, -0.5072, -0.3013, 1.0206, -0.4685, -0.5006, 0.0023, 0.4379, -0.5278, -0.384, -0.4347, 0.1692], "k": [0.208, -0.8466, -0.2365, -0.379, -0.7197, -0.1449, -0.2478, 0.3459, -0.2091, 0.4166, 1.0856, -0.811, 0.2068, -0.3905, -0.9005, 0.531, -0.853, 0.9347, -1.0904, -0.431, 0.1948, 0.0522, -0.8016, -0.8962, -0.0464, -0.9154, -0.6619, 0.4061, -0.2389, -0.4977, -0.2934, 0.216], "v": [0.0445, 1.261, -0.3046, -0.252, -0.5978, 0.5086, -0.297, -0.9954, -0.0629, -0.2271, 0.6327, 0.0572, -0.4877, -1.1002, 0.7019, -0.3712, -0.614, 0.6219, 0.1763, 0.557, -0.1418, 0.3686, -0.4203, 0.6367, -0.1434, 0.1249, 0.2348, 1.1472, -0.0778, -0.1859, -0.4966, -0.3828], "allowed": [{"pos": 0, "piece": "Hi", "score": 0.1501, "weight": 0.16947}, {"pos": 1, "piece": "\n\n", "score": -0.1788, "weight": 0.12197}, {"pos": 2, "piece": "We", "score": 0.2993, "weight": 0.19673}, {"pos": 3, "piece": " just", "score": 0.1548, "weight": 0.17027}, {"pos": 4, "piece": " need", "score": 0.0465, "weight": 0.15278}, {"pos": 5, "piece": " LinkedIn", "score": 0.2581, "weight": 0.18878}], "locked": [{"pos": 6, "piece": " profiles"}, {"pos": 7, "piece": " on"}, {"pos": 8, "piece": " rent"}], "gathered": [0.0312, 0.1935, 0.1279, -0.4377, -0.3081, -0.1056, -0.2262, -0.0745, 0.0312, 0.0442, -0.2216, 0.1993, -0.5188, -0.3466, 0.4006, -0.182, 0.2258, 0.0499, 0.1187, -0.3211, -0.715, -0.0121, -0.2035, 0.0435, -0.2507, -0.1385, 0.3369, -0.0491, 0.1534, 0.1239, -0.1419, 0.0661]}, {"pos": 6, "piece": " profiles", "tid": 20872, "q": [-0.2952, -1.0334, -0.3905, -0.8165, -0.2261, -0.4732, -0.2328, 0.1462, -0.4716, 0.4529, 0.1638, -0.5766, 0.8205, 0.7245, 0.0793, -1.0739, 0.8391, -0.8731, -0.0552, -0.9616, 0.8992, -0.3265, -0.2803, 0.4204, -0.5095, -0.7085, -0.2636, 0.2514, 0.3357, -1.0964, 0.0421, -0.4046], "k": [-0.3237, 0.1549, 0.211, 0.6597, -1.0378, 0.9611, 0.4407, 0.4528, 0.7472, -0.2085, -1.0723, 0.2948, -0.9031, 1.2771, 0.393, -0.4439, -0.7535, -0.4566, -0.441, -1.1275, -0.4798, -0.1902, 0.8299, 0.3337, 0.1942, -0.5815, -0.0458, 0.015, 0.0456, 0.3837, 1.0812, 0.1427], "v": [0.9303, -0.6209, -2.1102, 0.5585, -0.0246, 0.6782, 1.284, -0.1184, 0.0926, -0.1635, 0.0666, -0.6159, -0.4361, 0.1757, -1.4668, 0.368, 0.5137, -0.2768, 0.1761, 0.9262, 0.2449, -0.2907, 0.45, 0.8704, 1.2452, 0.2812, 0.0117, -1.4748, 0.6136, -0.2019, 0.6704, 1.5434], "allowed": [{"pos": 0, "piece": "Hi", "score": 0.1166, "weight": 0.14726}, {"pos": 1, "piece": "\n\n", "score": -0.082, "weight": 0.12074}, {"pos": 2, "piece": "We", "score": 0.4619, "weight": 0.208}, {"pos": 3, "piece": " just", "score": 0.1183, "weight": 0.14752}, {"pos": 4, "piece": " need", "score": -0.5644, "weight": 0.07453}, {"pos": 5, "piece": " LinkedIn", "score": 0.3528, "weight": 0.18651}, {"pos": 6, "piece": " profiles", "score": -0.1268, "weight": 0.11545}], "locked": [{"pos": 7, "piece": " on"}, {"pos": 8, "piece": " rent"}], "gathered": [0.1689, 0.1885, -0.1145, -0.2561, -0.2277, -0.015, -0.0364, -0.0969, 0.0041, 0.041, -0.1019, 0.114, -0.3995, -0.3126, 0.1682, -0.1207, 0.2398, 0.0047, 0.1603, -0.0807, -0.6233, -0.1192, -0.1209, 0.2141, -0.0802, -0.0787, 0.2334, -0.198, 0.2159, 0.0855, -0.1023, 0.165]}, {"pos": 7, "piece": " on", "tid": 389, "q": [0.2002, 0.0131, -0.2697, 0.6053, -0.4935, 1.1072, 0.6472, -0.1808, -0.8027, -0.1309, 0.1702, -0.6052, 0.66, 0.082, 0.0394, -0.6668, 1.2636, -0.5335, -0.3087, -0.8665, 0.2678, 0.0608, 0.1532, -0.293, -1.2802, 0.2614, -0.4503, 0.3335, 0.2734, 0.237, 0.0698, 0.6102], "k": [-0.2325, -0.0666, 0.7445, -0.0378, -0.6751, -0.0231, 0.4065, 1.017, 0.183, 0.0007, -0.7964, 0.1962, -0.4484, 0.1109, 1.4805, 1.0414, -0.4697, -0.4584, 0.3348, 0.8057, 1.2984, -0.4609, -0.4188, -0.499, 0.1601, 0.5875, 0.1028, -0.3485, -0.9203, -0.189, 0.3436, -0.5561], "v": [0.9087, 0.3008, 0.8684, 0.0738, 0.3799, 0.1544, 0.8537, -0.6801, 0.2482, 0.3332, 0.5811, -0.2051, 0.5237, 0.5839, -0.6749, -0.477, -0.8627, 0.2725, -0.2711, 0.031, 0.8698, -0.0558, 0.8193, 0.0028, 0.3033, 1.8088, -0.0255, 0.5764, -0.34, -0.0085, 0.113, 0.7891], "allowed": [{"pos": 0, "piece": "Hi", "score": -0.0974, "weight": 0.10722}, {"pos": 1, "piece": "\n\n", "score": 0.4354, "weight": 0.18266}, {"pos": 2, "piece": "We", "score": 0.2389, "weight": 0.15008}, {"pos": 3, "piece": " just", "score": 0.177, "weight": 0.14107}, {"pos": 4, "piece": " need", "score": -0.3034, "weight": 0.08726}, {"pos": 5, "piece": " LinkedIn", "score": -0.0263, "weight": 0.11511}, {"pos": 6, "piece": " profiles", "score": 0.1999, "weight": 0.14433}, {"pos": 7, "piece": " on", "score": -0.4919, "weight": 0.07226}], "locked": [{"pos": 8, "piece": " rent"}], "gathered": [0.268, 0.0419, -0.1427, -0.1605, -0.1146, 0.0832, 0.1155, -0.0374, 0.0549, -0.0301, -0.0676, 0.1444, -0.3228, -0.1626, 0.0204, -0.0323, 0.235, -0.0548, 0.1321, -0.1002, -0.462, -0.1603, 0.0013, 0.2829, -0.0465, 0.0736, 0.2021, -0.3585, 0.2074, 0.1366, 0.0173, 0.2887]}, {"pos": 8, "piece": " rent", "tid": 8016, "q": [0.8752, 0.153, 0.9248, 0.7466, 0.3673, -1.0297, -0.9334, 0.2794, 0.2937, 0.1755, 0.019, 0.4882, 0.2996, 0.8935, 0.9163, 0.141, 0.7841, -0.3526, -0.7481, 0.2607, 0.7959, 0.2687, 0.0715, -0.4938, -0.0246, -0.3127, -0.5224, 0.2493, -0.1559, -0.5593, -0.7564, 0.0693], "k": [0.2259, 0.0759, 0.4021, -0.9944, 0.8378, -0.2864, -0.0133, -0.1472, 0.4274, -0.4533, 0.3811, -0.1056, 0.0706, -0.4117, -0.7902, 0.5472, 0.3137, 0.1389, -0.8807, -0.3347, 0.3874, 0.1621, -0.0941, 0.4417, -0.6808, -0.1571, -0.7556, 0.0707, 0.0212, 0.6416, -0.2888, -0.7186], "v": [-0.4393, 0.5984, 0.1985, -1.4054, 0.4334, 0.398, 0.6932, -0.0693, 0.3535, 0.1129, -0.2489, -0.6718, -0.248, -0.5474, -0.1731, 0.6575, 0.7538, 0.0251, 0.3847, 0.1302, 0.0078, 0.7438, -0.0249, -0.4142, 0.3669, 0.8038, -0.7922, 0.0694, -0.442, -0.037, -0.3525, -0.3617], "allowed": [{"pos": 0, "piece": "Hi", "score": 0.0239, "weight": 0.11065}, {"pos": 1, "piece": "\n\n", "score": 0.1549, "weight": 0.12613}, {"pos": 2, "piece": "We", "score": -0.1071, "weight": 0.09706}, {"pos": 3, "piece": " just", "score": 0.0915, "weight": 0.11838}, {"pos": 4, "piece": " need", "score": -0.3214, "weight": 0.07834}, {"pos": 5, "piece": " LinkedIn", "score": -0.0161, "weight": 0.10631}, {"pos": 6, "piece": " profiles", "score": -0.267, "weight": 0.08272}, {"pos": 7, "piece": " on", "score": 0.3944, "weight": 0.16027}, {"pos": 8, "piece": " rent", "score": 0.1063, "weight": 0.12015}], "locked": [], "gathered": [0.2129, 0.1794, 0.1072, -0.3146, -0.033, 0.1329, 0.1958, -0.1207, 0.1054, 0.0087, -0.0295, 0.0287, -0.2744, -0.1476, 0.0058, -0.0263, 0.1607, -0.0019, 0.0995, -0.1329, -0.2754, -0.0072, 0.0665, 0.1569, 0.0052, 0.3345, 0.0809, -0.1398, 0.0643, 0.0623, -0.0266, 0.2484]}]}, {"id": "TRAIN-39", "kind": "message", "note": "the record\u2019s real message pieces, run as a standalone sequence through the real decoder so every key is visible", "pieces": ["W", "aste", " of", " time"], "tids": [54, 5525, 315, 882], "positions": [{"pos": 0, "piece": "W", "tid": 54, "q": [-0.3556, -0.2682, 0.219, -0.2857, -0.0979, -0.0139, -0.0423, -0.683, -0.4456, -0.2483, 0.4684, 0.4829, 0.7742, -0.079, 0.5172, -1.1649, 0.3132, 0.3175, 1.3929, -0.6938, 0.5617, -0.7752, 0.9925, 0.5361, 0.2241, 0.515, -0.9575, 0.3338, -0.3001, 0.6059, -0.1109, -0.3208], "k": [-0.1324, -0.5671, -0.4859, 0.2346, 0.5494, -0.7406, 0.0381, -0.8919, -0.0727, -0.4963, 0.0865, -0.2068, 0.0693, 0.3028, 0.4557, 0.6785, 1.3674, 0.4352, -0.2518, 0.4006, 0.3635, -0.5064, -0.1712, 0.1905, -0.4325, -0.272, 0.903, 0.7543, -0.4322, -0.2651, 0.8753, -0.7299], "v": [-0.0544, -0.9739, -0.2385, -0.2773, 0.0976, 0.1324, 0.5568, 0.455, -0.0362, 0.1794, 0.2393, 0.9698, 0.133, 0.0954, 0.5067, 0.4144, 0.7339, 1.1938, 0.1764, -0.6661, 0.0633, -0.2999, 0.0662, 0.5532, 0.2451, -0.2582, 0.1509, -0.6789, 0.5155, 0.065, -0.3493, 1.0215], "allowed": [{"pos": 0, "piece": "W", "score": -0.0205, "weight": 1.0}], "locked": [{"pos": 1, "piece": "aste"}, {"pos": 2, "piece": " of"}, {"pos": 3, "piece": " time"}], "gathered": [-0.0544, -0.9739, -0.2385, -0.2773, 0.0976, 0.1324, 0.5568, 0.455, -0.0362, 0.1794, 0.2393, 0.9698, 0.133, 0.0954, 0.5067, 0.4144, 0.7339, 1.1938, 0.1764, -0.6661, 0.0633, -0.2999, 0.0662, 0.5532, 0.2451, -0.2582, 0.1509, -0.6789, 0.5155, 0.065, -0.3493, 1.0215]}, {"pos": 1, "piece": "aste", "tid": 5525, "q": [0.7317, 0.0846, 0.2281, -0.5263, 0.9313, -0.3785, -0.5189, 0.6022, 0.3438, 0.0737, 0.4632, -1.1749, 0.5214, -0.0396, -1.0627, -0.3567, 0.517, -0.5694, -1.3879, -0.5335, 0.5908, 0.0172, -0.0308, -0.4897, -0.2864, 0.3555, -0.3171, 0.0936, 0.0144, -0.3976, -1.2111, -0.6827], "k": [0.7292, 0.0186, 0.5595, 0.275, 0.9916, -0.5516, 0.2485, -0.3773, 0.8726, -0.1892, -0.0583, 0.5002, 0.2269, 0.4511, -0.2029, -0.0878, 0.1107, 0.3566, -0.0962, 0.6136, 0.1187, -0.0653, -0.14, -0.4804, -0.7133, 0.8188, -0.7389, 1.1453, -0.9317, 0.057, 0.3772, -0.0497], "v": [-0.0556, -0.0579, -0.3406, -0.1552, -0.6913, 0.1785, -0.0292, -0.4915, 0.7588, 0.6209, -0.053, 0.9998, -0.0699, -0.5582, -0.6836, 0.8299, 0.0816, 0.6417, -0.4263, -0.5863, 0.0403, -0.0278, -0.4231, 0.6892, 0.3831, 0.166, -0.1929, -0.2522, -0.0874, -0.0182, 0.3117, -0.0094], "allowed": [{"pos": 0, "piece": "W", "score": -0.0995, "weight": 0.40302}, {"pos": 1, "piece": "aste", "score": 0.2934, "weight": 0.59698}], "locked": [{"pos": 2, "piece": " of"}, {"pos": 3, "piece": " time"}], "gathered": [-0.0551, -0.4271, -0.2995, -0.2044, -0.3734, 0.1599, 0.2069, -0.1101, 0.4384, 0.443, 0.0648, 0.9877, 0.0119, -0.2948, -0.2039, 0.6625, 0.3445, 0.8642, -0.1834, -0.6185, 0.0495, -0.1375, -0.2259, 0.6344, 0.3275, -0.005, -0.0543, -0.4242, 0.1556, 0.0153, 0.0453, 0.4061]}, {"pos": 2, "piece": " of", "tid": 315, "q": [-0.3691, 0.0142, 0.1352, -0.3538, -0.1283, 0.2692, -0.5197, 0.5394, -0.0886, -0.652, 0.5902, 0.2521, -0.6703, -0.4674, 0.5329, -0.2961, -0.9723, 0.5604, 0.6143, 0.3701, -0.1413, 0.6728, 0.5214, -0.6232, -0.7524, 0.2188, 1.1401, 0.082, -0.5537, 0.421, 0.5431, 0.2431], "k": [0.3634, 0.2226, 0.084, -0.5312, -0.8868, 0.3107, -1.2773, -0.2277, -0.4441, -0.0774, 0.362, -0.6261, 0.6754, -0.383, -0.2171, -0.851, -0.3533, -0.1578, 0.9599, -0.591, -0.1612, -0.1333, 1.046, -0.4379, 1.1614, 0.2745, 0.9854, -1.2202, -0.557, 0.8769, -0.2131, -0.1257], "v": [-0.4064, -0.1157, 0.3413, 0.525, 0.0168, -0.1789, 0.1003, -0.4315, 0.5912, -0.2258, -0.9121, -0.5188, 1.0182, -0.0753, -0.127, 0.7546, -0.695, -0.8286, -0.1543, -0.5475, -1.0207, -0.3506, -0.2522, -0.7201, 0.3244, 0.5365, 1.5201, -0.3809, -0.3214, 0.0675, 0.7718, -0.3815], "allowed": [{"pos": 0, "piece": "W", "score": -0.107, "weight": 0.25211}, {"pos": 1, "piece": "aste", "score": -0.0142, "weight": 0.27662}, {"pos": 2, "piece": " of", "score": 0.5186, "weight": 0.47127}], "locked": [{"pos": 3, "piece": " time"}], "gathered": [-0.2206, -0.3161, 0.0065, 0.1346, -0.1587, -0.0016, 0.1796, -0.2246, 0.4794, 0.1106, -0.3842, 0.2765, 0.494, -0.1658, -0.1212, 0.6897, -0.1199, 0.088, -0.1462, -0.5881, -0.4539, -0.2485, -0.2192, -0.0093, 0.3206, 0.2336, 0.7011, -0.4205, -0.0457, 0.0431, 0.3619, 0.0751]}, {"pos": 3, "piece": " time", "tid": 882, "q": [-1.4642, -0.4116, 0.07, -0.506, -0.4864, -0.0771, 0.347, 0.3214, 0.235, -0.6837, -0.2403, 1.2373, 1.4085, -0.1363, 0.2062, 0.2095, 0.0223, -0.0705, 0.8882, 0.7772, -0.2298, 0.2141, -0.3705, 0.1718, 0.1376, 0.0104, -1.0143, -0.6564, 0.0744, 0.1928, -0.4665, -0.54], "k": [-0.7722, 0.1062, -0.2912, 0.522, -0.2026, -0.3881, 0.6302, -0.2276, 0.4744, -0.6407, 0.1021, 0.8252, -0.1821, 0.0739, 0.5117, 0.4915, 0.2346, -0.2857, -0.1732, 0.3568, -0.01, -0.1872, 0.4935, -0.184, 0.4942, 0.1195, -0.1125, 0.7365, 0.1102, 0.3284, 0.6081, -0.1665], "v": [0.747, -1.3483, -0.7828, 0.5055, -0.136, 0.9739, -0.6932, 1.3772, -1.1673, -1.0401, 0.0679, 0.0747, 0.5572, -1.0337, -0.3599, 0.8942, -0.3596, -0.7266, -0.1099, 1.1398, 0.8056, -0.8457, -1.0072, -0.0961, -1.344, -0.5672, -0.7786, -0.9149, -0.2611, -0.0325, -0.0713, 0.8798], "allowed": [{"pos": 0, "piece": "W", "score": -0.2563, "weight": 0.19067}, {"pos": 1, "piece": "aste", "score": -0.0862, "weight": 0.22604}, {"pos": 2, "piece": " of", "score": -0.0689, "weight": 0.22999}, {"pos": 3, "piece": " time", "score": 0.3604, "weight": 0.35329}], "locked": [], "gathered": [0.1475, -0.7017, -0.3205, 0.2114, -0.1818, 0.3685, -0.1223, 0.363, -0.1118, -0.2448, -0.1521, 0.318, 0.4406, -0.4905, -0.2143, 0.7561, -0.1285, -0.0746, -0.137, 0.0172, 0.071, -0.4429, -0.4969, 0.0617, -0.2669, -0.0887, 0.0597, -0.5973, -0.0876, 0.0123, 0.1562, 0.4157]}]}, {"id": "TRAIN-04", "kind": "message", "note": "the record\u2019s real message pieces, run as a standalone sequence through the real decoder so every key is visible", "pieces": ["Hi"], "tids": [13048], "positions": [{"pos": 0, "piece": "Hi", "tid": 13048, "q": [0.6105, 0.5112, 0.8844, 0.2356, -0.7283, -0.4301, -0.4065, -0.6273, 0.0887, -0.4605, 1.0807, 0.1121, 1.3666, 0.04, -0.76, 0.175, 0.5441, -0.1194, 0.3854, -0.8271, 0.6343, 0.5446, 1.1583, 0.8993, 1.1242, -0.2779, 0.7069, -0.3456, -0.6709, -0.1069, -0.4958, -0.0328], "k": [0.4444, -0.3202, 0.2372, -0.4418, 0.8419, 0.0537, 0.5461, -0.4831, 0.269, -0.2523, -0.0463, -0.3263, 0.2808, 0.4565, 0.3783, -0.0701, -0.1018, 0.0479, 0.0533, 0.7048, 0.1318, -0.0765, -0.0979, 0.6066, -0.4821, 1.042, -0.4075, -1.2733, 0.0165, -0.8437, 0.3412, -0.3503], "v": [-0.0432, 0.2317, 1.2979, 0.0284, -0.6504, -0.0355, -0.4863, 0.5389, -0.429, -0.482, -0.4083, 0.267, -0.7294, 0.2683, 0.8505, -0.0032, 0.6149, -0.535, -0.3667, -0.88, -0.7475, -0.3752, -0.0996, 0.4765, 0.0545, -0.3543, 0.2145, -0.2385, 0.3664, -1.2552, 0.4096, 0.6397], "allowed": [{"pos": 0, "piece": "Hi", "score": -0.1934, "weight": 1.0}], "locked": [], "gathered": [-0.0432, 0.2317, 1.2979, 0.0284, -0.6504, -0.0355, -0.4863, 0.5389, -0.429, -0.482, -0.4083, 0.267, -0.7294, 0.2683, 0.8505, -0.0032, 0.6149, -0.535, -0.3667, -0.88, -0.7475, -0.3752, -0.0996, 0.4765, 0.0545, -0.3543, 0.2145, -0.2385, 0.3664, -1.2552, 0.4096, 0.6397]}]}, {"id": "TRAIN-05", "kind": "message", "note": "the record\u2019s real message pieces, run as a standalone sequence through the real decoder so every key is visible", "pieces": ["\ud83d\udc4d"], "tids": [144349], "positions": [{"pos": 0, "piece": "\ud83d\udc4d", "tid": 144349, "q": [-0.2835, -0.5466, 0.1323, 0.0288, 0.5336, 0.1771, -0.6199, -0.0112, 0.9213, -0.0351, 0.7882, 0.4665, 0.1273, -0.4496, 1.0209, 0.0176, 0.5429, 0.7779, 0.1947, 0.0014, -0.7726, 0.0616, -0.7026, -0.298, 0.2186, 0.098, -0.6639, -0.1528, -0.0425, 1.1203, 0.5249, 0.952], "k": [-0.3131, 0.1807, -0.008, 0.436, -0.7372, -1.012, 0.1328, 0.0545, 0.066, -0.5017, -0.074, -1.3823, 0.0437, 0.317, -0.5119, -0.6262, -0.058, 1.1783, -1.0578, 0.3282, -0.4119, 0.3906, 0.5579, -0.2355, 0.4763, 0.1009, 0.7795, -0.0512, 0.0694, 0.117, -0.1172, 0.5563], "v": [-0.5444, -0.6451, 0.6328, -0.0036, -0.299, -0.0063, -0.3007, 1.1718, 0.2709, -0.0494, 0.8915, 0.4028, -0.0669, -0.1969, -0.1857, 0.1306, -0.3976, -0.7773, 0.9281, -0.2011, -0.6322, 0.5889, -0.1354, 0.5841, -0.9658, 0.1606, -0.1657, 0.2814, 0.069, -1.0105, 1.4638, 0.8578], "allowed": [{"pos": 0, "piece": "\ud83d\udc4d", "score": -0.1854, "weight": 1.0}], "locked": [], "gathered": [-0.5444, -0.6451, 0.6328, -0.0036, -0.299, -0.0063, -0.3007, 1.1718, 0.2709, -0.0494, 0.8915, 0.4028, -0.0669, -0.1969, -0.1857, 0.1306, -0.3976, -0.7773, 0.9281, -0.2011, -0.6322, 0.5889, -0.1354, 0.5841, -0.9658, 0.1606, -0.1657, 0.2814, 0.069, -1.0105, 1.4638, 0.8578]}]}, {"id": "TRAIN-41 (prompt start)", "kind": "prompt_start", "note": "the real first 13 pieces of TRAIN-41\u2019s real 3,452-piece prompt \u2014 positions, RoPE and weights all match the real prompt", "pieces": ["<|im_start|>", "system", "\n", "Return", " exactly", " one", " JSON", " object", " with", " exactly", " action", " and", " draft"], "tids": [151644, 8948, 198, 5598, 6896, 825, 4718, 1633, 448, 6896, 1917, 323, 9960], "positions": [{"pos": 0, "piece": "<|im_start|>", "tid": 151644, "q": [-0.4115, -0.0961, 0.0994, 0.9954, -0.2661, 0.0405, 1.3143, 0.051, 1.4736, -0.66, 1.1705, 1.2123, -0.3587, -0.1469, 0.3342, 0.7912, -0.0776, 1.0063, -0.3448, 0.4362, -0.4612, 0.4113, -0.2389, 0.2663, 1.3935, -1.3642, -0.194, -0.081, 0.0396, 1.1706, 0.0159, -0.0666], "k": [1.2561, 0.8502, 0.6415, -0.4176, -0.5755, 0.2085, 0.2636, -0.077, 0.8596, -0.4864, -0.2078, -0.8539, 0.4875, -0.4547, -0.3137, -0.3313, 0.2616, -0.5494, -0.0517, -0.1056, -0.2179, 0.049, 0.2869, -0.0051, -1.1473, 0.4505, 0.4989, -0.5237, 0.3642, -0.2272, -0.2761, 0.6299], "v": [-0.6993, -0.309, -0.2067, -0.1299, -0.2079, 0.2357, 0.0981, -0.1227, 0.0565, -0.2473, -0.241, -0.3735, 0.3715, -0.3105, -0.0855, -0.5673, 1.0135, -0.6934, 0.5889, -0.4778, -0.8624, -0.3082, 0.1202, -0.2102, 0.1145, -0.2062, -0.0821, -0.2887, -0.1251, 1.1819, 0.8011, -0.0166], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": -0.6591, "weight": 1.0}], "locked": [{"pos": 1, "piece": "system"}, {"pos": 2, "piece": "\n"}, {"pos": 3, "piece": "Return"}, {"pos": 4, "piece": " exactly"}, {"pos": 5, "piece": " one"}, {"pos": 6, "piece": " JSON"}, {"pos": 7, "piece": " object"}, {"pos": 8, "piece": " with"}, {"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [-0.6993, -0.309, -0.2067, -0.1299, -0.2079, 0.2357, 0.0981, -0.1227, 0.0565, -0.2473, -0.241, -0.3735, 0.3715, -0.3105, -0.0855, -0.5673, 1.0135, -0.6934, 0.5889, -0.4778, -0.8624, -0.3082, 0.1202, -0.2102, 0.1145, -0.2062, -0.0821, -0.2887, -0.1251, 1.1819, 0.8011, -0.0166]}, {"pos": 1, "piece": "system", "tid": 8948, "q": [0.6334, -0.0937, 0.4533, 0.7375, 0.5411, -0.331, 0.5348, 0.4067, -0.2921, 0.4971, -0.9302, -0.7835, -1.1217, -0.315, -0.9761, -0.197, 0.0521, -0.1901, 0.4957, 0.3865, -0.2219, 0.0868, 0.0326, 0.1924, -0.1886, 0.1451, 1.0159, 0.5694, -0.1298, -0.5044, 0.2743, 0.469], "k": [-0.1838, -0.0827, -0.3063, 0.2407, 0.0929, 0.7124, -0.4777, 0.7265, -0.5329, 0.3016, -0.8238, 0.9698, 0.4546, 0.706, 0.0967, 0.2859, -0.6487, -0.6595, 0.9441, -1.4791, -0.1184, -0.1672, -0.8873, -0.5979, -0.4663, -0.4785, 0.0942, -0.2466, -0.0488, -0.0417, -0.4951, 0.374], "v": [0.7017, 0.3256, -0.631, -0.0552, 0.2675, -0.1673, -0.1433, -1.3763, 0.4692, -0.0632, -0.7691, -0.2449, -0.7377, 0.2357, -0.2399, -0.5661, 0.8288, -0.5497, -0.5476, 0.2525, 0.2005, 0.9591, 0.6179, -0.6419, 0.4261, -0.1505, 0.4582, 0.8174, 1.8234, 0.0762, 0.3319, 0.1338], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.2926, "weight": 0.61063}, {"pos": 1, "piece": "system", "score": -0.1574, "weight": 0.38937}], "locked": [{"pos": 2, "piece": "\n"}, {"pos": 3, "piece": "Return"}, {"pos": 4, "piece": " exactly"}, {"pos": 5, "piece": " one"}, {"pos": 6, "piece": " JSON"}, {"pos": 7, "piece": " object"}, {"pos": 8, "piece": " with"}, {"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [-0.1538, -0.0619, -0.3719, -0.1008, -0.0228, 0.0788, 0.0041, -0.6108, 0.2172, -0.1756, -0.4466, -0.3235, -0.0604, -0.0978, -0.1457, -0.5669, 0.9416, -0.6375, 0.1464, -0.1935, -0.4485, 0.1853, 0.314, -0.3783, 0.2358, -0.1845, 0.1283, 0.142, 0.6336, 0.7514, 0.6184, 0.0419]}, {"pos": 2, "piece": "\n", "tid": 198, "q": [1.2728, 0.2527, -0.0051, -1.1862, -0.107, 0.7743, 0.0518, -0.9651, -0.3447, 0.1576, 0.1872, -0.4884, 0.7589, -0.8113, -0.1927, -0.9555, 0.2319, 0.8775, -0.2739, -0.3832, 1.449, -0.2298, -0.2951, 0.4773, -0.8848, 0.1525, -1.3212, 0.049, -0.5201, 0.5167, 0.9589, 0.6588], "k": [-0.7998, 0.3883, -1.0918, -1.0554, -0.1185, 0.6689, -0.2151, 0.1781, -0.0932, 0.0073, 1.007, -0.133, -1.116, 0.4792, 0.5397, -0.6786, -0.5161, 0.4627, 0.3435, 1.2141, 0.7056, -0.2736, 0.3889, 0.1335, -1.1603, -0.3877, -0.3649, -0.0064, -1.1678, 0.5731, 0.3349, -0.7545], "v": [1.0371, 0.4567, 0.5313, 0.5152, -0.4087, -0.4972, 0.6267, -0.1179, 0.7531, -0.8246, 2.0895, 0.9962, -0.9121, 0.2877, 0.6284, 0.4037, -1.3766, 0.3787, 0.2604, -0.7595, 0.2467, -0.807, 0.0482, 1.1105, -1.1892, 0.7547, -0.0397, -0.3856, 0.4514, 0.1383, -0.2848, 0.3176], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.5655, "weight": 0.41913}, {"pos": 1, "piece": "system", "score": -0.3957, "weight": 0.16029}, {"pos": 2, "piece": "\n", "score": 0.569, "weight": 0.42058}], "locked": [{"pos": 3, "piece": "Return"}, {"pos": 4, "piece": " exactly"}, {"pos": 5, "piece": " one"}, {"pos": 6, "piece": " JSON"}, {"pos": 7, "piece": " object"}, {"pos": 8, "piece": " with"}, {"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [0.2556, 0.1148, 0.0357, 0.1534, -0.2162, -0.1371, 0.2817, -0.3216, 0.4156, -0.4606, 0.6545, 0.2231, -0.3461, 0.0286, 0.19, -0.1588, -0.0213, -0.2195, 0.2686, -0.4792, -0.2256, -0.3148, 0.1697, 0.2761, -0.3838, 0.2068, 0.0223, -0.1521, 0.4297, 0.5658, 0.2692, 0.1481]}, {"pos": 3, "piece": "Return", "tid": 5598, "q": [-0.214, 0.8843, -0.2068, -0.2005, 0.7136, -0.7638, 0.3044, -0.3642, -1.1981, -0.6151, 0.3007, -0.0643, 0.2556, -0.0202, -0.9716, -0.0347, -0.571, -0.0735, -0.4872, -0.3376, -0.8344, 0.1787, 0.136, 0.6221, -1.7252, 0.7644, 0.8786, 0.6129, -0.483, -0.7078, 0.1159, -0.6574], "k": [-0.7684, 0.5473, -0.4206, -0.9539, -0.6843, 1.5291, -0.0674, -0.0807, 0.4517, -0.8489, 0.3028, 0.3626, 0.1718, -0.6199, 0.609, -0.4007, 0.1838, -0.0475, 0.3112, -0.6266, 0.3151, 0.2776, 0.2916, 0.1666, -0.2455, -0.4246, -0.5475, 0.2602, -0.3934, -0.3526, 0.1421, 0.0135], "v": [-0.4437, 0.7769, 0.1609, 0.1396, 0.4425, 0.1689, -0.2057, -0.3224, 0.1365, -0.7689, 0.4996, -0.1776, 0.1658, 0.4375, 0.0306, 0.1546, -0.0498, 0.4344, -0.8367, 0.3257, 0.4788, -0.3094, -0.0867, -0.4445, 1.071, -0.0953, -0.4467, 0.2223, 0.8797, -0.1044, -0.9134, 0.2838], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.3257, "weight": 0.32027}, {"pos": 1, "piece": "system", "score": -0.108, "weight": 0.20757}, {"pos": 2, "piece": "\n", "score": 0.1953, "weight": 0.28112}, {"pos": 3, "piece": "Return", "score": -0.191, "weight": 0.19104}], "locked": [{"pos": 4, "piece": " exactly"}, {"pos": 5, "piece": " one"}, {"pos": 6, "piece": " JSON"}, {"pos": 7, "piece": " object"}, {"pos": 8, "piece": " with"}, {"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [0.1285, 0.2454, -0.0171, 0.1185, -0.0415, -0.0667, 0.1386, -0.4197, 0.3533, -0.471, 0.446, 0.0756, -0.2589, 0.1139, 0.1053, -0.1562, 0.1002, -0.1467, -0.0117, -0.2519, -0.0738, -0.1856, 0.1637, 0.0267, -0.0046, 0.0967, -0.0277, 0.0113, 0.6334, 0.4133, 0.0709, 0.166]}, {"pos": 4, "piece": " exactly", "tid": 6896, "q": [0.0184, 0.3343, -0.1353, 0.554, 0.2765, 0.6088, -0.335, -0.3502, 0.0962, 0.0704, 0.2424, -0.5412, 0.4955, -0.2029, 0.369, -1.1569, -0.486, 0.0377, 0.7418, -0.0802, 0.1621, -0.0601, -0.1098, 0.0815, -0.3919, 0.6823, -0.833, 0.1131, -0.2851, -0.6843, 0.1654, -0.4715], "k": [-0.1627, 0.0478, 0.0833, 0.4548, 0.2813, -0.3449, -0.0905, -0.2083, -0.222, 0.0808, 0.4979, 0.5317, 0.2737, -0.3773, 0.8109, 0.1224, -0.7059, -0.7835, -0.4629, -0.5715, -0.271, -0.7613, 0.2841, 0.0745, -0.7546, 0.3085, 0.1776, 0.3581, -0.7093, 0.3891, 0.7127, -0.0206], "v": [0.442, -0.0206, 0.0482, -0.6505, -0.6066, -0.5519, -0.2503, -0.5079, 0.8529, -0.0196, -0.2368, 0.5045, 0.5594, 0.8036, -0.5284, 0.2795, -0.507, 0.5382, -0.8508, -0.4263, -0.1222, -0.3773, -0.5179, -0.8616, 0.082, -0.4893, 1.5967, -0.351, -0.5575, 0.8075, 0.0506, -0.7975], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.1238, "weight": 0.18153}, {"pos": 1, "piece": "system", "score": 0.0397, "weight": 0.16687}, {"pos": 2, "piece": "\n", "score": 0.3666, "weight": 0.23141}, {"pos": 3, "piece": "Return", "score": 0.3745, "weight": 0.23324}, {"pos": 4, "piece": " exactly", "score": 0.1532, "weight": 0.18695}], "locked": [{"pos": 5, "piece": " one"}, {"pos": 6, "piece": " JSON"}, {"pos": 7, "piece": " object"}, {"pos": 8, "piece": " with"}, {"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [0.2093, 0.2813, 0.0267, -0.0026, -0.0979, -0.164, 0.0442, -0.4494, 0.4541, -0.4293, 0.3837, 0.1747, -0.1235, 0.3018, -0.0018, -0.0157, -0.1027, 0.072, -0.2784, -0.2241, 0.0228, -0.2253, 0.019, -0.153, 0.0818, -0.0016, 0.2467, -0.019, 0.487, 0.3859, -0.0687, 0.0099]}, {"pos": 5, "piece": " one", "tid": 825, "q": [0.3787, 0.1432, 1.2541, -0.2004, 0.3105, 0.1862, 0.5403, -0.5716, -0.1735, 0.7684, -0.3053, 1.9269, 0.2395, -0.0204, 0.237, 0.236, 0.0167, -0.59, -0.2456, 0.6012, -0.9088, 0.4694, 0.7491, -0.2637, -0.7399, -0.5797, -0.3662, 0.0163, 0.9871, 0.1112, 0.2186, 0.3129], "k": [-1.0755, 0.0911, 0.4927, 0.2549, 0.7958, -0.3206, 0.0265, 0.0461, -0.0854, -0.2423, 0.9432, -0.2543, -0.5446, -1.0566, 0.6546, -0.0179, 0.3764, 0.8722, -0.0723, -0.4011, 0.9899, -0.557, -0.006, 0.8884, -0.3026, -0.1463, 0.6202, 0.0369, 0.0403, 1.1296, -1.5719, -1.3727], "v": [0.0306, -0.5431, 0.1931, -0.6909, -1.301, -0.5524, 0.2137, 0.8284, -0.2975, -0.0479, -0.2531, -0.2081, -0.2855, -0.8364, 1.2051, -0.942, 0.447, 0.9498, -0.4397, -0.6038, -0.344, 1.2577, -0.1227, -1.9012, 0.0845, -0.2323, 0.959, 1.3098, -0.317, 0.6627, -0.7747, -0.0138], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.1738, "weight": 0.207}, {"pos": 1, "piece": "system", "score": 0.1631, "weight": 0.2048}, {"pos": 2, "piece": "\n", "score": -0.4546, "weight": 0.11042}, {"pos": 3, "piece": "Return", "score": -0.1151, "weight": 0.15506}, {"pos": 4, "piece": " exactly", "score": 0.2536, "weight": 0.22419}, {"pos": 5, "piece": " one", "score": -0.5686, "weight": 0.09852}], "locked": [{"pos": 6, "piece": " JSON"}, {"pos": 7, "piece": " object"}, {"pos": 8, "piece": " with"}, {"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [0.1468, 0.1155, -0.0586, -0.1736, -0.229, -0.1924, -0.0068, -0.4025, 0.374, -0.2835, 0.0228, 0.0476, -0.0519, 0.1814, 0.0076, -0.195, 0.1502, 0.0673, -0.3253, -0.2356, -0.0973, 0.0349, 0.0151, -0.5017, 0.1724, -0.1375, 0.4556, 0.1499, 0.3776, 0.5057, -0.0043, -0.0771]}, {"pos": 6, "piece": " JSON", "tid": 4718, "q": [-0.2944, 0.0593, 1.1591, -0.0479, 0.202, 0.0639, 0.4397, 0.1953, 0.7702, -0.3717, 1.6426, -0.5454, 0.0471, 0.6068, -0.3114, -0.3322, 0.5527, 0.341, -1.3926, -0.1348, 0.6898, 0.6913, -0.241, 0.5772, -0.6487, 0.1686, 0.212, 0.1095, -1.3544, 0.3843, 0.0672, -0.476], "k": [1.1676, -0.2235, 0.1899, 0.608, -0.638, -1.1254, 0.6073, 0.0596, 1.1714, -0.298, 0.0506, -0.3987, -0.4056, -0.1591, -0.9384, -0.144, -0.254, -0.9056, -0.2543, 0.6874, -1.0472, -0.8239, -0.0204, -0.4694, -0.0102, -0.4228, 0.4147, -0.9264, -0.5521, 0.6181, 0.6538, 0.6284], "v": [-0.5215, 0.3756, 0.3266, -0.0055, 0.8409, 0.731, -0.0272, -0.0287, 0.0153, -0.2469, 1.7695, 0.5412, 0.4724, 0.6488, -0.2798, 1.3651, 0.4985, 0.3961, 0.3773, 0.2085, -0.5053, -0.6925, 0.3518, -0.0221, -0.4044, -0.1605, -1.4081, -0.5538, -0.4987, -0.0819, 0.5691, -0.538], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.2102, "weight": 0.13489}, {"pos": 1, "piece": "system", "score": -0.7734, "weight": 0.05045}, {"pos": 2, "piece": "\n", "score": 0.5753, "weight": 0.19434}, {"pos": 3, "piece": "Return", "score": 0.1488, "weight": 0.12686}, {"pos": 4, "piece": " exactly", "score": 0.1784, "weight": 0.13067}, {"pos": 5, "piece": " one", "score": 0.8125, "weight": 0.24636}, {"pos": 6, "piece": " JSON", "score": 0.0629, "weight": 0.11642}], "locked": [{"pos": 7, "piece": " object"}, {"pos": 8, "piece": " with"}, {"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [0.0909, 0.0693, 0.1559, -0.1583, -0.3397, -0.175, 0.1185, -0.0154, 0.2349, -0.3374, 0.5109, 0.186, -0.0856, 0.0559, 0.2976, -0.0437, 0.0066, 0.3579, -0.1793, -0.3382, -0.1571, -0.0094, -0.0112, -0.4848, -0.0739, -0.0407, 0.2286, 0.1679, 0.0654, 0.4362, -0.1644, -0.068]}, {"pos": 7, "piece": " object", "tid": 1633, "q": [-0.5609, 0.2183, 0.3065, 0.1506, 0.1528, 0.3145, -0.3223, 0.6589, 0.2938, 0.0722, 0.0235, -0.476, -0.3704, 1.1606, -0.1557, 1.2219, -0.4283, -0.777, -0.6935, -0.0207, 0.6237, 0.1257, -1.4692, 0.0475, -0.041, -0.284, -0.3087, 0.0364, 0.6646, 0.1108, -0.5349, 0.1962], "k": [-0.3203, -0.0261, -0.177, -0.4708, 0.2502, 0.8904, -0.5886, 1.4324, 1.0015, 0.9243, -0.1939, -0.4476, -0.5966, 0.3475, -0.619, -0.7741, 0.1822, 0.3149, 0.0897, 0.3872, -0.5019, 0.1465, 0.8284, -0.172, 0.1724, -0.6991, -0.3635, -0.3128, -0.4131, 0.4207, 0.7841, 0.3306], "v": [-1.2549, 0.5557, -0.1874, 0.3206, -0.0657, 1.6145, -0.0301, 0.7054, -0.4397, -0.6579, 1.0564, -0.0478, -0.3372, -0.1088, -0.2255, 0.371, -0.8309, -0.5641, 1.1892, 0.3491, 0.1977, 0.2964, 0.0865, 0.9391, -0.611, -0.5751, -1.182, -0.2608, -0.8861, 0.4021, -0.5748, 1.8642], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": -0.1685, "weight": 0.10782}, {"pos": 1, "piece": "system", "score": 0.536, "weight": 0.21809}, {"pos": 2, "piece": "\n", "score": -0.1406, "weight": 0.11086}, {"pos": 3, "piece": "Return", "score": -0.2364, "weight": 0.10074}, {"pos": 4, "piece": " exactly", "score": -0.2017, "weight": 0.10429}, {"pos": 5, "piece": " one", "score": 0.0376, "weight": 0.13249}, {"pos": 6, "piece": " JSON", "score": -0.1862, "weight": 0.10593}, {"pos": 7, "piece": " object", "score": -0.0633, "weight": 0.11977}], "locked": [{"pos": 8, "piece": " with"}, {"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [-0.0075, 0.1988, -0.042, -0.0764, -0.1193, 0.0909, 0.0238, -0.2207, 0.2041, -0.3227, 0.344, 0.0755, -0.1751, 0.1226, 0.0591, -0.0309, 0.092, 0.0475, -0.0759, -0.1084, -0.0618, 0.1447, 0.1217, -0.3159, -0.0149, -0.1487, 0.0445, 0.1738, 0.2638, 0.3604, -0.0708, 0.1725]}, {"pos": 8, "piece": " with", "tid": 448, "q": [0.0633, 0.5079, -1.3922, -0.8171, 0.2018, 1.1585, -0.1847, -1.139, -0.4064, 0.4855, -0.0615, -0.3915, -0.4643, -0.6764, 0.778, 0.5492, 0.8556, 0.2744, 0.9794, -0.3431, 0.2384, -0.0608, -0.6361, -0.693, -0.2946, 0.7733, -0.8076, 0.4011, 0.091, -0.0789, 0.5351, 0.3254], "k": [-0.5539, -0.2805, -0.0585, 0.4745, -0.7588, 0.9036, 0.0861, -0.3823, -0.1717, -0.2853, 0.1832, -0.2473, -0.8916, 0.0879, -1.0844, -0.7888, 0.4513, 0.8989, -0.3696, 0.6536, -0.6023, 0.3655, 0.3217, -0.0354, -0.6219, 0.09, 0.6914, 0.8294, -0.2247, 0.7205, 0.5929, 0.1415], "v": [0.4327, -0.3836, -0.398, 0.3231, -0.5348, 0.3791, -0.0374, 0.0806, 1.0274, 0.6364, -0.1738, -0.2125, -0.0692, 0.0016, 0.0011, -0.4725, -0.1221, -0.5774, 0.5569, -0.2353, 0.3808, 0.0095, -0.0382, 0.7774, 0.0821, -0.0601, 0.3667, -1.4393, -0.3887, -0.3075, 0.6424, 0.7448], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": -0.0801, "weight": 0.0941}, {"pos": 1, "piece": "system", "score": 0.1703, "weight": 0.12088}, {"pos": 2, "piece": "\n", "score": 0.5226, "weight": 0.17193}, {"pos": 3, "piece": "Return", "score": 0.6989, "weight": 0.20507}, {"pos": 4, "piece": " exactly", "score": -0.0764, "weight": 0.09445}, {"pos": 5, "piece": " one", "score": -0.2397, "weight": 0.08022}, {"pos": 6, "piece": " JSON", "score": -0.8453, "weight": 0.04378}, {"pos": 7, "piece": " object", "score": -0.1387, "weight": 0.08874}, {"pos": 8, "piece": " with", "score": -0.011, "weight": 0.10083}], "locked": [{"pos": 9, "piece": " exactly"}, {"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [0.06, 0.2297, 0.0062, 0.0422, -0.1514, 0.0681, 0.0433, -0.1763, 0.3414, -0.3411, 0.4571, 0.0991, -0.1633, 0.1662, 0.0919, -0.0248, -0.1276, 0.0586, -0.075, -0.1505, 0.0784, -0.0531, 0.037, -0.0707, 0.0283, -0.0564, 0.0474, -0.0697, 0.2489, 0.2533, -0.1395, 0.268]}, {"pos": 9, "piece": " exactly", "tid": 6896, "q": [0.3258, 0.0771, -0.0514, -0.568, -0.6117, 0.2701, 0.0608, -0.4808, 0.0507, 0.1079, 0.383, -0.4527, 0.5213, -0.1224, 0.4702, -1.1195, -0.4873, 0.0134, 0.7437, -0.0593, 0.1631, -0.0576, -0.1105, 0.0805, -0.3953, 0.6803, -0.8333, 0.1108, -0.284, -0.6848, 0.1658, -0.4713], "k": [-0.0004, 0.1696, -0.2261, -0.4033, 0.342, 0.2848, 0.1047, -0.2015, -0.2336, -0.0355, 0.3308, 0.6489, 0.3297, -0.3295, 0.7969, 0.1939, -0.6658, -0.8178, -0.4466, -0.5843, -0.259, -0.7655, 0.2834, 0.077, -0.7562, 0.3047, 0.1766, 0.3586, -0.7099, 0.388, 0.7127, -0.02], "v": [0.442, -0.0206, 0.0482, -0.6505, -0.6066, -0.5519, -0.2503, -0.5079, 0.8529, -0.0196, -0.2368, 0.5045, 0.5594, 0.8036, -0.5284, 0.2795, -0.507, 0.5382, -0.8508, -0.4263, -0.1222, -0.3773, -0.5179, -0.8616, 0.082, -0.4893, 1.5967, -0.351, -0.5575, 0.8075, 0.0506, -0.7975], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.3058, "weight": 0.12252}, {"pos": 1, "piece": "system", "score": -0.1111, "weight": 0.08075}, {"pos": 2, "piece": "\n", "score": 0.4919, "weight": 0.14759}, {"pos": 3, "piece": "Return", "score": 0.5063, "weight": 0.14972}, {"pos": 4, "piece": " exactly", "score": 0.0633, "weight": 0.09614}, {"pos": 5, "piece": " one", "score": -0.2326, "weight": 0.07152}, {"pos": 6, "piece": " JSON", "score": -0.2838, "weight": 0.06794}, {"pos": 7, "piece": " object", "score": -0.1192, "weight": 0.0801}, {"pos": 8, "piece": " with", "score": -0.1388, "weight": 0.07854}, {"pos": 9, "piece": " exactly", "score": 0.1532, "weight": 0.10519}], "locked": [{"pos": 10, "piece": " action"}, {"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [0.0468, 0.1691, 0.0257, -0.0531, -0.2033, 0.0254, 0.0198, -0.174, 0.3733, -0.2991, 0.4169, 0.1578, -0.032, 0.2264, 0.0103, 0.0417, -0.1319, 0.1042, -0.097, -0.2068, -0.0192, -0.1343, -0.0265, -0.1549, -0.0141, -0.1171, 0.1827, -0.1415, 0.06, 0.3682, -0.056, 0.1079]}, {"pos": 10, "piece": " action", "tid": 1917, "q": [-0.7658, 0.3158, -0.132, 0.2107, -0.0339, 0.3194, 0.5336, -0.5872, -0.5954, -0.6119, 0.027, -0.4769, -0.2008, -0.7835, 0.1973, 0.1083, 0.789, -0.6092, -0.8156, -0.5846, 0.1808, 0.1353, -0.1453, -0.0527, -1.0985, 1.1645, 0.2769, 0.5084, -0.2811, -1.7081, -0.2385, 0.2568], "k": [-1.1236, -0.1301, 0.2221, 0.7661, -0.6526, -0.6008, 0.5034, 0.3754, -0.399, 0.4918, -0.1169, 0.5432, -0.9785, -1.1922, 0.2868, 0.28, -1.5977, 0.5047, -0.4492, -0.4105, 0.4256, -0.3803, -0.6796, -0.6588, 0.6783, 1.0433, -0.5289, -0.3986, 0.1882, -0.3985, -0.0719, 0.113], "v": [0.5419, 0.9843, -0.0494, -0.2411, -0.3767, -0.7454, -0.018, -1.4665, -0.018, 0.0154, -0.1991, -0.3777, -1.0554, 0.2009, -0.1908, 0.0272, -0.6295, 0.552, -0.1102, -0.2821, 0.3543, 0.7575, 0.5299, 0.2065, -0.6984, 0.3071, 0.1735, 1.1062, -0.0768, -0.1025, -0.5919, -0.1785], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.4411, "weight": 0.1277}, {"pos": 1, "piece": "system", "score": -0.1665, "weight": 0.06955}, {"pos": 2, "piece": "\n", "score": -0.2084, "weight": 0.0667}, {"pos": 3, "piece": "Return", "score": 0.4456, "weight": 0.12827}, {"pos": 4, "piece": " exactly", "score": 0.2915, "weight": 0.10996}, {"pos": 5, "piece": " one", "score": 0.1167, "weight": 0.09232}, {"pos": 6, "piece": " JSON", "score": -0.544, "weight": 0.04768}, {"pos": 7, "piece": " object", "score": -0.8004, "weight": 0.0369}, {"pos": 8, "piece": " with", "score": 0.1751, "weight": 0.09788}, {"pos": 9, "piece": " exactly", "score": 0.3083, "weight": 0.11182}, {"pos": 10, "piece": " action", "score": 0.303, "weight": 0.11123}], "locked": [{"pos": 11, "piece": " and"}, {"pos": 12, "piece": " draft"}], "gathered": [0.1041, 0.1689, -0.0215, -0.1598, -0.2897, -0.1178, -0.0259, -0.3273, 0.3523, -0.1704, 0.1275, 0.0328, -0.0598, 0.2025, -0.0305, -0.0545, -0.0712, 0.1642, -0.178, -0.2342, -0.0173, 0.0294, -0.0006, -0.2884, 0.0168, -0.1293, 0.3485, 0.012, -0.0022, 0.3618, -0.0681, -0.0172]}, {"pos": 11, "piece": " and", "tid": 323, "q": [0.4677, -0.0963, -0.496, -0.1487, -0.3035, -0.998, -0.5821, -0.863, -0.6129, 0.4268, -0.2465, -0.474, -0.2939, 0.1077, -0.8157, 0.2201, -1.0096, -1.0421, 0.0809, 0.1002, -1.0369, 0.1623, -1.1797, -0.1107, -0.4896, 0.2054, 0.3502, -0.4445, -0.0188, -0.3514, -0.287, -0.1215], "k": [-0.2295, 0.5761, -0.2872, -0.0227, 0.2034, -0.3048, 0.4465, -0.4807, -0.4492, 0.4709, 0.5618, 1.2148, 0.6623, 0.8068, -0.4378, 0.1555, 0.7073, -0.8228, 0.5327, -0.0965, 0.03, 0.4981, 0.5918, 0.6264, 0.5486, -1.2071, -0.6547, -1.1717, -0.6488, 0.0836, 0.5196, -0.0461], "v": [0.5053, -0.0131, 0.9657, 0.0027, 0.6493, -0.4613, -0.0153, -0.2088, 0.5887, 0.217, 0.3901, -0.4352, -0.1513, 0.0571, 0.0325, 1.0002, 0.4931, 0.525, -1.2485, 0.1843, -0.0938, 0.339, -0.148, -0.3844, 0.6589, -0.1438, -0.607, 0.2087, -1.2989, -0.5028, -0.2697, -0.4262], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": 0.2066, "weight": 0.10161}, {"pos": 1, "piece": "system", "score": 0.3428, "weight": 0.11643}, {"pos": 2, "piece": "\n", "score": -0.281, "weight": 0.0624}, {"pos": 3, "piece": "Return", "score": -0.6828, "weight": 0.04175}, {"pos": 4, "piece": " exactly", "score": 0.1062, "weight": 0.0919}, {"pos": 5, "piece": " one", "score": -0.6063, "weight": 0.04507}, {"pos": 6, "piece": " JSON", "score": 0.6617, "weight": 0.16017}, {"pos": 7, "piece": " object", "score": -0.4881, "weight": 0.05072}, {"pos": 8, "piece": " with", "score": -0.1619, "weight": 0.07029}, {"pos": 9, "piece": " exactly", "score": 0.0214, "weight": 0.08443}, {"pos": 10, "piece": " action", "score": 0.1865, "weight": 0.09959}, {"pos": 11, "piece": " and", "score": -0.0885, "weight": 0.07564}], "locked": [{"pos": 12, "piece": " draft"}], "gathered": [0.1116, 0.1977, 0.0456, -0.1132, -0.0573, -0.0252, -0.0222, -0.3707, 0.3451, -0.1319, 0.3185, 0.0666, -0.0752, 0.259, -0.1077, 0.1975, 0.046, 0.134, -0.138, -0.1349, -0.0819, 0.0131, 0.0863, -0.1927, -0.0597, -0.1315, 0.0603, -0.0289, -0.1061, 0.2429, 0.0659, -0.085]}, {"pos": 12, "piece": " draft", "tid": 9960, "q": [0.055, 0.1373, -0.6651, 0.0242, -0.4174, -0.1066, 0.5481, 0.9201, -0.2432, 0.6615, -0.7269, 0.173, -0.3892, -0.2717, -0.3978, 0.1914, -0.1043, 0.6768, -0.5078, 0.07, -0.6534, -1.1181, -0.7103, 0.0207, -0.2084, -0.4034, -1.2546, -0.0167, 0.9527, 0.0726, -0.6653, -0.035], "k": [1.3715, 0.4218, -0.4027, -0.5363, 0.2412, 0.2689, -0.4072, -0.2094, -0.8621, 0.8195, 0.8524, -0.1261, -0.005, -1.0752, -0.7375, 0.1119, -0.1221, 1.1321, -0.7974, 0.1814, 0.4476, 0.1688, -0.316, -0.0423, -1.2164, -0.9065, -0.2892, 0.6599, 0.4051, -0.2292, 0.087, 0.1644], "v": [-0.7768, 0.4399, 0.3282, -0.7803, -0.3914, -0.8601, -0.9911, 0.0913, 0.2161, 0.4999, 1.213, -0.6691, -0.7593, -0.1142, 0.634, -0.9932, -0.2543, 0.6095, 0.2705, -0.5894, 0.1265, 1.3139, -1.1401, -0.3023, -0.0536, -0.742, -0.7497, 0.9199, -1.0127, 0.0536, -0.218, 0.0048], "allowed": [{"pos": 0, "piece": "<|im_start|>", "score": -0.1866, "weight": 0.05985}, {"pos": 1, "piece": "system", "score": 0.2805, "weight": 0.09547}, {"pos": 2, "piece": "\n", "score": -0.1054, "weight": 0.06491}, {"pos": 3, "piece": "Return", "score": -0.2313, "weight": 0.05723}, {"pos": 4, "piece": " exactly", "score": -0.2802, "weight": 0.0545}, {"pos": 5, "piece": " one", "score": -0.0225, "weight": 0.07052}, {"pos": 6, "piece": " JSON", "score": 0.1035, "weight": 0.07999}, {"pos": 7, "piece": " object", "score": 0.1958, "weight": 0.08772}, {"pos": 8, "piece": " with", "score": -0.1098, "weight": 0.06463}, {"pos": 9, "piece": " exactly", "score": -0.2365, "weight": 0.05693}, {"pos": 10, "piece": " action", "score": 0.64, "weight": 0.13678}, {"pos": 11, "piece": " and", "score": -0.2966, "weight": 0.05361}, {"pos": 12, "piece": " draft", "score": 0.4911, "weight": 0.11785}], "locked": [], "gathered": [0.0043, 0.2859, 0.0577, -0.1691, -0.1834, -0.1284, -0.1191, -0.2993, 0.2625, -0.0876, 0.3917, -0.0782, -0.2939, 0.1377, 0.0489, -0.0367, -0.1079, 0.2028, -0.0535, -0.1913, 0.0329, 0.2975, -0.0386, -0.1544, -0.1004, -0.1744, -0.0336, 0.2124, -0.1805, 0.1919, -0.1246, 0.0807]}]}]};
+
+const COLORS = {
+  'TRAIN-29': '#7c3aed', 'TRAIN-41': '#2563eb', 'TRAIN-22': '#0d9488',
+  'TRAIN-39': '#dc2626', 'TRAIN-04': '#16a34a', 'TRAIN-05': '#ea580c',
+  'TRAIN-41 (prompt start)': '#2563eb',
+};
+
+const state = { seqId: null, youPos: null, run: 0, fast: false, advance: null };
+
+// ---- helpers ---------------------------------------------------------------
+// classroom filter: an untrained brain's random guesses include a few rude words; show them as ✱✱✱
+const RUDE_PIECE = /fuck|osexual/i;
+function escapePiece(p) {
+  if (RUDE_PIECE.test(p)) return '\u2731\u2731\u2731';
+  return p.replace(/ /g, '\u2423').replace(/\n/g, '\u23CE');
+}
+// ---- Next stepper: every step plays, then waits for Next (button, \u2192 or space) ----
+const CANCEL = new Error('cancelled');
+function wait(ms) {
+  const id = state.run;
+  return new Promise((res, rej) => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      if (id !== state.run) { clearInterval(iv); rej(CANCEL); }
+      else if (state.fast || Date.now() - t0 >= ms) { clearInterval(iv); res(); }
+    }, 30);
+  });
+}
+function gate() {
+  const id = state.run, btn = document.getElementById('nextBtn');
+  state.fast = false; btn.disabled = false;
+  return new Promise((res, rej) => {
+    state.advance = () => { state.advance = null; btn.disabled = true; id === state.run ? res() : rej(CANCEL); };
+  });
+}
+function next() {
+  if (state.advance) state.advance();   // step finished: go on
+  else state.fast = true;               // step still animating: finish it now
+}
+function startRun() {
+  const release = state.advance;        // bump the run first, so the old gate sees
+  state.run++; state.fast = false;      // it is stale and cancels instead of continuing
+  document.getElementById('nextBtn').disabled = true;
+  if (release) release();
+  return state.run;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1700);
+}
+function seqById(id) { return DATA.sequences.find(s => s.id === id); }
+
+// generic n-bar strip (works for 32-dim q/k/v and any length)
+function bars(vec, color, w, mid) {
+  const n = vec.length;
+  let out = '';
+  const bw = w / n;
+  for (let i = 0; i < n; i++) {
+    const v = vec[i];
+    const h = Math.max(0.5, Math.min(mid - 0.5, Math.abs(v) / 2.6 * (mid - 0.5)));
+    const y = v >= 0 ? mid - h : mid;
+    out += '<rect x="' + (i * bw).toFixed(2) + '" y="' + y.toFixed(2) +
+      '" width="' + Math.max(0.5, bw - 0.15).toFixed(2) + '" height="' + h.toFixed(2) +
+      '" fill="' + color + '"><title>dim ' + i + ': ' + v + '</title></rect>';
+  }
+  return out;
+}
+function stripSvg(vec, color, h) {
+  const mid = h / 2;
+  return '<svg viewBox="0 0 256 ' + h + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<line x1="0" y1="' + mid + '" x2="256" y2="' + mid + '" stroke="#eee" stroke-width="0.5"/>' +
+    bars(vec, color, 256, mid) + '</svg>';
+}
+
+function stepOn(n, color) {
+  const s = document.getElementById('step' + n);
+  s.classList.add('on'); s.style.background = color; s.style.borderColor = color;
+}
+function resetSteps() {
+  [1, 2, 3, 4, 5, 6].forEach(n => {
+    const s = document.getElementById('step' + n);
+    s.classList.remove('on'); s.style.background = ''; s.style.borderColor = '';
+  });
+}
+function setCaption(html) { document.getElementById('caption').innerHTML = html; }
+function topOf(list) { return list.reduce((a, b) => (b.weight > a.weight ? b : a)); }
+
+// ---- sequence pills ---------------------------------------------------------
+function buildPills() {
+  const wrap = document.getElementById('records');
+  DATA.sequences.forEach(seq => {
+    const color = COLORS[seq.id];
+    const pill = document.createElement('button');
+    pill.className = 'record-pill' + (seq.kind === 'prompt_start' ? ' special' : '');
+    pill.style.color = color;
+    pill.innerHTML = '<span class="dot" style="background:' + color + '"></span>' +
+      '<span class="rid">' + seq.id + '</span>' +
+      '<span class="rmsg">' + seq.pieces.map(escapePiece).join('').replace(/\u23CE/g, ' ').slice(0, 36) + '</span>';
+    pill.dataset.sid = seq.id;
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.record-pill').forEach(p =>
+        p.classList.toggle('active', p.dataset.sid === seq.id));
+      state.seqId = seq.id;
+      renderSequence(seq);
+    });
+    wrap.appendChild(pill);
+  });
+}
+
+// ---- sequence row -----------------------------------------------------------
+function renderSequence(seq) {
+  const color = COLORS[seq.id];
+  document.getElementById('seqEmpty').style.display = 'none';
+  const row = document.getElementById('seqRow');
+  row.style.display = '';
+  row.innerHTML = '';
+  seq.positions.forEach(p => {
+    const chip = document.createElement('button');
+    chip.className = 'seq-chip';
+    chip.style.color = color;
+    chip.textContent = escapePiece(p.piece);
+    chip.title = 'position ' + p.pos + ' \u00B7 piece ' + JSON.stringify(p.piece) + ' \u00B7 id ' + p.tid;
+    chip.dataset.pos = p.pos;
+    chip.addEventListener('click', () => {
+      setYou(seq, p.pos);
+    });
+    row.appendChild(chip);
+  });
+  const note = document.getElementById('seqNote');
+  note.style.display = '';
+  note.textContent = seq.pieces.length + ' real pieces \u2014 ' + seq.note + '.';
+  setYou(seq, seq.positions.length - 1);
+}
+
+function setYou(seq, pos) {
+  state.youPos = pos;
+  document.querySelectorAll('.seq-chip').forEach(c =>
+    c.classList.toggle('you', Number(c.dataset.pos) === pos));
+  runStory(seq, pos);
+}
+
+// ---- memory cards -------------------------------------------------------------
+function buildCards(seq, you, color) {
+  const cardsEl = document.getElementById('cards');
+  cardsEl.innerHTML = '';
+  const youData = seq.positions[you];
+  let maxScore = 0.001;
+  youData.allowed.forEach(a => { if (Math.abs(a.score) > maxScore) maxScore = Math.abs(a.score); });
+  let wMax = 0.0001;
+  youData.allowed.forEach(a => { if (a.weight > wMax) wMax = a.weight; });
+
+  seq.positions.forEach(p => {
+    const isYou = p.pos === you;
+    const entry = youData.allowed.find(a => a.pos === p.pos);
+    const locked = !entry;
+    const card = document.createElement('div');
+    card.className = 'card' + (locked ? ' locked' : '');
+    if (isYou) card.style.borderColor = color;
+    let inner = '<span class="cpos">' + p.pos + (isYou ? ' \u25C2' : '') + '</span>' +
+      '<span class="cpiece" title="' + JSON.stringify(p.piece) + '">' + escapePiece(p.piece) + (isYou ? ' (you)' : '') + '</span>';
+    if (locked) {
+      inner += '<span class="cstrip"></span><span class="cbars"></span>' +
+        '<span class="lock" title="not read yet \u2014 the causal mask forbids peeking">\uD83D\uDD12</span>';
+    } else {
+      inner += '<span class="cstrip" data-kind="key"></span>' +
+        '<span class="cbars">' +
+        '<span class="crow"><span class="cl">match</span>' +
+        '<span class="b" style="width:' + Math.max(3, Math.abs(entry.score) / maxScore * 90) + 'px; background:' +
+        (entry.score >= 0 ? color : '#9ca3af') + '" title="q\u00B7k/\u221A32 = ' + entry.score + '"></span>' +
+        '<span>' + entry.score.toFixed(2) + '</span></span>' +
+        '<span class="crow"><span class="cl">listen</span>' +
+        '<span class="b" style="width:' + Math.max(3, entry.weight / wMax * 90) + 'px; background:' + color + '"></span>' +
+        '<span>' + (entry.weight * 100).toFixed(1) + '%</span></span></span>' +
+        '<span class="cl" style="text-align:right; font-size:.66rem;">' + (entry.weight * 100).toFixed(1) + '%</span>';
+    }
+    card.innerHTML = inner;
+    cardsEl.appendChild(card);
+  });
+}
+
+function revealKeys(seq, color) {
+  document.querySelectorAll('#cards .card:not(.locked) .cstrip[data-kind="key"]').forEach(el => {
+    const pos = Number(el.closest('.card').querySelector('.cpos').textContent.split(' ')[0]);
+    el.innerHTML = stripSvg(seq.positions[pos].k, color, 44);
+    el.classList.add('shown');
+  });
+}
+function revealBars() {
+  document.querySelectorAll('#cards .card:not(.locked) .cbars').forEach(el => el.classList.add('shown'));
+}
+function revealValues(seq, you, color) {
+  const youData = seq.positions[you];
+  youData.allowed.forEach(a => {
+    const card = Array.from(document.querySelectorAll('#cards .card')).find(c =>
+      Number(c.querySelector('.cpos').textContent.split(' ')[0]) === a.pos);
+    if (!card) return;
+    const strip = card.querySelector('.cstrip[data-kind="key"]');
+    strip.innerHTML = stripSvg(seq.positions[a.pos].v, color, 44);
+    strip.style.opacity = String(Math.max(0.28, Math.min(1, a.weight / 0.4)));
+  });
+}
+
+// ---- connect step: this station's real result, for every real record ----------------
+function buildConnectChips() {
+  const el = document.getElementById('connectChips');
+  el.innerHTML = '';
+  DATA.sequences.forEach(seq => {
+    const last = seq.positions[seq.positions.length - 1];
+    const top = topOf(last.allowed);
+    const chip = document.createElement('span');
+    chip.className = 'connect-chip';
+    chip.style.color = COLORS[seq.id];
+    chip.style.borderColor = COLORS[seq.id];
+    chip.textContent = seq.id + ' \u00B7 listens most to \u201C' + escapePiece(top.piece) + '\u201D (' + (top.weight * 100).toFixed(1) + '%)';
+    el.appendChild(chip);
+  });
+}
+
+// ---- the six steps -------------------------------------------------------------
+async function runStory(seq, you) {
+  const id = startRun();
+  const color = COLORS[seq.id];
+  const youData = seq.positions[you];
+  resetSteps();
+  document.getElementById('gatherNote').textContent = '';
+  document.getElementById('beforeNow').innerHTML = '';
+  document.getElementById('connectGrow').innerHTML = '';
+  document.getElementById('connectChips').innerHTML = '';
+  const youBody = document.getElementById('youBody');
+  youBody.innerHTML = '';
+  buildCards(seq, you, color);
+
+  try {
+    // 1. YOU ASK
+    stepOn(1, color);
+    document.getElementById('youPiece').textContent = escapePiece(youData.piece);
+    document.getElementById('youPiece').style.color = color;
+    document.getElementById('youSub').innerHTML = 'position ' + you + ' \u00B7 token id ' + youData.tid +
+      ' \u2014 <b>' + youData.allowed.length + '</b> pieces read so far, <b>' + youData.locked.length + '</b> still locked.';
+    setCaption('YOU ASK \u2014 the current thought turns into a <b>question</b>: a 32-number pattern (the <b>query</b>). It says what you are looking for \u2014 \u201Cwhat is relevant to me?\u201D');
+    youBody.innerHTML = '<div class="strip-label">THE QUERY \u2014 your question, as 32 real numbers:</div>' +
+      '<span class="strip-big" style="display:block;">' + stripSvg(youData.q, color, 52) + '</span>';
+    await wait(1400);
+    await gate();
+
+    // 2. MEMORIES ANSWER
+    stepOn(2, color);
+    setCaption('MEMORIES ANSWER \u2014 every piece already read wears a <b>name tag</b> (its <b>key</b>): \u201Chere is what I contain.\u201D ' +
+      (youData.locked.length ? 'Pieces after you are <b>\uD83D\uDD12 locked</b> \u2014 the brain cannot peek at what it has not read yet (the causal mask).' : ''));
+    revealKeys(seq, color);
+    await wait(1400);
+    await gate();
+
+    // 3. MATCH
+    stepOn(3, color);
+    setCaption('MATCH \u2014 your question meets every name tag: <b>score = q\u00B7k / \u221A32</b>. A bigger bar = a stronger match. These are the real scores \u2014 notice they are all different.');
+    revealBars();
+    await wait(1400);
+    await gate();
+
+    // 4. LISTEN
+    stepOn(4, color);
+    const wsum = youData.allowed.reduce(function (s, a) { return s + a.weight; }, 0);
+    setCaption('LISTEN \u2014 the brain turns matches into shares: <b>softmax</b>. Every memory gets a listening percentage, and together they are exactly <b>' + (wsum * 100).toFixed(0) + '%</b>. No memory is forced to zero \u2014 but some barely get heard.');
+    await wait(1400);
+    await gate();
+
+    // 5. GATHER
+    stepOn(5, color);
+    setCaption('GATHER \u2014 each memory\u2019s <b>content</b> (its <b>value</b>) is taken in proportion to its listening share. The blend below is the <b>gathered information</b>. Locked memories contributed <b>nothing</b>. In the whole decoder, this gathered material is exactly what the CONSULT station <b>kept-and-added</b> to the original thought.');
+    revealValues(seq, you, color);
+    youBody.innerHTML += '<div class="strip-label" style="margin-top:14px;">GATHERED \u2014 the weighted blend of the values, as 32 real numbers:</div>' +
+      '<span class="strip-big" style="display:block; border-color:' + color + ';">' + stripSvg(youData.gathered, color, 52) + '</span>';
+    document.getElementById('gatherNote').innerHTML =
+      'Check any row: match is a real score (q\u00B7k/\u221A32), listen is the real softmax share, and all listen shares together = <b>100%</b>. ' +
+      'Locked (\uD83D\uDD12) pieces are real future positions \u2014 the causal mask keeps them out. This brain\u2019s looking habits are untrained (seed 701) \u2014 training is what sharpens where it looks.';
+    await wait(1400);
+    await gate();
+
+    // 6. CONNECT
+    stepOn(6, color);
+    setCaption('CONNECT. <b>Before</b> (viz #2), CONSULT was one glowing dot in the brain map. <b>Now</b> you have seen inside it, for one thought \u2014 a question, matching keys, listening shares, and a gathered blend.');
+    document.getElementById('beforeNow').innerHTML =
+      '<b>Before \u2192 now:</b> before (viz #2) CONSULT was one glowing dot; now you have seen inside it for one thought.';
+    document.getElementById('connectGrow').innerHTML = buildGrow(3);
+    buildConnectChips();
+    toast('Done \u2014 click any other piece to make it YOU, or replay');
+  } catch (e) { if (e !== CANCEL) throw e; }
+}
+
+// ---- the series: navigation + "the brain so far" --------------------------------------
+const SERIES = [
+  ['brain-token-embedding.html', 'pieces \u2192 patterns'],
+  ['brain-open-the-decoder.html', 'the whole block'],
+  ['brain-attention-workbench.html', 'consult: one thought'],
+  ['brain-attention-layer.html', 'consult: every thought'],
+  ['brain-multiple-heads.html', 'two lenses'],
+  ['brain-rmsnorm.html', 'steady'],
+  ['brain-residual.html', 'keep + add'],
+  ['brain-ffn.html', 'process'],
+  ['brain-decide.html', 'decide'],
+  ['brain-learning.html', 'learning (backprop)'],
+  ['brain-lora.html', 'a small new habit (LoRA)'],
+  ['brain-kv-cache.html', 'notes already made (KV cache)'],
+  ['brain-the-whole-story.html', 'the whole story'],
+];
+function buildSeriesNav(here) {
+  const el = document.getElementById('seriesNav');
+  el.innerHTML = '<span class="records-label">The series &rarr;</span>' + SERIES.map((s, i) =>
+    '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : i === here ? 'next-up' : '') + '">' + (i + 1) + '. ' + s[1] + '</a>').join('');
+}
+function buildGrow(here) {
+  return '<div style="font-size:.72rem; color:var(--soft); text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px;">the brain so far</div>' +
+    '<div class="series-nav" style="padding:0; background:none;">' + SERIES.map((s, i) =>
+      '<a href="' + s[0] + '" class="' + (i + 1 === here ? 'here' : '') + '" style="' + (i + 1 < here ? 'color:var(--ink); border-color:var(--ink);' : i + 1 > here ? 'opacity:.45;' : '') + '">' +
+      (i + 1 < here ? '\u2713 ' : i + 1 === here ? '\u25C9 ' : '') + s[1] + '</a>').join('') + '</div>';
+}
+
+// ---- init ----------------------------------------------------------------------
+document.getElementById('replayBtn').addEventListener('click', function () {
+  const seq = seqById(state.seqId);
+  if (seq) runStory(seq, state.youPos);
+});
+document.getElementById('nextBtn').addEventListener('click', next);
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+});
+
+function buildFooter() {
+  document.getElementById('footer').innerHTML =
+    'Real data \u2014 the lab\u2019s <b>seeded teaching decoder</b> (seed 701), <b>layer 1, head 1 of 2</b> (both heads share one KV head), real Q/K/V with real RoPE positions. ' +
+    'Message sequences are each record\u2019s real message pieces run standalone so every key is visible; the dashed pill is the <b>real first 13 pieces of TRAIN-41\u2019s real 3,452-piece prompt</b>, with positions matching the real prompt. ' +
+    'Scores are q\u00B7k/\u221A32; listen shares are the real softmax row (sum = exactly 100%); gathered is the real weighted value mixture. ' +
+    'This is one head of one layer \u2014 viz #2\u2019s CONSULT station, opened. The brain story is a simplified intuition \u2014 <b>not neuroscience</b>.';
+}
+
+buildPills();
+buildFooter();
+buildSeriesNav(3);
+document.getElementById('replayBtn').disabled = false;
+</script>
+</body>
+</html>
