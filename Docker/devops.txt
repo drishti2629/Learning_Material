@@ -1,0 +1,3498 @@
+
+Summary
+The video provides an overview of Docker, its installation across different operating systems, and the underlying boot processes that are foundational to understanding containerization.Docker Installation and Architecture
+Flavors of Docker: The speaker identifies two main ways to use Docker:
+Docker Desktop: Utilized on Windows and macOS. It runs within a micro-virtual machine (VM) via technologies like WSL (Windows Subsystem for Linux).
+Docker Engine: Recommended for Linux systems, as it runs natively without the need for an additional VM.
+Architecture Components: Docker consists of two primary parts:
+Docker CLI (Client): The command-line interface used to issue commands.
+Docker Engine/Host: The background service (daemon) responsible for managing containers.
+Windows/macOS Restrictions: Users on these platforms typically interact only with the Docker client, while the engine runs inside a virtualized environment.
+Booting Process and Fundamental Concepts
+BIOS/UEFI and Booting: The speaker explains the boot sequence, starting with the Power-On Self-Test (POST).
+Legacy BIOS vs. UEFI: BIOS is the legacy firmware, whereas UEFI is the modern standard. UEFI requires specific partitions like the EFI System Partition (ESP) formatted with FAT.
+Bootloader: Programs like GRUB (Grand Unified Bootloader) or Windows' NTLDR load the operating system kernel.
+Init System: Once the kernel loads, it triggers an init process (e.g., systemd or SysVinit), which is the first process to run and is responsible for spawning other services and the user environment.
+Package Management: Understanding Linux distributions (e.g., Ubuntu, Fedora, Red Hat) is essential. Package managers like apt (Ubuntu), dnf (Fedora), and yum (Red Hat) handle software dependencies and repository verification using GPG keys.
+Encryption Basics: The speaker touches on encryption at rest (e.g., BitLocker) and asymmetric encryption (public/private key pairs), highlighting the importance of secure certificate management when installing software.
+0:03/2:49:57
+0:00
+who have Linux system I mean not in virtual machine
+0:07
+properly booted from Linux system great
+0:13
+Mac going to work Windows going to work both but both have uh so Mac have WSL
+0:19
+sorry not Mac Windows have WSL and uh Oh yes yes yes Harish I will record on
+0:28
+local computer yeah thanks for reminding this.
+0:34
+Yes, I have started recording and uh I'm not sure how many of you have joined uh
+0:41
+the branching studies session on Saturday.
+0:46
+So, Harish what I will do I have a recording for that. I will upload uh
+0:50
+maybe I will share it with you and then you can upload it to the proper
+0:53
+location. Right. So I was saying uh
+1:08
+there are different flavors of Docker. Uh one flavor is called Docker Desktop
+1:15
+which you will install on Windows uh via WSL Windows Subsystem for
+1:22
+Linux. And the other flavor is uh so in in case of docker desktop like
+1:32
+it now I'm just calling it out before we start. So
+1:38
+uh docker desktop you get uh docker running in separate
+1:45
+virtual machine a micro virtual machine and in case of
+1:51
+the other player which is directly hosted on your Linux system and for that
+1:54
+you will need Linux. I get recently WSL is supporting Linux containers.
+2:02
+Uh I have just read the dock uh or blog article somewhere.
+2:09
+It's very very latest one. Uh so I haven't I have not tried it yet but uh
+2:15
+no I'm not sharing the screen. Uh just give me a minute. I was just waiting for
+2:20
+uh people to join in and okay I hope now I'm visible as well.
+2:25
+Right. Okay.
+2:30
+Okay. Let me share the screen anyway. uh because I just wanted to check the
+2:35
+logistic part first. Um
+2:44
+yeah, let me share the screen. So I hope my screen is visible now. Yes.
+3:01
+Okay. So I was saying docker has different
+3:06
+flavors. So if you have Unix machine I mean virtual machine will work but I
+3:12
+personally I don't like virtual machine to I know things in local uh local
+3:16
+machine or natively machine will going to work always
+3:21
+uh oh my god this site has changed a lot
+3:29
+great so you have a playground as well uh I haven't I guess I have just seen
+3:36
+this site recently like a month or two months back. So yeah, you can have a
+3:42
+docker sandboxes in case if you don't have u
+3:47
+docker installed or you don't have that kind of uh hardware in your local
+3:53
+laptop. Docker sandboxes will help but I don't
+3:58
+know uh okay this is one this how you can get
+4:04
+the docker sandboxes running but uh this will again will install maybe docker in
+4:11
+your machine let me tell you one more thing uh there is a environment called
+4:17
+killer koda yes
+4:23
+anybody heard about is clear code up.
+4:29
+So if you want to practice any commands on Linux or Kubernetes, Docker, so this
+4:36
+is a pretty good resource. It gives you I guess 1 hour of free
+4:44
+1 hour free playground and then you just need to log in. I this pricing
+4:53
+is also pretty cheap. Uh uh $10 $10 per month USD, right? And if
+5:01
+you're a student, they will give some kind of discount for sure.
+5:06
+Uh and maybe you can ask for power purchase parity discount uh by
+5:15
+writing them email. So yeah, so this is for something if you need to practice on
+5:22
+lot of topics. So if I go to here, these are the pre-built environment for all of
+5:30
+things, right? Even uh most of the things I even not even worked on, right?
+5:35
+At least uh this v cluster cuberno kerno is a policy engine in in Kubernetes
+5:43
+cubea notary. So yeah, I mean lot of and they will keep adding those uh parts
+5:50
+into here. So in case if you have uh issues in your docker setup or you're
+5:56
+struggling in then uh for 1 hour you are pretty good to go. Uh you just need to
+6:01
+go over here docker and that's it. You can start by login you can start and
+6:06
+then uh these are the already u uh concepts that you can straight away
+6:13
+start working on. Okay. All right. So, let's get started. Uh, I was saying what
+6:19
+we need to is those who have Windows Docker Desktop download. So,
+6:28
+you need to install this Docker desktop on Windows.
+6:36
+Uh, so there are again uh two two ways you can do that.
+6:42
+Either this way or this way. So this is uh Windows Store app or Microsoft Store
+6:46
+app and out of these two which you should go
+6:50
+for is totally depend on what kind of CPU you are uh you you are having in
+6:55
+your laptop. So generally you should go to system and in system you should uh
+7:02
+look for this guy. So I have 64bit operating system and x
+7:08
+64-bit uh best processor. So that way I can either go via this both route but in
+7:15
+case if you are are on I'm not sure how many of you have heard
+7:23
+this processor there is processor called Intel Atom. So if you are on Intel Atom
+7:29
+uh because one of my batch members uh he he is on Intel Atom
+7:35
+uh and for that reason uh he has to uh go with the ARM processor. So ARM
+7:42
+processor for Mac users uh you have already M1 family. So Mac is also I
+7:47
+would say ARM processor only from their Mac families M1 to so on right M5 I
+7:53
+guess is the latest one for Linux users it will be still same uh because you
+7:58
+would uh you would have your own way of uh installing. So let me go to
+8:06
+install. So if you so say Mac Mac with they have
+8:15
+clearly uh you know made distinction Mac with Apple silicon which is of ARMBBS
+8:20
+and then Mac with Intel chip. Okay. So then uh you can choose whatever version
+8:26
+of Mac you have and accordingly you can select this Linux. Linux is very easy
+8:32
+but I would not suggest uh for Linux I would not suggest go for docker desktop
+8:38
+because docker desktop has lot many restrictions
+8:44
+uh since you cannot run Linux containers on Windows and Mac that's the reason uh
+8:53
+you get docker desktop in a separate virtual machine right but in Linux you
+8:58
+can straight away run your Linux container
+9:01
+So I will suggest go via docker not docker desktop docker install Ubuntu
+9:08
+something of that sort okay so uh that's where I would like to have a parity that
+9:13
+if you have if you are on windows or mac go for docker desktop if you are on
+9:19
+Linux then let's go with this guy install docker
+9:24
+engine on okay so and then we will we will basically going to uh look into
+9:30
+what are the uh nuances or subtle differences in
+9:36
+docker desktop version and docker uh engine on Linux. Okay. So let let us do
+9:44
+one thing. Docker installation is very easy. I mean in
+9:49
+both cases docker desktop is you just need to download an exe and that will
+9:52
+going to run. But uh uh here you you have some yeah exactly these are the
+9:58
+commands that you need to run. These are you need to follow and that's right. So
+10:02
+can I ask someone uh share the screen those who are on on Linux anybody can
+10:08
+you know just volunteer and we'll uh we'll go through these steps okay we'll
+10:14
+go through the steps uh let's set up the docker first on
+10:18
+Linux and then windows anyway uh if you have any challenges we will go through
+10:24
+it and we'll solve it okay everybody have already installed
+10:31
+Linux oh sorry docker okay no no no issues
+10:35
+we'll still go with some steps okay we'll go through some steps because
+10:40
+generally my this session is how not to install docker I mean uh people
+10:45
+generally just copy paste all these things and then uh uh what I can say is
+10:52
+they will not understand exactly what is happening behind the scenes so uh there
+10:58
+is few concepts that we need to understand first and then uh
+11:04
+uh then we should start going through Docker. Okay. Then uh since
+11:10
+can we have a demo to Yes. Yes. Uh that was the next part only. So who would
+11:16
+like to share the screen? Uh just nominate first come first ser will go.
+11:22
+Yeah Rishiki I'm completely okay. I mean I would like to have a demo on both
+11:27
+Windows and Linux. Okay. So Rishi uh you can uninstall your Docker and then we'll
+11:32
+uh reinstall it. Okay. So Dishi uh let me check if I need to give a right for
+11:38
+sharing advance share.
+11:43
+Yeah. So let's first start with uh Dishi uh so that we can install Docker desktop
+11:52
+on Windows. Go ahead and share your screen.
+12:12
+Hello.
+12:12
+>> All right. So, just a quick check.
+12:17
+>> Hello, I'm audible.
+12:19
+>> Yes. Yes. Uh, is my screen audible? Uh, sorry. Visible.
+12:22
+>> Yes. Yes. So, right click on that Windows icon.
+12:30
+Right click on the Windows icon. I just wanted to check
+12:39
+uh right click not in the sorry right. Yeah, right click on Windows account and
+12:43
+go to system. I just wanted to check your system configuration.
+12:56
+Okay, 8 GB RAM and okay, scroll down please. Product ID is okay. 64-bit
+13:02
+x64-bit processor, right? So, I I'm not sure how many of you remember
+13:07
+the first day of gate. I have called out that there are two kinds of architecture
+13:15
+u or two two set of architecture instruction set in CPU. One is complex
+13:21
+CIC complex interet computing and the other is
+13:26
+risk reduced instruction set computing right so x64-bit processor like desktop
+13:32
+or high-end laptops we have complex proc uh instruction processing and those who
+13:38
+are have too much battery optimize or the mobile devices they are ARM based
+13:44
+right so mostly all your mobiles uh not yeah mostly all all of your mobiles or
+13:50
+ARM based architecture right A R A R A R A R A R A R A R A R A R A R means
+13:52
+advanced risk machine and that risk is RIC okay great so Dishi has 64-bit
+13:59
+operating system and 64-bit processor so fine let's go uh on the just type on
+14:06
+Google install docker desktop on Windows
+14:16
+you normally use browser Dishi I mean nothing I have seen very few
+14:24
+people using the edge browser.
+14:26
+>> Yeah I usually use edge only like uh even in my like the organization which I
+14:32
+work in
+14:33
+>> uh the edge is by default like opens by default so it's a habit now.
+14:38
+>> Okay. Okay. Great. Good. Good. Is also quite fast and Windows is improved. I
+14:43
+was using uh Internet Explorer 6 so I know how notorious it was.
+14:51
+>> So yeah, great.
+14:53
+>> Uh this
+14:54
+>> Yes, that's the link. Correct. So you will go to the uh first link. Go
+15:05
+to first one. Yes, that's the one. Right. So meanwhile downloads let's
+15:16
+start with some uh theory presentation part. Okay. Let me share my screen
+15:23
+cuz it will take one of time right we just
+15:32
+okay let me share my screen. How many of you
+15:40
+remember uh about how process gets created? I think we have discussed about
+15:47
+that right. Uh so this okay this was a date let me
+15:53
+start so quickly uh we'll
+15:59
+revise if you remember this C or C++
+16:08
+uh Go or Rust at least these are the languages I
+16:14
+know who are native languages and then you basically compile them.
+16:23
+Why compile compile?
+16:38
+So after compiling you have high level basically from high level to
+16:46
+lowle. So this will convert to low-level language
+16:50
+specifically even not assembly assembly language
+16:58
+it's still really kind of high level or intermediate level
+17:02
+and then not sure
+17:08
+yeah and then what do you do what is the next step So
+17:21
+what is the next step? Yes. So
+17:30
+machine readable format. So after compilation
+17:34
+day one. Okay. After compilation what happens?
+17:40
+Oh why I'm pressing P? Then you do
+17:52
+assembling compiling and then assembling and that will give you
+18:00
+machine understandable format. So compile and then assembly
+18:20
+assembler compiler
+18:28
+and then so this is basically your this entire process will give you
+18:34
+OBJ file. Yes, maybe go has some different format. Rust could have
+18:39
+different format but C++ it will be give you OBJ file
+18:44
+and then once you have EBJ you will have this OBJ
+18:50
+and will pass to some someone else. Who is that? We have seen this already on
+18:55
+already one. Yes, but who does that? You're right Di.
+19:04
+But who does that? It's a job of linker, right? Linker. So
+19:19
+it's a linker. So first you make it understand in the
+19:27
+format of machine CPU. When I say machine here,
+19:31
+it's a CPU. and then you you link it and create an executable
+19:38
+which is understood by operating system. So when your linker will be in picture
+19:43
+it will be specific to operating system. That means if I have linker for windows
+19:51
+will it work for Linux? Will it work for Linux? No. Right? Because Windows linker
+19:58
+will generate the executable format for Windows and Linux linker will generate
+20:04
+executable format understanded by uh Linux operating system. Okay.
+20:11
+And uh this format of Windows is known as orotable
+20:17
+executable right PE
+20:21
+format. And in case of Linux it is ELF executable
+20:29
+something linkage format or linking format.
+20:35
+right now.
+20:43
+uh both Linux and Windows are very different
+20:48
+family or different way of managing processes files and uh so basically when
+20:55
+we say Windows or Windows or Linux we are talking about the kernels right so
+20:59
+Ubuntu uh then uh rather Ubuntu I would say
+21:03
+Debian because Ubuntu is based on Debian by the way how many of know uh
+21:09
+distributions in Linux are you all aware What is distribution in Linux?
+21:15
+Okay, Rufan knows Rishik I can understand because he's from Linux but
+21:20
+okay great. Okay, most of you right Debian Arc and uh CentOS CentOS is
+21:27
+right. So these are three uh main core family of Linux. So in Linux
+21:35
+uh okay since very few people know I can just briefly touch on this topic. So
+21:42
+Linux uh is an operating system rather kernel created by
+21:48
+we have learned git from that that creator Linux store world okay Linux
+21:54
+store world has created Linux kernel as a college project I mean his college
+21:59
+project nowadays our college project are like a hackathon and all right so Linux
+22:04
+kernel was uh Linux uh I would say university project Linux
+22:12
+And it is created from it is created from those who knows uh I have some have
+22:20
+some idea about Linux. It is created from Min operating system.
+22:26
+Minu kernel. Minu is created by this is created by
+22:33
+Andrew Tanum. I hope you have heard this word right is
+22:38
+them right. a legend in networking. So that is what the story is right. I
+22:44
+guess Andrew Tanam uh has my most guess is that only so Andrew has created min
+22:54
+created Linux kernel. Now Linux is just a kernel. So kernel is very uh you know
+23:01
+small in size. Any idea generally what is the size of kernel?
+23:09
+Yes. Any idea
+23:13
+the size of kernel by the way is even smaller than your floppy disk.
+23:22
+So kernel is very small because why kernel? The kernel has five key
+23:27
+different uh I would say responsibilities. One is yeah 100 KB.
+23:32
+Yes, I I can you can have a kernel on uh I used to have those kernel into 1.4 MB
+23:37
+floppy disk. So uh main task is process management, file
+23:44
+system management, hardware management like devices management, scheduling. So
+23:50
+these were uh main key task of kernel. So that's the
+23:56
+reason you have very small footprint of kernel and then whatever you see
+24:01
+applications yeah memory management thank you yeah fifth I forgot so memory
+24:05
+management processes file system memory uh device and process file yeah process
+24:10
+scheduling right so these are the five core topics that kernel does like very
+24:13
+important topics and
+24:16
+so when when your computer boots right when your computer boots basically the
+24:21
+very first thing it would need is where is kernel located. So how many of you
+24:28
+have installed operating system yourself?
+24:32
+I mean when you purchase laptop you will get uh preboot operating system right?
+24:38
+Great. So Rishi could yes. Wow. Great good.
+24:44
+So you might have used uh Rust FS for
+24:49
+bootable drive right? So you would need bootable drive for sure. Without
+24:52
+bootable drive you would not able to uh install system. So how you must be you
+25:00
+must have done uh bootable drive right uh in USB. Yes ruffers something correct
+25:05
+ruffers right? What that ruffers does by the way? Ah no virtual box I don't want
+25:10
+virtual box come on we are a pro programmers right. So developers will at
+25:15
+least ensure uh one laptop should be dedicated for Linux.
+25:20
+Yeah. So what refers does? Yes. What is what you actually mean by
+25:26
+bootable drive? What happens in bootable drive?
+25:34
+Is this really important? Are this really important? I mean uh uh
+25:43
+not from job perspective. I can skip the topic.
+25:47
+But if you want I can I can give you some background around it by the way.
+25:55
+So if you're facing interviews for companies like AR Red Hat please be
+26:03
+ensure that you would need such kind of details and in general I mean you know
+26:08
+by the time you know that I'm generally don't too much fan of interview based
+26:13
+learning. I would like to understand things because I don't know something
+26:18
+right. Uh that's that will generally help me to dig down more. So
+26:24
+what bootable does? Yes, it makes boot partition. Okay, it
+26:33
+makes boot partition. I hope you haven't you have not done Google, okay, for
+26:38
+this. Oh, come on. So uh the challenge was
+26:47
+now we have a luxury of buying the things people buy iPhone 18 and pro and
+26:52
+lot of the stuff but at that time even buying a hard disk is itself a you know
+26:58
+big task. I mean computer used to have very large at
+27:03
+least it will occupy used to one room at least for sure and
+27:07
+having buying this kind of hardware like like we are calling 2GB and 4GB is not
+27:14
+even you know luxury so it's beyond luxury so uh to minimize to minimize the
+27:21
+cost of hardware uh partition system has been introduced
+27:26
+right so basically uh your Hard disk can be partitioned in uh like sizes whatever
+27:34
+you wish right initially the partition scheme was MBR
+27:41
+MBR is what is MBR
+27:49
+because we have BMR that's the reason we we don't know MBR BMR is basics me okay
+27:57
+MBR is master boot record. MBR is master boot record.
+28:04
+So this was one partitioning scheme master boot record I guess record.
+28:12
+So MBR uh is an partition system where you can have max four active partitions.
+28:19
+So you can only have properly four active partitions and then you will have
+28:23
+a logical partition. So uh if you are from Windows background then C D E F so
+28:31
+max you can have these uh partitions but then uh with the help of logical
+28:37
+partitions you can again further have some other partitions okay so primary
+28:41
+and logical so primary partition is basically dividing the disk into let's
+28:46
+say 1 GB or let's say you have 1 terabyte disk then I would divide into
+28:51
+let's say first 20 GB 40 GB V then again 20 GB. So this is how
+28:57
+I can uh create a four partition. So with this four partition your hardware
+29:03
+sees it as a four different hard disk. Four different hard disk.
+29:10
+So this is what basically partition is now.
+29:14
+So when you do any kind of booting or any kind of bootable device you would
+29:20
+need such kind of dedicated partition. Nowadays at least in modern days you
+29:26
+have a partitioning system called GPT. GPT is a partitioning system Garted
+29:31
+system. Okay. And it has uh basically more advanced feature. So in in MBR case
+29:38
+which uh which is the one we were discussing MBR have uh the hard disk
+29:45
+size limit. So you cannot have more than two terabytes of hard disk. That was the
+29:50
+for MBR partitioning. it it is it don't detect more than two terabytes as a hard
+29:56
+disk and that's the reason uh nowadays you even you you will see the booting
+30:01
+process is there is a MBR master boot record process and the other is UEFI
+30:08
+have you heard this word UEFI you should have used or you at least
+30:13
+must have heard this word UFI extended firmware interface right unified
+30:18
+extended firmware interface that's how booting starts
+30:22
+So uh in okay why why we are discussing this and this is very much very much
+30:28
+similar to our body as well. So let's first understand how it works from our
+30:34
+day-to-day routine perspective right. Uh basically I just woke up uh 4:30 I woke
+30:41
+up and I just passed text to Harish that I will need 15 minutes. Why I need 15
+30:47
+minutes? forget about whether I if even if I don't switch on the camera I will
+30:52
+still need 15 minutes right to settle down generally this is a kind of booting
+30:57
+right so when you immediately get woke up or get you you will not immediately
+31:03
+get into bed right you will you will not get out from bed because you will need
+31:07
+to first ensure that you are in your senses right so try early morning like
+31:13
+around 4:00 a.m. 5 a.m. when you know you are waking up. So you will need some
+31:17
+time and that sometime is basically uh when you come back from deep sleep your
+31:24
+mind is telling okay uh that uh you are anan you are Manish you are adishi and
+31:31
+you have two legs two hands right that is something what your nervous system uh
+31:38
+sending those signals exactly is same that when you go to sleep you are uh in
+31:43
+a reset mode exactly mind is that. So when you come out of sleep your mind
+31:49
+tells you based on your accumulation of memories that okay this is you this is
+31:54
+your home this is what you do all those stuff right that's what we call
+31:59
+consciousness right here
+32:04
+when I am turning on the button when I'm turning on the button of my laptop or my
+32:11
+desktop you are dealing with the hardware yes or
+32:16
+You're dealing with the hardware. There is no software there right now
+32:21
+and that hardware should know what it should do. It will need at least one
+32:26
+address. Yes. To load. I used to in fact remember that address is I know forget.
+32:34
+So that address is into the ROM read only memory which is a chip on your
+32:40
+motherboard ROM EPROM whatever you call it.
+32:44
+And your motherboard is instructed that whenever you going to power supply go to
+32:50
+this that's what read only memory programmable read only memory right it's
+32:54
+a programmable and that has the address has been stored into it
+32:59
+and then that address uh and that address is the address the reason I'm
+33:04
+talking about what what bootable does that address is the MBR master boot
+33:11
+record and address is MBR so when to do the uh
+33:16
+when you create a bootable device that device the way that the way that
+33:21
+software does refers.exe exe what there are a lot of software right what that
+33:27
+software does it uh it will create a partition it will make that partition as
+33:34
+a active partition because you have multiple partitions so some uh at least
+33:38
+one active partition should be there and then in that partition let's say I'm now
+33:44
+uh okay let me draw let me draw this is very interesting topic
+33:52
+Let me uh expand this. Okay, imagine this is the
+33:58
+first partition and I am expanding this. Okay, this this part is the first
+34:01
+partition. Okay, so this is the expanded version. I hope you will understand what
+34:07
+I'm trying to say. Okay, so now this guy is actually this guy. Does that make
+34:14
+sense? This this guy is expanded to this guy. I hope this makes sense, right?
+34:19
+Okay, great. So whatever size this guy is, let's say
+34:25
+for now, let's imagine it's 20 GB. Whatever size this guy is is, this is 20
+34:29
+GB. The first kilobyte, 1 KB of it. The
+34:36
+first KB of this guy is first KB. Okay, first KB of this guy is divided into two
+34:42
+parts. 512 bytes and 512 bytes. So 1 KB is not 1,000, it's 1024 bytes.
+34:52
+And in the first bite, the first 512 bite, why 512? Because your hard disk
+34:59
+has uh is a block device and each block is generally of uh in the in the
+35:08
+multiples of even five either 512 by or in the range of 256. So in the
+35:12
+multiplier of 256. So it will be either 256 bytes or 512 bytes. Uh how many of
+35:19
+you are at least heard this word sectors sector. So uh there earlier there used
+35:25
+to magnetic hard disk and then you you used to have cylinders. Not sure uh am I
+35:30
+telling my age by saying all this but that's a different part. Okay. So now
+35:35
+you have SSD but uh anybody have seen magnet hard disk. So
+35:40
+you used to have those those cylindrical surfaces and then on the cylindrical
+35:45
+surfaces you have called sectors and each sector is of 512.
+35:49
+So regardless of whether you are on 2026,
+35:53
+there are still certain uh fundamentals are from 1969.
+35:59
+Okay. So 8086 processor is still there, right? That's
+36:03
+the reason x86 architecture we say. So these are the core fundamentals and uh I
+36:09
+mean regardless whether they ask in interviews or not, it's always be you
+36:14
+know you should always be aware of those. So the point I'm trying to make
+36:17
+is the first 512 bytes of this active partition as one program and that
+36:25
+program is called as bootstrap. That program is called as bootstrap
+36:32
+and that's bootstrap the
+36:37
+this guy is stored here. Why? Because your EPROM
+36:46
+the motherboard or bias we call it as a bias basic input output system or
+36:51
+firmware has instruction that go to this location the first active partition of
+36:58
+first 512 bytes go this location and bootstrap load the
+37:05
+kernel. So unless and until kernel will not be
+37:08
+in the picture, you are dealing with raw hardware. You're dealing with the raw
+37:14
+hardware. This is how your kernel gets loaded. So bootstrap, this is a
+37:18
+bootstrap. And then one more program called which
+37:25
+is which have entry in the the other bite.
+37:30
+Let's say purple the entry into the bite. the second second uh partition
+37:36
+like there are two 512 bytes slots right so in other block that
+37:44
+program is called as boot
+37:48
+loader this is a bootstrap
+37:53
+so first if you have multiple operating system so for example on your laptop you
+37:58
+have windows and Linux in that case this guy will come this will give you an
+38:03
+option tell me. Okay, sure. So in so I will
+38:10
+quickly repeat you have the first active partition. This is your hard disk. Why
+38:15
+we need partition? Because uh even nowadays we will not afford to have 10
+38:19
+different hard disk. Right? So I will have different partitions so that I will
+38:25
+fool my hardware or my uh devices in a way that these are different hard disk.
+38:32
+So that's the one way and then the first partition of that hard disk in that
+38:40
+first partition you when you create a bootable when you create that whether
+38:44
+it's a hard disk or which is USB doesn't matter if it's a USB or it can be hard
+38:48
+disk the first 1024 bytes of what what is making of
+38:55
+bootable device that is we're talking about so first 1024 bytes are
+39:01
+out of First 1024 bytes, first 512 bytes is for bootstrap program.
+39:08
+That program which has been told that it needs to load the kernel
+39:14
+and then other 512 bytes is basically if you have multiple such kernel on
+39:21
+different partitions then this guy will give you an option
+39:26
+because this bootloader contains information about other partitions at
+39:31
+least there. So for example let's say you have
+39:35
+uh Windows in first partition Linux in other partition uh Linux means here
+39:39
+let's say you have Ubuntu you have CentOS you have Fedora let's say you
+39:44
+have four operating system in one machine right so uh the order should be
+39:49
+you first install Windows why because if you install Linux first Windows is so
+39:54
+notorious it will override that it will not let you go ahead uh it will just
+39:59
+format your bootloader for Ubuntu so first always install Windows and then
+40:05
+any Linux based operation. So
+40:10
+if if we go by this logic always windows going to load right we don't want that.
+40:15
+So for that reason in the in the second uh 512 bytes bootloader there is a
+40:22
+partition table uh which talks about other partition and then it will give
+40:26
+you option which operating system you would like to boot if you have multiple
+40:30
+operating system at the start and such bootloader I'm sure you have heard this
+40:36
+name grub
+40:40
+how many of you heard this name grub grub
+40:48
+Grand Unified Boot Loader. So, Grub is uh I would say go to bootloadader.
+40:55
+How many of you have Windows? How many of you have Windows?
+41:01
+What is the Windows bootloader name? What is the name of Windows bootloader?
+41:12
+NTLDR.exe is Windows bootloader.
+41:18
+Okay. So, grub. Yes, NLDR is Windows bootloader.
+41:26
+So, grub is basically grubs understand all these partitioning thing and then
+41:32
+your kernel gets loaded. Your kernel gets loaded. This is how it's happen.
+41:37
+Right. back to this now.
+41:44
+Uh okay, maybe first we'll discuss on this later. Uh Dishi, is your docker
+41:50
+desktop downloaded?
+41:56
+>> Yes, it is.
+41:57
+>> Okay, let's get started. First, set up the Docker.
+42:01
+Yeah. Sh. Yeah. Double click on that.
+42:22
+There's a famous dialogue by Hang I guess. Wang no I'm not sure who
+42:29
+is the CEO of Nvidia AI will not replace humans or engineers
+42:41
+but the person uh uh select all users installation
+42:46
+the person using AI will
+42:51
+uh sorry before that don't uh we started Uh,
+42:59
+>> do I need to cancel it?
+43:01
+>> No. Uh, that's fine. That's fine. Let it go.
+43:07
+>> Uh, I forgot one step. So, go in your search box, type
+43:13
+turn n turn n
+43:20
+turn. Yes, the first one. Turn window switches
+43:24
+on or off. and just check uh Windows Subsystem for
+43:30
+Linux. So, scroll down there should be Windows Subsystem for Linux. Uh turn on
+43:35
+that guy. Uh wait, hang on. Uh it will it will ask
+43:40
+you to restart. So, uh hold on. Let let let's uh complete a docu in search. I'm
+43:45
+not sure whether it will complete or not, but let's see. It's my bad. Okay.
+43:50
+Uh so again those who have Windows laptop and those who want to install
+43:56
+Docker please ensure uh this setting uh can you just hover over it? Uh Dishi
+44:02
+this Windows SIP sim for Linux should be turned on.
+44:07
+So there are two again two flavors of Docker installation. Normally I suggest
+44:11
+this uh but then if you have a Windows professional license then you have a
+44:17
+thing called HyperV. HyperV is the Windows virtualization platform. So if
+44:24
+you just scroll up in this uh yeah scroll up I need to check HyperV is
+44:29
+there. Yes but since your Windows is not professional edition it's a home edition
+44:34
+that's the reason you don't have that HyperV.
+44:38
+So HyperV platform is the one thing and proper HyperV. Uh so there are two
+44:42
+options there close and restart. Right. Uh wait wait wait wait before that uh
+44:48
+you need to click okay on this. So Dishi you might need to rejoin the meeting. I
+44:54
+will wait no worries. Those who are installing uh turn on this feature first
+44:59
+then install Docker and then let it boot let it reboot. Right. And whatever we
+45:05
+discussed so far yes restart now. Uh we'll wait for you there. No issues.
+45:10
+>> Okay. So after once this is restart what are
+45:16
+the what are the things we have discussed so far that is going to happen
+45:20
+with this laptop or whoever is uh restarting the laptop all these things
+45:25
+going to happen that uh power on and then it will uh ask which operating
+45:31
+system to load by default laptop have window operating system so Windows boot
+45:36
+loader will load the kernel and once kernel gets loaded all the features all
+45:41
+the drivers will be loaded and then you will see uh after loading some services
+45:48
+you will see desktop application the desktop.exe or DWM desktop window
+45:54
+manager.exe Exe if you want to understand the things
+46:02
+then you have to go lot of fundamental level what's happening you know so to
+46:09
+understand Python first understand C++ to understand C++ at least have some
+46:14
+background of micro processor assembly language
+46:18
+to understand assembly language you have some kind of background on logic gates
+46:24
+digital Electronics and to understand detail electronics we
+46:29
+should have background of physics, chemistry,
+46:36
+chemistry specifically silicon and those things vacuum tubes, gases and all
+46:47
+analog communication. Yes. I am electronics engineer. Uh yeah
+47:01
+everything is a prerequisite at least nowadays people don't want human beings
+47:04
+they want superman right in the interview you might face these issues
+47:16
+even after like taking several interviews in GitHub they were uh they
+47:20
+were they were rejected me because I am not from Amazon or Google background
+47:26
+so in top they have 150 applications. Uh they have shortlisted three candidates.
+47:33
+Uh I was one of them then and then one is from uh AWS and one is from Google.
+47:38
+But then that's where the brand matters, right?
+47:52
+Let's wait. Uh is Dishi back? How are your projects going by the way?
+48:11
+>> Hello. Um,
+48:12
+>> great. Yeah. Yeah. This is not a yama, it's a cashew.
+48:21
+I have started learning that class but then
+48:26
+after two days I got bored and uh it actually you know uh take a
+48:33
+toll uh I shouldn't have bought that but uh the good part is I have I somehow
+48:37
+catch the tunes I don't know how to play it but then I listen the songs music and
+48:43
+then uh after some hit and run or trial and errors I can catch some tunes I can
+48:50
+suddenly some songs I can certainly play.
+48:54
+Uh yeah, sorry Dishi. Uh share your screen.
+49:00
+We are just waiting for you. So after
+49:08
+your Okay, great. Accept this. Anyway, we are not going to read that full
+49:13
+terms, right?
+49:17
+>> The personal, right? Yes, personal because it will charge you if you go for
+49:22
+work you can use directly Google as well the
+49:30
+option of Google there you can go continue with Google as well
+49:35
+if you have already logged in so that you don't need to enter password
+49:39
+remember our single sign or federated authentication session of G and GitHub
+49:46
+everything is interconnected Yeah, you can put any username.
+49:59
+Uh there will be a lot of dishies there for sure.
+50:05
+Need to go to Gmail and enter the Yeah.
+50:08
+>> code. Okay. You feel free to punch here if you uh you would like to and then
+50:13
+after entering the Okay. Great. Right. So we'll talk later why login
+50:26
+requires. Yeah. Click on this.
+50:30
+>> Yes. Proceed.
+50:31
+>> Uh click on that radio button. Okay. That's fine. Now wait. It will
+50:36
+automatically refresh. Virtualization not detected. Okay. So now what happened
+50:43
+is that uh the thing I was talking about bias right in bias there are ways to
+50:51
+enable virtualization uh and that is failing. So uh is this
+50:57
+your office laptop or work uh personal laptop?
+50:59
+>> Personal laptop
+51:00
+>> person laptop right? Yeah.
+51:01
+>> Uh what is the like is it Lenovo or which Dell?
+51:05
+>> HP.
+51:06
+>> HP. Okay. So maybe you need to just Google uh uh what is your bias? You by
+51:12
+any chance do you remember by which company your bias is? I have DUFF
+51:17
+uh by AMD.
+51:18
+>> What should I search?
+51:19
+>> Uh HP bias HP bias B IOS B IOS that bias uh enable
+51:29
+virtualization HP bias virtualization. Just search that.
+51:36
+Uh yes the first so if you are uh
+51:45
+if so how you need to go is by when you are going to start right when when you
+51:51
+turn on the laptop you need to hit straight away you need to hit F10 key
+51:56
+you need to go into that and then depending on your microser I guess you
+52:01
+have Intel so there will be a VTX extension
+52:05
+uh you need to find this virtualation technology and then you need to enable
+52:10
+this.
+52:10
+>> Okay.
+52:11
+>> Uh and unfortunately I mean if you can join from mobile and then share the
+52:18
+camera that's the only way because you will be in a hardware mode right so this
+52:22
+is completely hardware mode there is no other way to look into it. Try this.
+52:25
+>> Yeah.
+52:26
+>> Yeah I can do that.
+52:27
+>> Yeah. Yeah.
+52:28
+>> So yeah but let do it super fast.
+52:32
+>> Yeah. when you turn on just press continue pressing F10 so that you need
+52:36
+to turn on your bias mode uh the laptop bias mode. Okay.
+52:40
+>> Okay. I'm just running from my phone.
+52:42
+>> Sure. Sure. No worries. So these are the things that why I uh
+52:53
+added this booting stuff right bias and all. So we we have faced these issues
+52:58
+straight away. How many of you have turned on the the
+53:08
+virtualization support? If not, uh of course don't leave the session right
+53:15
+now. But uh after this session, uh just check whether you have bias
+53:21
+supporting uh this virtualization mode.
+53:33
+I have restarted my laptop. Um,
+53:35
+>> start pressing F10 super fast. F10 or delete or something. Yeah, sometimes it
+53:41
+delete. F12. These are the two keys that we need to
+53:44
+alternately keep pressing.
+53:48
+>> Uh, I'm pressing F10.
+53:51
+>> Yeah. Yeah.
+53:52
+>> Let's see. Sometimes I mean it will give you message which key to press. Uh
+54:00
+>> didn't ask for anything. It just opened up uh trying again just
+54:05
+>> Yeah. Yeah. Yeah. No issues and everyone uh based on your laptop
+54:14
+manufacturer the settings uh they will call it a different uh text. Okay. So
+54:22
+just have manual. Sometimes manual will help of your laptop uh model
+54:29
+because firmware is by different companies as well.
+54:44
+>> Not working.
+54:45
+>> Not working.
+54:47
+>> No,
+54:47
+>> it loaded again. The proper windows.
+54:49
+>> Yeah. Yeah, I did that. I'll just check some YouTube videos.
+54:54
+>> Sure. Sure. Otherwise, we will reconnect. I mean, you can just uh uh
+54:58
+ping me on LinkedIn. I will help you out.
+55:01
+>> Uh sure.
+55:01
+>> Next time try delete button. Okay. Uh yeah, most of it works. Okay. And you
+55:06
+need to be super quick. The moment you turn on the laptop, you need to start
+55:09
+pressing. Okay. No worries. It's it's all good. Uh any anyone else have
+55:16
+installed this and working anyone from you?
+55:26
+I'm audible team or everyone is facing same issues with
+55:32
+Windows apart from Dish Dishi whoever is on
+55:40
+Windows can you guys help here uh in case if you would like to proceed ahead
+55:46
+>> that's there uh I can just share it uh just
+55:51
+>> yeah yeah sure Yeah. Awesome. So by delete it, it
+55:58
+worked, right? Uh okay. Uh
+56:00
+>> uh no, I pressed first I pressed escape and then I got a popup type and in that
+56:07
+it was written F10 like then after I after that I pressed F10.
+56:11
+>> Okay. It's really difficult for me to so just check some kind of virtualization
+56:18
+in settings. So
+56:20
+>> yeah.
+56:20
+>> Okay. Don't change any other thing. Okay. Just take virtualization if you is
+56:25
+there virtual technology yes uh I guess right
+56:29
+>> virtualization
+56:31
+>> uh there's virtualization
+56:35
+>> just go to each menu and see uh virtualization you will find something
+56:39
+uh vtx you need to find vx extension let me
+56:44
+>> vx
+56:45
+>> yes uh your laptop is intel I mean processor is intel so you need to turn
+56:50
+on vtx Okay.
+56:53
+>> You will find VTX or virtualization.
+56:55
+>> Yeah, I found this virtualization technology.
+56:57
+>> Yes. Yeah. Go in that and see how you can turn on it.
+57:01
+>> Um hardware VT enables a processor feature for running multiple simulator.
+57:07
+>> Yes. Yes. Enter. Uh just put on enter.
+57:10
+>> It's uh from here it's written uh can you see nice um
+57:15
+>> the menu bar? Uh it's written correct
+57:20
+>> change values by F5 or F6. Okay. So uh can you show the the current value
+57:25
+there?
+57:26
+>> Uh it's enabled.
+57:28
+>> Enabled. So you have just enabled. Uh what is the last one? Disabled. What is
+57:33
+that? The last one
+57:34
+>> battery remaining time.
+57:37
+>> Uh no device configuration. UFI device configuration. Okay. Uh so it's enable.
+57:44
+Did you just enable or it already enabled?
+57:46
+>> No, no, it was already enabled. Like I haven't
+57:50
+>> fixed this issue. Anyway, if it's enabled then why uh can you go back just
+57:58
+check any other VTX or something?
+58:00
+>> Yeah. Uh
+58:02
+>> VDX
+58:04
+>> there's a BIOS memory version.
+58:07
+>> No, not that one. System
+58:09
+>> system build ID TPM device.
+58:14
+No, don't change.
+58:16
+>> Yeah, enable. That's okay. Right. So, yeah, maybe just get out of this now.
+58:26
+>> Oh, okay.
+58:27
+>> Yeah, I think it is. Yes. Yeah, you haven't changed anything else,
+58:33
+right?
+58:34
+>> No, no, I haven't.
+58:35
+>> Let's see. Let's see. Okay, fine. So these are some challenges
+58:44
+specifically when you deal with virtualization technologies.
+58:50
+If this doesn't work greatly what you can do is uh disable that or maybe uh
+58:57
+uninstall the docker and reinstall it again. Maybe it is detecting uh the
+59:02
+state before Ubuntu. Let's try that again. Okay.
+59:07
+>> Okay. Windows is bit notorious in this but
+59:11
+hopefully with this restart it should it should uh start docker
+59:19
+>> yeah let's try if not then we will connect
+59:23
+required yeah uh tun is posted something uh also check this part as well okay uh
+59:38
+not just sold into technology the data exhibition prevention all those things.
+59:43
+So and sometimes uh with this proprietary
+59:53
+laptop uh but at least virtualization uh they allow you to change not all the
+1:00:00
+settings uh all the companies or OEMs.
+1:00:05
+No, it is not possible because it is a hardware thing
+1:00:10
+you can try. If if it's a uh type two hypervisor then yes
+1:00:17
+let's if you some of you can just Google it how we can enable
+1:00:24
+the virtual support by command line. If it's a type two hypervisor then yes. So
+1:00:29
+there are two different kind of hypervisors.
+1:00:32
+uh one is type one which is directly programmed on your motherboard.
+1:00:39
+So it's a hardware support uh that is an Intel MD VTX
+1:00:45
+virtual technology extension. So if it's a hardware then it's it
+1:00:49
+cannot be done by from command line. It has to by bias
+1:00:53
+because it's a electronically program EPROM.
+1:00:58
+But if it's a type two hypervisor then you can do that.
+1:01:07
+Right. So let's check uh Dishi are you able to
+1:01:17
+start docker now?
+1:01:22
+>> Uh no more. Yeah still I'm getting the same.
+1:01:27
+>> Fine. So you can uninstall the docker and we'll we'll uh look into it. Okay,
+1:01:31
+no issues. I can uh share the screen. All good. No worries. So we we need to
+1:01:38
+look into this how you can uh sometimes you have uh firewall or sometimes so
+1:01:44
+these are the different keys. F2 F12 delete right and then Intel virtualation
+1:01:50
+technology enabled. This should taken care of. Uh maybe what
+1:01:56
+you can do is you uninstall Docker, uninstall uncheck WSL and then next time
+1:02:01
+first check this guy WSL and then uh check and then install Docker basically.
+1:02:09
+>> So that means we should solve if not uh we can have separate call no issues
+1:02:14
+>> we'll sort that out. Okay. Okay great. So
+1:02:18
+those who are on Windows they should be able to once all sorted they should be
+1:02:23
+able to see this guy up and running. So docker desktop
+1:02:36
+g is purely distributed version control and we have seen what distri control
+1:02:41
+means. uh even your Git application you have
+1:02:47
+uh you have all the version controls uh facilities right or the version control
+1:02:52
+features but this guy the docker comes in the two different
+1:02:58
+flavors. So
+1:03:03
+just from the architecture perspective I would like to call out you have two
+1:03:07
+different flavor two different flavors or two different executables two
+1:03:10
+different programs one program is called docker engine it is also known as docker
+1:03:17
+host docker engine and docker host and other
+1:03:22
+is plain simple docker command the command you type docker those who have
+1:03:28
+done docker Previously they might be aware of Docker command right. So that
+1:03:33
+Docker is a client application. If you are already aware of for example
+1:03:41
+Azure AWS right so you you have Azure uh and AWS somewhere on their data
+1:03:49
+center but then on your command line terminal you have Azure or AWS CLI right
+1:03:55
+and you basically from this CLI you configure it your secret your uh your
+1:04:00
+access keys and you connect with the your AWS account or as your
+1:04:05
+subscription. Yes. So this is your client that's in
+1:04:10
+client CLI console interface command line interface. Similarly the docker
+1:04:16
+engine or docker host. So when you are installing docker desktop when you are
+1:04:22
+installing docker docker desktop. So there are two ways as I said right I
+1:04:29
+have let me show you what in windows professional edition. So if I turn on I
+1:04:35
+hope my screen is visible right team just wanted to confirm
+1:04:40
+is my screen visible. Yeah. Yes. I will repeat last part. No worries.
+1:04:51
+Uh Sh by any chance do you remember uh centralized version control? I'm not
+1:04:57
+sure whether you join that session that day. Yes. Right. Centralized version
+1:05:01
+control versus the student. So in centralized version control you have two
+1:05:06
+pieces of software. One is a actual version control engine and the other is
+1:05:10
+a client software. All right. So in docker you have two binaries. So when
+1:05:19
+you install docker you install docker cli and docker engine. So docker engine
+1:05:24
+is the main component who is creating a containers for you. What is a container?
+1:05:31
+we will see later. Okay. But just the architecture perspective,
+1:05:36
+Docker engine and Docker CLI are these two different programs.
+1:05:41
+And if you want to communicate two different programs with each other, what
+1:05:45
+you use from the operating system concept
+1:05:48
+what you use? Can can somebody unmute and tell if you want to commit two
+1:05:54
+different programs? This guy you call it IPC interprocess
+1:06:08
+communication and this docker talks with this docker
+1:06:15
+engine. So docker actually uh use a rest API
+1:06:22
+and in docker engine there is a component called API server or API
+1:06:30
+the docker API which then we'll talk. So docker engine also composes of many
+1:06:35
+other binaries. So there are multiple binaries container
+1:06:40
+ID we'll see that all those container ID and all
+1:06:44
+and then uh docker engine will will talk with container ID and container uh D
+1:06:48
+will talk with run C is a continuous we will uh delve into this but just to call
+1:06:54
+out when you when you type docker run or any
+1:06:58
+docker command which we're going to type you will going to uh be using this
+1:07:04
+portion or this part of your application and docker engine. So the point I would
+1:07:10
+like to make it when you are inside docker desktop when you are working on
+1:07:16
+Windows or Mac you will not get access of this guy you will not get access of
+1:07:23
+this guy this is created inside a micro virtual machine microvm and that's the
+1:07:31
+reason Windows is asking enable WSL and in I guess in Mac there is Parallels
+1:07:40
+something like that you can use parallels or docker desktop
+1:07:46
+while installing it will create a small virtual machine in Mac as well right so
+1:07:51
+in windows you have access to only docker cli
+1:07:56
+and docker engine is created inside a virtual machine
+1:08:01
+created by docker uh and executed inside WSL
+1:08:08
+right I I will show you this what I mean by this. So there are two binaries when
+1:08:13
+you install at least two binaries. There are many binaries but when you install
+1:08:17
+at least two different versions of docker software. One version is docker
+1:08:22
+client. This is docker client and is docker engine or docker host. Are we
+1:08:28
+clear on this now? Yes. Are we clear on this?
+1:08:37
+If not I can just show you. I mean you can just Google it. Uh and let's say
+1:08:42
+docker architecture it will give you a nice diagram. If I go
+1:08:51
+to images this will work.
+1:09:04
+So this is this is what I was talking about.
+1:09:09
+Yes. Uh this is authentic resource anyway. Docker docs right. So client
+1:09:13
+which is your docker application again day one of git. What is an application?
+1:09:20
+We have seen that already. Hello world program right. So that's a docker again.
+1:09:25
+Then you have a command line arguments called run build and pull. We going to
+1:09:28
+see this what is actually mean by that. And then this is a main docker demon
+1:09:33
+which have API. So this is entire thing called docker engine or docker host. We
+1:09:39
+will all we will see this in detail what I exactly this architecture means. But
+1:09:45
+right now right now when I install this docker desktop this is the client part.
+1:09:52
+This is a client this is a UI client. Okay. And then there is one more client.
+1:09:57
+Let me start. If you don't install this uh install this terminal okay uh this is
+1:10:03
+a window store app please install this as well.
+1:10:07
+So by default it is PowerShell. If I type docker
+1:10:12
+version look at this OS architecture Windows AMD
+1:10:19
+64, right? But look at the Docker desktop architecture. Look at
+1:10:23
+architecture Linux AMD 64. So your server the Docker desktop is installed
+1:10:29
+in the WWSL virtual machine. In the WSL virtual machine, I would like to see
+1:10:34
+that virtual machine. Sure. For that what you need to do is
+1:10:40
+WSL - list
+1:10:45
+and if you see this is that virtual machine you don't have access to this
+1:10:51
+that is completely controlled by docker so you have
+1:10:58
+docker desktop UI which is also a client which is communicating to this guy
+1:11:03
+docker desktop which is actually called as docker host. Docker host I just want
+1:11:12
+to map the diagram okay this is docker host for you so if you come to this
+1:11:19
+docker host you don't have access client it is with you are we super clear now
+1:11:25
+everybody because uh this is where a lot of the
+1:11:29
+people get confused uh okay I'm not audible team is
+1:11:36
+something challenge with my audio because I'm not chatting.
+1:11:42
+Okay. Okay. I'm not audible. Okay. Okay. Okay.
+1:11:49
+Right. So, compare with this uh architecture the Docker host
+1:11:55
+specifically in Windows and Linux you you cannot see it. You cannot access it.
+1:12:01
+So, what we'll do we'll go back to Rishik machine. Now we'll uh we'll
+1:12:05
+complete the docker installation on Ubuntu. Rishik are you ready?
+1:12:17
+We can start docker installation but this time we will not docker desktop.
+1:12:22
+Yes, you can go ahead and unmute please. Yes.
+1:12:29
+Yes. Am I audible?
+1:12:31
+>> Uh yes you're audible. So I will
+1:12:35
+>> can I screen?
+1:12:36
+>> Stop. Yeah, I will stop sharing.
+1:12:41
+>> Can I share my screen right?
+1:12:42
+>> Yes. Yes, please. Are you on Ubuntu?
+1:12:52
+>> Yes. Yes.
+1:12:53
+>> Great. Because I have only worked on a bit a bit on Ubuntu. I'm not too much
+1:12:59
+fan of uh Linux. I mean fan means I don't have much command in Linux.
+1:13:06
+>> Okay.
+1:13:07
+>> Being a net developer uh that's a problem actually.
+1:13:12
+>> Yeah.
+1:13:12
+>> Sure. Uh go to
+1:13:14
+>> my screen is visible.
+1:13:14
+>> Yes. Yes. And font is also good. Uh
+1:13:21
+>> can I
+1:13:22
+>> Yes. Linux is bit safer. I I mean uh that statement is we need to take it a
+1:13:28
+different way because Windows is consumer based operating system right
+1:13:32
+and that's it is mostly attacked but it's not like Linux doesn't have uh
+1:13:37
+Linux doesn't have viruses all it's because Linux is uh only majorly used by
+1:13:42
+developers or servers uh it's easy to target windows
+1:13:48
+sure okay go to terminal uh maybe first open the uh docker documentation ation.
+1:13:54
+We will straight away follow Docker documentation,
+1:14:13
+right?
+1:14:14
+>> Yes, that's that's the one.
+1:14:20
+>> So, uh we'll go as a prerequisite. Okay. Uh so uh
+1:14:26
+this is your personal laptop right?
+1:14:28
+>> Yes. Yes.
+1:14:29
+>> Have you done any kind of firewall in this again? Sorry I'm not fully across
+1:14:33
+all the things across Linux. So I just wanted to check. Have you configured
+1:14:37
+firewall here
+1:14:40
+>> like up to my knowledge I haven't installed.
+1:14:42
+>> Great. That's that's the only thing. Okay. Scroll down. I mean then we will
+1:14:46
+need to go in some googling and all. Okay. Right. So we'll just follow
+1:14:50
+docution. Uh in case if you have docker, you already uninstalled it, right?
+1:14:54
+>> No, I haven't installed it. Can I copy this?
+1:14:57
+>> Yes. Yes. Oh no, no, just copy that. Right in right hand corner, you will see
+1:15:02
+that copy option. Yes, copy that command.
+1:15:08
+You might need to enter password. Uh since it's a pseudo base.
+1:15:15
+Okay. Uh enter the password. Yeah. Uh so in Linux you might have so
+1:15:25
+Linux is a kernel. In Linux you have different distributions called Ubuntu.
+1:15:30
+Uh then you have Red Hat and Fedora Mint. There's lot of I mean uh
+1:15:36
+countless. So if you want to go through uh distributions kernel.org is the
+1:15:42
+website. So great you don't have uh such docker installed uh go back to
+1:15:47
+documentation now instead of clear use uh ctr l use l so
+1:15:56
+that you can go up as okay
+1:15:58
+>> okay
+1:15:59
+>> uh so Ubuntu has basically debian has a package manager but uh there is a dnf
+1:16:06
+and yum uh in red hat based right so there are different kind of package
+1:16:10
+manager Uh yes, scroll down. Uh yeah, let's go line by line. Okay,
+1:16:19
+don't copy complete uh box. So first sudo app update. Okay,
+1:16:31
+>> enter. done.
+1:16:45
+>> Yes, it is done.
+1:16:46
+>> The second go to the second command. There is a reason I'm asking you to go
+1:16:50
+step by step because I am going to so after this instruction I'm going to
+1:16:55
+explain this what is happening behind the scene in case those who are not
+1:17:00
+aware I mean uh rather some of the people are more pro than me
+1:17:07
+uh in in in the Linux part or even in in every context no issues uh go back again
+1:17:12
+it's already there yes it's already there so go back yes copy
+1:17:23
+Enter.
+1:17:31
+>> It is done. I think
+1:17:33
+>> it's done. It's done. Yes. Uh again go to the next step.
+1:17:49
+Go to next step. By the way, what is the fourth constraint
+1:17:54
+of hashing? Remember we discussed four constraints
+1:17:59
+of hashing digital right in our last work. Copy
+1:18:10
+that whole command. Now uh you have done this right? You have done this. The it
+1:18:14
+is a command.
+1:18:16
+>> Yeah. So copy this whole command till till sudo to eof.
+1:18:21
+First is comment. First is comment hash. Skip the hash part.
+1:18:25
+>> That's a yeah that's a third constraint. Shri
+1:18:29
+till eof. Copy till eof.
+1:18:32
+>> Okay.
+1:18:33
+>> Yeah. And paste it.
+1:18:41
+Done. Okay.
+1:18:45
+>> Packages package.
+1:18:48
+>> Uh, sorry. Come again.
+1:18:54
+>> Yes. Yes. Yes. That's fine. Now, uh, now get the last.
+1:19:03
+>> Yes. No, that is not a constraint.
+1:19:15
+SH is the algorithm that we are use for hashing.
+1:19:20
+>> It is updated or
+1:19:22
+>> done? Okay.
+1:19:23
+>> Yes.
+1:19:23
+>> Fine. So, first let's understand what has happened so far on the step one.
+1:19:30
+uh let's wait uh let's cover quickly because uh I don't want you to you know
+1:19:37
+uh blindly follow that documentation because I used to do that I was not
+1:19:42
+aware of Linux but then I have basically gone through what is actually mean again
+1:19:48
+up to you if you are interested in understanding that what is happening
+1:19:51
+behind the scene when you type these many commands if not we can go ahead and
+1:19:55
+install the docker I mean installing the docker was never an issue right you uh
+1:20:00
+You don't need me to do that. You have you can have you could have done that
+1:20:03
+already. But then what is the meaning of these things? In case if you're
+1:20:08
+interested, we can go through it. If not, we can skip that.
+1:20:12
+What do you say? Should we understand that the first step? It's up to you.
+1:20:19
+Yes. Okay. Great. Then let's understand. Let
+1:20:23
+me share the screen. The the last constraint
+1:20:30
+of uh hashing function the fourth
+1:20:34
+constraint that we talked about is hashing is oneway operation.
+1:20:39
+hashing is one way operation and what is the relation here uh in in context of
+1:20:46
+Ubuntu right so we I guess these are the steps uh that Rishik has followed right
+1:20:52
+these are the steps that you have followed right
+1:20:55
+>> yes yes
+1:20:56
+>> so very first thing uh I and this is was uh I had always understanding issues I
+1:21:04
+came from Windows background and in Windows you normally download setup file
+1:21:10
+or residual file. You click click next next and installation done right for any
+1:21:14
+software. Great great dish. Awesome.
+1:21:22
+So if you are from Windows background you have
+1:21:27
+faced this. Uh before I start dish what is the uh
+1:21:32
+issue? Uh the thing you mentioned that to
+1:21:36
+uninstall
+1:21:37
+>> Yeah. uninstall and disabled it. I disabled it again like restarted and in
+1:21:43
+enabled it and then installed it. It worked.
+1:21:46
+>> Yeah. Yeah.
+1:21:48
+>> Uh and that's a that's why I hate Windows as well.
+1:21:51
+>> Anyways, okay. So when you uh go into Windows world, you basically download
+1:21:56
+the software. Yes. Uh setup software. Next, next. Right.
+1:22:02
+That's what you used to do right and that's what I used to do in Windows is
+1:22:06
+you uh set up or install and that way you do an installation right but then uh
+1:22:12
+in Ubuntu uh the very much analogy in here is that dev so dev package in case
+1:22:19
+you are from Debian it is a dode so if you remember this types right you have
+1:22:26
+said this types right dodev so de is a package uh type of package which you and
+1:22:32
+install using dackage command. Right? So same analogy like we have in installer
+1:22:37
+in Windows similarly we have in a D. Then what what was the reason of having
+1:22:43
+this package manager? So the reason to have package manager in Ubuntu is that
+1:22:49
+Ubuntu is an opensource operating system. So
+1:22:55
+uh every every odd year is the uh for Linux every odd year is a build version
+1:23:03
+operating system and every even year is a long-term stable version at least this
+1:23:08
+is uh I'm talking from Ubuntu perspective maybe it is same for fedora
+1:23:12
+and centtos and other operating system so every even years right now we are in
+1:23:17
+2026 so it's a even year right so 2026.04 04 long-term stable that means
+1:23:24
+it's a uh properly thoroughly tested operating system then you might not get
+1:23:29
+so many issues of specifically related to drivers and all but the uh there
+1:23:34
+would be a kernel version of 2025 as well which are build versions. So this
+1:23:39
+is a Linux way of convention that generally when you are going to install
+1:23:44
+any kind of Linux operating system specifically Ubuntu you should target
+1:23:48
+for LTS long-term support version. Okay, since uh Linux have uh very uh I would
+1:23:57
+say every year uh new kernel they published what
+1:24:02
+happened what used to happen is that let's say you have installed [ __ ] [ __ ]
+1:24:06
+is the image editor in Windows. So if like a paint in sorry in in Linux in
+1:24:11
+like a paint in windows right. So if you install g uh [ __ ] by using this dev
+1:24:17
+package manager it may happen that the dependencies that gim brings those
+1:24:22
+dependencies would have upgraded by uh your Linux version and then your gim
+1:24:30
+may not run as effectively as it used to be. Right? And that reason to manage
+1:24:37
+dependencies to manage all the versions dependence dependent version you need a
+1:24:42
+package manager you would need a package manager. So when you download with
+1:24:48
+Windows generally Windows is a proprietary oper operating system and
+1:24:52
+that's the reason when you download uh all these things are done for you when
+1:24:58
+you set up when you click next next next. So all those dependencies come as
+1:25:02
+a part of the whole package. But that is not the case with Linux. Understand
+1:25:07
+this. So maybe this you download uh [ __ ] and [ __ ] is depend on some kind of
+1:25:14
+library of Linux and that library is uh you know uh that version is not matched
+1:25:20
+then your [ __ ] will not start and that's the reason you first update your
+1:25:27
+packages. So when when you do update with these packages, the packages have
+1:25:34
+repositories. So these repositories are from specifically
+1:25:39
+uh just Google uh let me uh show you
+1:25:44
+something. Linux repositories
+1:25:48
+list. You can type this command. uh Ubuntu. Yes, because DNF is the
+1:26:00
+Fedora one. So you can type this ls ATC APD command,
+1:26:08
+right? Okay. So if you type this command,
+1:26:12
+you will see from where you download the software,
+1:26:16
+right? And these are the authentic repositories. Which one? archive.
+1:26:21
+Archive. com. These are the uh repositories which are I would say the
+1:26:28
+genuine. So normally if you download any binary from non-genuine stuff it can
+1:26:35
+hack your system. It will have uh it will can inject viruses, Trojans. So
+1:26:41
+ensure that you have only a genuine uh repositories. So if you see
+1:26:48
+ubuntu.com archive.buntu.com security.ubuntu.com oun.com
+1:26:52
+canonical.org.com are the genuine ones. Okay. So these uh
+1:26:57
+basically are from where you will download your packages the software you
+1:27:02
+want the opensource software library. If we go back and see the same thing to
+1:27:08
+install docker look at this from where we are we are adding one more repository
+1:27:14
+that repository name as download.docer.com.
+1:27:18
+So to download docker or to install docker we need this repository. Why and
+1:27:24
+this is a genuine one because it is coming from docker itself. Are we good
+1:27:29
+so far team? Yes. Have you understood why do you need repository management?
+1:27:35
+Because uh your program is not just
+1:27:41
+executable. It it that executables have a lot of dependencies and those
+1:27:44
+dependencies are maybe from operating system packages as well. So I need a way
+1:27:50
+to manage all the dependencies of the program.
+1:27:55
+We will look into it. Okay. When we are going to look at the pain
+1:27:59
+points why docker at all invented or needed. Okay. So your program has
+1:28:04
+dependencies and those dependencies sometimes for example if you created
+1:28:10
+uh now now you're working on project so you are you are working on Python. So it
+1:28:14
+is not that whatever you have declared in requirement.xt txt right that's what
+1:28:19
+I think that is what the dependency file you maintain in Python sorry I'm not
+1:28:23
+good in Python but that's what I heard that requirement txt is your dependency
+1:28:28
+file and you uh list down the list of packages there right whatever packages
+1:28:32
+you required to run that application but then you are dependent on the Python as
+1:28:39
+well hello I hope you're getting this right you at least we'll need Python to
+1:28:44
+run your application are we are we together Yes, silence is
+1:28:50
+very Yes. Right from official sites, right?
+1:28:55
+Now, Python has dependencies on some other packages. Look at this uh circular
+1:29:01
+thing. Right. So, you have some packages referencing requirement.txt.
+1:29:06
+Python is going to install it for you. The Python package manager pep install
+1:29:11
+something. You do pip install, right? Yes. And then while running Python,
+1:29:16
+Python has made created by C language. So Python has its own dependencies,
+1:29:21
+right? So if I need to track keep all track of these things, this is the
+1:29:31
+job of package manager. So tomorrow if you need to uninstall the package
+1:29:35
+manager will find out what things need to be removed. Okay? So that you don't
+1:29:40
+need to remember oh [ __ ] is depend on this library that that library is depend
+1:29:44
+on this library you don't need to do that this package manager job will do it
+1:29:48
+if you really want to take those pains then I will suggest go and try to
+1:29:54
+install R Linux you will understand what kind of pain it is in dash
+1:30:01
+so try to install RX and you will understand what pain is all about okay
+1:30:06
+in in case if your life is not painful go and install R Linux
+1:30:10
+That way you will understand what I'm talking about. But for example, you
+1:30:13
+don't need to figure out the dependencies. It is someone managing it
+1:30:17
+for you. So whether you need to install it, upgrade it or remove it. This guy
+1:30:21
+will help you out. In Ubuntu it is a advanced package tool. Uh in
+1:30:28
+uh in Windows it is YUM. I don't know full form of YUM. I guess yellow
+1:30:33
+something it is that. So in in Red Hat it is Yum. In Fedora it is DNF. So there
+1:30:40
+are different package managers for different distributions of Linux. Linux
+1:30:45
+is kernel. Linux is kernel. Ubuntu is a distribution.
+1:30:51
+So Linux is common across all distributions. And Linux should be
+1:30:56
+common. Why? Because it's a kernel. Are we good so far? Or do I have
+1:31:02
+confused you a lot? Okay, great. Can I have Yes. Okay.
+1:31:08
+Great. Right. So, this is why we need AP. Trust me, you will not get such kind
+1:31:16
+of uh line by line going through of installation. But then
+1:31:23
+it has been assumed that you know all these things. Since I wasn't aware of
+1:31:27
+this, I generally call out what I've learned in this process. Okay. The
+1:31:32
+second thing that you would like to install these two programs which are CA
+1:31:38
+certificates and curl we will come to that why these are needed. Okay. But you
+1:31:42
+are installing two new binaries. Okay. And then you are configuring the
+1:31:47
+location for those certificates. So uh by default this uh directory might be
+1:31:54
+there. Earlier this is different uh path. Right now it's a key rings but
+1:31:58
+earlier is something where something I'm not exactly sure but this path for
+1:32:03
+certificates was different earlier. So you are not just creating uh this
+1:32:09
+directory if it's not there it will create if it is there it will set the
+1:32:12
+mode bit for it. So in Linux there is a thing called permissions right. So uh it
+1:32:18
+was very hard time for me to understand this but then every file has uh unless
+1:32:24
+you don't give permission Linux will not execute it right. So permission is uh
+1:32:29
+this is uh a dig a digits way of representing it but normally it is rwx
+1:32:38
+right. So uh read write execute these are the bits right
+1:32:44
+so that is how uh it is represented in Linux uh so I am creating this directory
+1:32:51
+and I'm setting those permissions to this directory that is what this command
+1:32:55
+is all about then I am calling this URL I'm calling this URL
+1:33:04
+for that curl is the command curl is the command to fire the URL and then what is
+1:33:10
+the output of this URL? I would like to store it in this way. So if you don't
+1:33:17
+put this, it will by default download in the directory where you have issued this
+1:33:22
+command. Okay. If you don't give this path, it will download the uh that
+1:33:29
+output into the directory from where you have issued this command. Okay. So I
+1:33:35
+want uh the output
+1:33:47
+of the what is GPG first is GNU let's go GPG full form
+1:33:55
+GNU yes privacy guard genu privacy guard so basically uh kind of certificate so
+1:34:00
+you might have aware of this uh pay files Have you heard of this PM files
+1:34:09
+or CRT in case of Windows? So these are the uh public private key pair. So dot
+1:34:19
+uh pay files is the certificate and then you have uh dot you extract generally
+1:34:24
+you extract pub is public file and then uh one is a private file. Right? So
+1:34:30
+these are the certificates you are downloading from docker.com and then you
+1:34:37
+are uh adding appending the read permission
+1:34:42
+to this. So you are you adding again changing the permission why because you
+1:34:46
+are downloaded. So that's the reason after downloading you need to again set
+1:34:52
+the mode to read that key file read that file. So R is adding the read permission
+1:34:59
+or appending the read permission. A+ is adding appending. So whatever permission
+1:35:03
+it has plus R means read. So RWX, right? Great. Are we good so far? What is doing
+1:35:13
+is clear? Yes. So we have seen why APD what what
+1:35:19
+is packager package manager? Why it need? We have seen that. Then we have
+1:35:23
+seen this certificates, right? Why do we need certificates? And this is
+1:35:28
+the whole thing that I would like to tell you because generally
+1:35:33
+uh the focus is more on installation than the concepts. Okay. So let's
+1:35:38
+quickly understand this because the same concept you will going to you know work
+1:35:44
+for uh your HTTPS. Uh the similar concept you will use for SSH. So all
+1:35:53
+these right how this works. So welcome to the topic of encryption.
+1:36:00
+How many of you are aware of encryption? Yes, SSL also SSL, TLS and all right.
+1:36:07
+And I mean when I say how many of you are aware not just definition okay
+1:36:14
+not just definition. So
+1:36:18
+and today we will get that answer. What is difference between the one-way
+1:36:23
+operation of hashing and what is the difference between encryption and
+1:36:26
+decryption? Are you ready? Only with that we will able to finish
+1:36:33
+this section. So let's go into the details.
+1:36:45
+Let's say uh let's take example of Dishi's laptop for now. Okay,
+1:36:51
+because there are two types in encryption.
+1:36:55
+So let's say this is a dish laptop. Uh before that, how many of you have at
+1:37:06
+least heard this word bit? Bit locker. Have you heard this?
+1:37:17
+Office laptop has bit locker. Great. So generally enterprise laptop has bit
+1:37:21
+locker. So bit locker is an encryption software. So let's say uh dishi is
+1:37:27
+installing docker uh on this bit locker sorry in this laptop and uh let's say
+1:37:33
+she has uh kept laptop u in the CCD or something. Okay. And somehow that laptop
+1:37:41
+uh gets stolen. Okay. So if it is her office laptop and bit locker is enabled
+1:37:47
+then no matter what uh so the only loss of laptop not the data. So bit locker
+1:37:54
+will encrypt the entire hard disk drive. Bit locker will encrypt entire hard disk
+1:38:01
+drive and only only uh dishi will have that key right. So unless until that key
+1:38:08
+you will not able to retrieve the contents of that hard disk. So when when
+1:38:13
+you get a company laptop uh you have been asked to set up some kind of
+1:38:18
+password for your beat locker and then you also been asked to set up some
+1:38:23
+passphrase or some key. So you have to set up some kind of passphrase and key
+1:38:29
+and you have instructed this passphrase should not be installed on this laptop.
+1:38:35
+It should keep separate where you can have access to it always. Right? So bit
+1:38:41
+locker is a software entered by software which encrypts the content of your hard
+1:38:45
+disk. So every time when you log in you first need to enter that secret and then
+1:38:52
+uh then you can operate that uh laptop basically right so what actually loss of
+1:39:00
+dy would be only the physical device but company's data would be always going to
+1:39:06
+save right so if in case if you want have some kind of encryption you can
+1:39:12
+check some open tools open soft open open source software and you can also
+1:39:16
+have such kind of encryption. So this kind of encryption is known as
+1:39:21
+encryption at rest. Encryption.
+1:39:26
+Encryption at rest. Rest means it is not in transit. Right?
+1:39:32
+We are right now at home. So transit means when there are multiple parties
+1:39:37
+involved. So this is a personal device or personal laptop of Dishi right or
+1:39:43
+office laptop but it's belong to her. So uh only Dipi would uh Dishi would
+1:39:51
+know the the username and password right. So even username password are
+1:39:55
+leaked it bit locker secret would save her office data her office critical
+1:40:02
+information right so such kind of encryption is at rest but then what is
+1:40:08
+encryption means right let me come to that part first
+1:40:12
+so uh okay will this is your data and data means here it
+1:40:22
+can be anything. It can be text, your documents, text,
+1:40:27
+docs, PDF,
+1:40:32
+uh images, your memories, right? Videos, your moments, anything and your
+1:40:41
+softwares. So together I called it as data, right?
+1:40:48
+And there is some confusion generally people have. Normally in encryption
+1:40:53
+world we call it as a plain text. So here plain text means
+1:40:58
+it's not basically should be a text. The plain text means anything which is
+1:41:02
+easily readable or visible to the human eyes. So such information is called as
+1:41:08
+plain text. So you give this information to your encrypting software, your
+1:41:15
+encryption software and that encryption software has some kind of algorithms.
+1:41:21
+The famous is RA.
+1:41:31
+Have you heard this word RSA? How many of you have heard this word?
+1:41:35
+What is the full form? Ryist, Shamir and Alman. Ry, Shamir and
+1:41:44
+Aliman. Introduction to algorithms is a book
+1:41:50
+introduction to algorithm. Why we forget? Uh because there is a book
+1:41:54
+called introduction to algorithm and then Ryest is one of the author to that
+1:41:58
+book and these three people have created that algorithm that's called RSA the
+1:42:03
+scientist names. Yes. So Ry, Shamir and Al Deman, these are the three authors of
+1:42:09
+this encryation algorithm. There are many more algorithms. I guess blowfish,
+1:42:15
+I'm not sure. Blowfish is one. Uh this is completely security background guys.
+1:42:19
+I I really don't have much idea around it. Uh but there are different albums.
+1:42:24
+ED251 is a uh latest AES and DES. Yes. uh and ED2519
+1:42:34
+is the latest set of algorithm families. So these are the algorithms for
+1:42:39
+encryption. So what encryption does you will need
+1:42:44
+any one of those algorithm number one you will need any one of those algorithm
+1:42:49
+you will need your data and then you will also need
+1:42:56
+some kind of secret. So these are the things you would need. So you will send
+1:43:04
+a data your data and you will need algorithm into it.
+1:43:15
+So let's say for now we use RSA. So you will send your data to this guy
+1:43:24
+and then you will use some kind of secret. So secret algorithm and data
+1:43:31
+will give you output as does anyone knows what is called?
+1:43:41
+No, that's a process called encryption but output is called cipher text. Yes,
+1:43:46
+Shim is right. Cipher text. This is how your encryption works. Right now
+1:43:54
+no matter what this message is right let's say uh Tun Tun are you married
+1:44:02
+sorry to ask personal question no great so has girlfriend okay let it make
+1:44:08
+simple so has girlfriend right and Tun wants to send her a
+1:44:15
+message okay wants to send her message now let's say uh maybe girlfriend, maybe
+1:44:21
+crush, whatever you say, right? So, uh wants to send her message and uh he
+1:44:27
+doesn't want to uh anybody read that message, right? So, what going to
+1:44:31
+happen? Exactly. Let's say, okay, sorry drone if don't take it personally. Uh
+1:44:37
+such examples, you know, make concept remember last. Okay. So, that's the
+1:44:42
+reason I used to have such kind of examples in my class. So, this is Sarun
+1:44:47
+and this is Son's girlfriend. Okay. Or crush whatever you call.
+1:44:55
+Uh Tun is not fat. Okay. Though it is representing like this, he's he's pretty
+1:45:00
+slim guy. Okay. So nobody shaming. Okay. So Tarun needs to send this message,
+1:45:06
+right? This this kind of encryption this is at
+1:45:10
+rest. Okay. This kind of encryption is at rest encryption. So there are in
+1:45:15
+encryption there are again boys. Okay. Uh no issues. Okay. This is just
+1:45:19
+analogy. So, uh, Tun is taking it very playfully. So, let's let's focus on
+1:45:25
+this. Okay. So, this key right, there are two ways
+1:45:32
+this key gets generated. Where is Pratik today? I don't know. Okay. This
+1:45:37
+keys is basically generated with the uh two ways. So there is thing called
+1:45:46
+symmetric symmetric encryption
+1:45:51
+symmetric encryption and a symmetric encryption
+1:45:57
+MD5 is hashing algorithm don't mix it okay MD5 is hashing algorithm not
+1:46:03
+encryption so encryption if you remember our g's first day g first dension hello
+1:46:10
+world we have passed hello world to a algorithm called SHA. Yes. So there a
+1:46:19
+new key is generated but what it is doing in encryption your data is being
+1:46:24
+modified your data is scramble scrambled by this algorithm. So your data is no
+1:46:29
+more in usable format and for that to make that data in usable let's let's
+1:46:35
+keep the and his girlfriend out of the scope for now let's first focus on this
+1:46:41
+in order to receive this doc you will need again cipher text you would need
+1:46:47
+this algorithm you would need this key right and this
+1:46:53
+time this this will be the opposite so you will input this to algorithm you
+1:47:01
+will pass this key and this time you will get plain text. So if you don't
+1:47:08
+have your algorithm and key you will not able to retrieve your data back.
+1:47:16
+That's where we are going. What if the key is exposed? Right? Since this is
+1:47:23
+Dish's personal laptop, there is only one party involved, right? This is only
+1:47:29
+one party involved. There is no other party, right? Dishy and her laptop. It's
+1:47:32
+a personal possession position device, right? But here when you do banking
+1:47:36
+transaction or like message passing by Tarun to his crush or girlfriend, there
+1:47:43
+are two different parties involved rather not two different parties.
+1:47:48
+Maybe there are other people who who have also crush on this person. Right?
+1:47:53
+So there are many multiple parties involved over here and that's the where
+1:47:57
+you need to save the keys. Right? This is a bad guy.
+1:48:04
+Okay? So he can intercept the message, right? So then what in this case what
+1:48:11
+going to happen? In this case just having symmetric key will not going to
+1:48:16
+work. And that's the reason you will need
+1:48:21
+a key pair. You will need a key pair. And that's the
+1:48:25
+reason you will have public and private key. So you have a key pair.
+1:48:33
+So what going to happen? Tun will have both of these keys. Tun will
+1:48:39
+have both of these keys. Right?
+1:48:44
+But why do we need key pair? Because if Tarun pass the message straight away uh
+1:48:50
+anybody can that message right anybody can intercept
+1:48:56
+that message. So direct message would not be helpful right? If Tarun encrypts
+1:49:06
+it but then uh his girlfriend got key. So Tarun has to first pass the encrypted
+1:49:13
+message and then pass the key but ultimately someone can just make the use
+1:49:19
+of that key right. So, so then uh I cannot pass key directly and that's the
+1:49:26
+reason I will need two pairs of keys. One pair of keys will always stay with
+1:49:32
+will always stay with the room
+1:49:38
+and this key and the message. So this key and let's say email.
+1:49:44
+Yes, this key and the email will go with the
+1:49:55
+right. So key will be over here. Right?
+1:50:06
+and then there will be a secure channel. Now the thing is
+1:50:20
+if she needs to send a message back she needs to send a message back in that
+1:50:28
+case what going to happen? So first
+1:50:33
+there will be uh algorithm. So this will be a secure channel right with this
+1:50:38
+public and private key pair there will be a secure channel.
+1:50:42
+She has her own sorry not sorry there will be only one girlfriend okay.
+1:50:49
+So she will have her own private key and she will have her own
+1:50:59
+public key as well. So when she will send a message, she will send a message
+1:51:05
+by signing using her public key. And uh since this is a key pair, right? This is
+1:51:11
+a key pair. what Tarun just needs to know that
+1:51:17
+if the message is signed by this uh so okay the the way I would like to put it
+1:51:26
+since this is always a key pair right so if you encrypt something with the key uh
+1:51:34
+and how I will ensure that this is the
+1:51:39
+authentic message I mean anybody can just utilize is any keys right any
+1:51:44
+different uh keys. So a public key knows that there is a private key public key
+1:51:52
+knows though it it knows the content of the private key but it it knows what is
+1:51:56
+the private key for that message. So in that message there would be a signing
+1:52:00
+involved. So it not just a message it will be a signing involved right and for
+1:52:05
+that reason for that reason
+1:52:09
+you have something called detail signature we call as detail signature
+1:52:14
+and that detail signature is signed by the private key
+1:52:22
+right and then her public key
+1:52:29
+whatever public key she will have her public key will be
+1:52:34
+with. So public key will be available for everyone but the private key will be
+1:52:38
+only with so when Tun is going to send a message
+1:52:42
+to her he will use her public key and uh with the private key she will decrypt
+1:52:49
+that message right and then she will send
+1:52:54
+uh she will send a response with the public key of Tun and Tun will have his
+1:53:02
+own private key to Deceifer. So in between let's say Pratik for example is
+1:53:09
+uh intercept this message it is of no use it is of no use right so public key
+1:53:16
+can be available in general right everybody has public key by Tun and by
+1:53:23
+uh XYZ's girlfriend but then private key will
+1:53:27
+only belong to them so will say uh sign this message uh with
+1:53:34
+your public key. So message signature is signed by
+1:53:39
+private key so that this public key will ident. So why why do we need private key
+1:53:44
+to sign? Imagine okay imagine uh let's make the situation a bit interesting.
+1:53:50
+Let's say Tun's girlfriend is staying with the uh friends. Okay. And Tarun
+1:53:56
+sent a message, right? uh and since they are together uh she
+1:54:01
+has decrypted the message and uh let's say response is yes okay response is yes
+1:54:08
+now the challenge is who send this yes whether actual girlfriend or her
+1:54:13
+roommates right so uh so for that it's very much required that message should
+1:54:20
+be signed by the private key uh I know this is something uh very much
+1:54:27
+uh analogy is very much uh uh in in a day-to-day world but then this is how
+1:54:34
+it's going to work right so Tarun has sending a message to her and it also
+1:54:39
+need to ensure that response is getting only by her right not by her roommates
+1:54:43
+yes are we are we understood this the symmetric and asymmetric algorithms
+1:54:52
+are we good till this yeah So Tarun you got the way how you can say
+1:55:01
+okay right so exactly this analogy is you
+1:55:07
+should be aware for this right so you got the public key from you got the
+1:55:13
+public key from docker.d download.com why you need
+1:55:19
+public key here the public key is this GPG so this things I'm talking about why
+1:55:26
+we have discussing this because you have asked the public key of docker you ask
+1:55:33
+the public key of docker right why docker because docker has its
+1:55:39
+own private key docker has its own private key so as long as
+1:55:47
+It is signed. So whenever you will going to send back
+1:55:52
+right when you're going to upgrade yes this is exactly happening everywhere in
+1:55:56
+your HTTPS in your SSH everywhere that's the reason I have you
+1:56:02
+should take this topic right so you understand one thing it will you will
+1:56:06
+applicable it in SSH in your DSL or TLS or SSL SSL is the earlier version now it
+1:56:14
+is called as transport layer security TLS right so you are asking
+1:56:21
+the public key and then you uh that public key gets signed by the docker
+1:56:26
+right that way uh you would ensure that this is a proper genuine software and
+1:56:34
+that's the reason we have got the official docker GPG key have we now
+1:56:41
+understood this why this step is critical
+1:56:46
+have you ever try to understand while installing the software. Have you ever
+1:56:50
+been go through like this? Just run some commands, right? No, but
+1:56:59
+then that will create issues, right? If you focus on this guy, it will Yes.
+1:57:04
+simply copy paste it and most of the time the tutorials will not go in this
+1:57:10
+level. But then if you understood this now, this will be applicable for your
+1:57:14
+HTTPS, SSH. And in fact if you are already aware of in case you have worked
+1:57:20
+in AWS there is concept called KMS key management service.
+1:57:28
+Again the same thing. There is lot of things in encryption. I
+1:57:33
+just wanted to focus in a in a very much brief way just to understand what is
+1:57:38
+happening over here. Are we good?
+1:57:43
+Yes. Great. Uh, Rishik, let's go back,
+1:57:50
+complete your installation, and we'll at least run Docker run hello
+1:57:55
+world. Okay. And then we'll we'll jump into the world of containers.
+1:58:07
+I can straight away ask Dishi as well, right? Turn turn on your bias. Go go go
+1:58:12
+and check for help, right? I don't need to tell why why
+1:58:16
+needed I don't need to tell why why why booting is there right but then we will
+1:58:21
+lacking the understanding it's very easy nowadays to run something
+1:58:28
+it's very difficult to have reasoning with it
+1:58:35
+so just copy that the first part this yes the second step
+1:58:41
+just copy that
+1:58:42
+>> yes yes so uh just to tell you just scroll it. So we are using docker C
+1:58:49
+docker community edition. Okay. So when dishi has uh set as a personal account
+1:58:55
+it is docker community edition. C is community edition. Docker ci
+1:59:02
+remember I said there is a cla is a docker client. That is that client. Then
+1:59:06
+I said docker engine is not just one binary. There is a container ID.
+1:59:12
+Are you able to see this? Yes. So there are a list of binaries
+1:59:17
+togetherly called docker host the architecture we have seen. Then docker
+1:59:21
+compose then docker build. So these are these number of binaries that going to
+1:59:26
+be installed as a part of docker host. Remember one thing rishik is not
+1:59:32
+installing docker desktop. What it means is that both docker engine and docker
+1:59:38
+cla will be going to run on rishik uh Ubuntu machine.
+1:59:45
+That's not the case with those who have Windows and Mac. In your case there
+1:59:51
+there is one virtual machine. In that virtual machine there is a image called
+1:59:57
+docker desktop created and managed by docker itself.
+2:00:02
+So this is the both ways I would like to cover docker. I don't want any issues in
+2:00:09
+understanding. So the way dishi has installed dishi has installed docker
+2:00:13
+desktop which has created a virtual machine inside her system based on wsl
+2:00:21
+right I hope this is super clear right but in rishik's case it is not it is
+2:00:25
+completely different. Rishik is installing the entire docker machine the
+2:00:30
+docker engine on his on his Ubuntu laptop. Are we super clear on this guys?
+2:00:37
+This is very much critical point to understand that dishi will not have
+2:00:41
+access to docker engine because of windows or because of Mac. Whoever has
+2:00:47
+Mac they will not have access to docker engine. They will only have access to
+2:00:51
+docker client. And there are two types of client. one is CLI and one is docker
+2:00:56
+desktop UI. These are the clients. So UI is your graphical client and CLI is your
+2:01:02
+command line client. Are we super good with this?
+2:01:06
+Understanding is very much critical here. Yes,
+2:01:10
+>> go ahead and install now. Yes, go ahead and install. Enter.
+2:01:16
+So Rishik, at least you should be attending further sessions. I will
+2:01:22
+depend on you. Okay. Okay.
+2:01:26
+Can I click right?
+2:01:28
+>> Yes. So your sessions with Aush are done.
+2:01:47
+Uh you cannot access that sesh. You cannot access that. That's a problem in
+2:01:52
+docker desktop and that's the reason I I wanted someone who has Ubuntu machine
+2:02:01
+but I will show you that at least I will show you something.
+2:02:13
+Uh let let it finish first. Uh Rishik it is still going on. Okay. Now it is
+2:02:19
+installing container. How many of you uh read this all the
+2:02:27
+messages by the way?
+2:02:34
+>> This done.
+2:02:36
+>> This done. Yes. I will exactly is the similar way it happens for Mac as well.
+2:02:43
+Start reading those messages specifically boot log. You will amaze
+2:02:48
+the way operating system work.
+2:02:52
+>> Okay.
+2:02:53
+>> Command.
+2:02:54
+>> Yeah. Copy that command. Yes. Now we we just copy paste. Basically uh in Windows
+2:02:59
+we have services. Right. Similarly in uh in Ubuntu the demon services or
+2:03:05
+background services. So what services use for? So you don't need to start
+2:03:08
+docker each and every time right. Uh that's the reason uh we have uh services
+2:03:14
+those are uh running back in a in a background right
+2:03:20
+so uh with this command we have just ensured that there is a docker service
+2:03:25
+and that service is up and running right you can see the active it's already up
+2:03:30
+and running it's enabled it's up and running so you don't need to run other
+2:03:34
+right if it's a disabled or it's non-active then only uh you might need
+2:03:38
+to run the other command so Go back. So, Docker is running. So, we don't need
+2:03:46
+to uh start.
+2:03:49
+>> We don't need to do that. Uh don't do sudo. Okay. Don't do sudo. Just type
+2:03:54
+docker on hello world. Generally, I would like to show you an error.
+2:03:59
+Hopefully, there might be an error for sure. Docker on hello world.
+2:04:10
+Oh good. So you are already have okay because you have already running in the
+2:04:14
+sudo but sometimes you will see an error uh and then there is uh other way to
+2:04:21
+resolve those uh in case if you face the issues rel to the uh pipe rel to the
+2:04:27
+pipe of docker socket then you need to add uh user in that group. I think since
+2:04:34
+Rishik already have Docker, Rishik has added himself in that group. Rishik has
+2:04:38
+just uninstalled Docker. But then there is a group called Docker.
+2:04:42
+Okay. No, no. Rishik has Docker. He has
+2:04:46
+uninstalled it, right? Rishik, you have already installed Docker before.
+2:04:49
+>> Yes. Yes.
+2:04:50
+>> That's the reason he has already followed those steps. Uh he has added uh
+2:04:55
+his user into the Docker group. uh even he if he close uh irran uh he
+2:05:02
+will still get the same output. So we have a docker running on machine. Let's
+2:05:07
+back to the dish's machine. Okay, let's go back to this machine. Dishi you can
+2:05:12
+share the screen now.
+2:05:21
+>> Uh is it visible?
+2:05:23
+>> Yes, it's visible. So uh close this. We don't need this anyway. Uh
+2:05:33
+uh go to Docker. Yes. Awesome. So what you need to do? Go to command line. Any
+2:05:38
+command line uh PowerShell or in general.
+2:05:42
+>> Okay. And type docker space version.
+2:05:54
+do o c e r docker space version enter you can see the OS architecture for
+2:06:04
+client is windows amd 64 so this dockerexe
+2:06:09
+is for that but then look at the server server architecture is Linux amd64
+2:06:16
+so from your windows docker.exe exe is
+2:06:21
+connecting with the virtual machine started by WSL.
+2:06:29
+The virtual machine started by WSL. Are we clear?
+2:06:35
+>> Yeah.
+2:06:36
+>> So, Docker is running. So, do one thing uh make it full screen. Uh and run
+2:06:41
+docker run hello, world. Docker run docker run hello, world. So, just to
+2:06:48
+ensure that h small. Okay. Hello, comma. So, not comma, H. Hello, hyphen world.
+2:06:53
+My bad. Okay. I I'm still going into the grid days. Hello, hyphen world.
+2:06:59
+Uh, world spelling w. Yes. Enter. We'll take time initially
+2:07:16
+unable to find image. What is this image? We will see uh when we going to
+2:07:20
+learn docker rather why why docker needs image that is what our first reasoning
+2:07:25
+okay great uh so docker is installed properly
+2:07:33
+uh okay can we have extend this 15 more minutes I will just quickly go through
+2:07:39
+the booting process uh quickly
+2:07:44
+and then we'll stop today will that be okay at least we have uh docker
+2:07:48
+installed on Windows. But before that, anyone have Mac? Let's do that as well.
+2:07:53
+Anyone have Mac over here? Yes. Uh do you have Docker desktop
+2:07:57
+installed? Amir? Okay, great. Just type this command
+2:08:02
+docker version. You will also uh get Docker client as uh your Mac. Can you
+2:08:09
+share screen if you if you're comfortable? Amir, can you share your
+2:08:12
+screen? So both
+2:08:17
+Windows and Mac experience are exactly same. Both Windows and Mac experience
+2:08:23
+are exactly same. Look at the docker docker icon in the taskbar of air. Amir,
+2:08:28
+can you just go to that? Yes. Look at this.
+2:08:33
+Okay.
+2:08:35
+>> Shall I stop sharing my screen?
+2:08:36
+>> Yeah. Yeah, sure. Oh, you cannot see the screen of Amir.
+2:08:39
+>> No.
+2:08:40
+>> Okay. Okay. Maybe I mean you need to again unshare and reshare so that she
+2:08:44
+can see see your screen.
+2:08:47
+>> No no no I'm able to.
+2:08:48
+>> You can. Okay. Okay. Okay. No worries. So exactly same UI you can see here.
+2:08:52
+Yes. Exactly same UI UI the dishi same as UI
+2:08:58
+for Amir as well. Okay. But look at the docker version. The server part is same
+2:09:06
+for everyone. Look at the docker version.
+2:09:10
+Go for it. Server part Linux AMD Linux AR not AMD. Okay. Because uh his
+2:09:20
+machine is a Apple M1 family based or Apple M family based. That's the reason
+2:09:26
+the architecture of the CPU is RM64. But for Rishik and Rishi it is AMD 64 if
+2:09:33
+I'm if I'm not mistaken. Yes. And the family of kernel operating
+2:09:40
+system is Darwin kernel. The Mac OS has Darwin kernel ARM 64 base architecture.
+2:09:48
+So instruction set going to be a different
+2:09:52
+right. And uh and let's also get verify uh the same command in Rishik's case.
+2:09:59
+Rishik's case the OS architecture and server architecture will be exactly same
+2:10:04
+for client and server. Rishik if you can just share your screen
+2:10:10
+and you can un share uh uh air thank thank you uh so at least you guys will
+2:10:16
+continue for next few sessions at least we will cover docker right can I rely on
+2:10:20
+you or at least uh we have will have backup
+2:10:25
+right others those who are using windows please install all those things okay go
+2:10:29
+through the recording and install please ensure you are because if someone is not
+2:10:34
+available due to for any constraint I don't want uh uh we are you know because
+2:10:40
+I want someone who are executing commands I will dictate I will explain
+2:10:44
+we'll go switch back with my machine your machine for concept if I need to
+2:10:48
+call out I will go into my drawing mode okay great so docker version if you run
+2:10:54
+command docker version look at the client and server client OS
+2:11:01
+architecture Linux AMD 64 server is Linux MD64
+2:11:07
+right so both are in the same machine client and server both are in the same
+2:11:12
+machine so Rishik's machine is critical right uh anybody else have uh Ubuntu
+2:11:18
+natively uh preferable on the laptop please ensure we have one backup for
+2:11:23
+Rishik as well okay let's quickly go through a PPT uh
+2:11:30
+generally this is my open to all sessions when I go through a PPT I skim
+2:11:34
+through it uh the just what happens after booting it's
+2:11:39
+very much required in order to understand in the world of containers.
+2:11:44
+So I as I said right there are two parts.
+2:11:49
+Yeah. uh attendance link is shared by uh Harish or Aish I'm not sure most likely
+2:11:55
+Harish please uh fill attendance form your Fedora it's really good uh cura you
+2:12:03
+can you need to select the Fedora in the docker installation but yours and rishik
+2:12:09
+will be same it just you might have dnf as a package manager installed instead
+2:12:14
+of a that's a that's a difference you have dnf as a package manager
+2:12:19
+instead of a but the package manager concept will still remain same. So in
+2:12:23
+Ubuntu it called APD in Fedor it called DNF in Red called Yum Yum. Yum install
+2:12:29
+something. Yes. Okay. Let me uh share the screen. Uh and
+2:12:37
+meanwhile you can submit the attendance. Let me start a docker
+2:12:48
+beginner.pdx. So generally guys uh both git, github
+2:13:01
+and docker it takes close to five and a half months for me to cover right. But
+2:13:07
+since we are in AI sprint, I am focusing on the critical topics. I'm focusing on
+2:13:13
+very much critical topics. Generally, I have freshers. So, I literally spoon
+2:13:18
+feed everything, right? But since you are on screen, you I am uh I have
+2:13:23
+squeezed some critical topic and what I expect is that uh you will be using AI
+2:13:29
+for creating docker file, running docker commands. Though I will run some docker
+2:13:33
+commands for you that's no issues. But then I am ensuring that you will
+2:13:38
+understand networking part of this because without networking knowledge of
+2:13:42
+networking you will not understand VPC you will not understand container
+2:13:47
+networking. Okay. So I'm uh I have promised that I'm going to take that I
+2:13:51
+am going to take all the important concepts that docker required in order
+2:13:55
+to face a scenario based interview question. Okay. But the syntax and
+2:14:00
+grammar of the docker I would say you are more pro
+2:14:04
+find some any cheat sheet a docker cheat sheet or docker command cheat sheet just
+2:14:08
+have it handy uh rather than taking each and every command we'll focus on the
+2:14:14
+conceptual part the key first principle part because most of the any you can
+2:14:20
+literally pick up any YouTube tutorial in docker you really don't need me to
+2:14:24
+quickly jump on docker right but if you need to understand it what is happening
+2:14:29
+behind the scenes and why it is the way it it is uh why it is works the way it
+2:14:34
+is or the the architecture and reasoning behind it that is something I'm not
+2:14:38
+going to skip that is that those core parts I would ensure everyone will get
+2:14:43
+that and that's the reason I could have asked all of you before coming to class
+2:14:47
+install docker yourself right I didn't do that the reason is that I wanted to
+2:14:51
+explain what are the key nuances of installing docker in windows in mac and
+2:14:57
+in lux I hope you get that right. So critical part the critical
+2:15:03
+information whatever it takes I will ensure we will have a uh those concept
+2:15:07
+sort out but the syntactical part creating docker file or running some
+2:15:12
+docker commands I will ask you to create a cheat sheet you can just download from
+2:15:17
+something you will see endless of cheat sheet uh throwing our internet okay and
+2:15:22
+rather share that with me I will upload that in a repo I will anyway upload this
+2:15:26
+uh into our repo as well right uh does it make sense I hope this makes sense
+2:15:30
+Right. So how to create docker file start your
+2:15:36
+copilot it will more it will do more better way but what that docker file
+2:15:41
+means I'm anyway going to explain. Yes. Same go with the kubernetes as well.
+2:15:46
+Yes, because trust me uh the DevOps though it is have zero to her there are
+2:15:52
+a lot of stuff right trust me they are just covering tools they are not
+2:15:56
+covering the engineering behind it and I'm I am 100% confident if you
+2:16:03
+revise everything you are far more better place because you just need to
+2:16:08
+practice the syntax and for that you have your AI
+2:16:13
+the co-pilot assistant how to create docker file how to run the containers or
+2:16:18
+how to create containers those things we can literally take the help of Google or
+2:16:22
+chat GBT or any system right but for the conceptual understanding we'll spend the
+2:16:27
+time a lot of time understanding it why behind it using bendit does that make
+2:16:32
+sense yes at least I have taken very much detail in your github the uh I want
+2:16:39
+to same cover same depth for docker and kubernetes at least kubernetes
+2:16:43
+architecture and Then what are the commands? Uh we need to have some kind
+2:16:48
+of cheat sheet. We'll just run those commands. Uh that way it will super
+2:16:52
+helpful of our time. Okay. Okay. So I hope you uh
+2:16:59
+you are able to see this screen. Okay. Most of the things I already covered but
+2:17:02
+I just want to quickly go through it. Ignore that. So
+2:17:12
+as I said there are two important flavor let me two important parts uh so legacy
+2:17:20
+bias which which is basic input output system and a modern day bias is UEFI
+2:17:26
+unified extensible firmware interface. So uh this this guy bias is the legacy
+2:17:33
+one. So in earlier system you would have uh a proper bias with the name of bias
+2:17:40
+and now you call it as a UFI but functional device all those are
+2:17:45
+exactly same just it's a model it supports if you have hard disk over two
+2:17:51
+terabytes then you cannot use this if you have hard disk greater than two
+2:17:56
+terabytes you will not use this. If you want to create more than five four
+2:18:01
+primary partition this is of no use. So these are way back in time even before I
+2:18:06
+was born right. So it's quite legacy but then uh its legacy is supported by this
+2:18:13
+model and this UFI uh I think this is the one core contribution from
+2:18:18
+Microsoft. So all these UFI applications are
+2:18:23
+created by Microsoft. The standard is created by Microsoft.
+2:18:27
+When you format, when you format your disk, you need to specify the file
+2:18:34
+system type. How many of you are aware of file system type? By the way,
+2:18:40
+how many of you aware file system type? What is the file system you are using in
+2:18:48
+Windows? What is the file system type you are
+2:18:51
+using in NTFS? What is the full form without going Google?
+2:19:01
+New technology file system NT is new technology. So ND is coming from Windows
+2:19:06
+NT Windows NT3.1 from there NT is coming. So new technology file system NT
+2:19:14
+then you have FAT FAT. So initially it was file FAT 16
+2:19:21
+FAT 32. Now it is the fat full form is file
+2:19:26
+allocation table. So windows have two key file systems.
+2:19:31
+One is NTFS which is a modern one and fat file system is in the days of DOSs.
+2:19:39
+Have anybody of heard this word doss doss
+2:19:46
+great really good people I mean uh I didn't find oh my god no not deny wall
+2:19:53
+of service man disk operating system doss is disk operating system capital
+2:19:58
+doss my bad yes tun it's not rel to security it's more of operating system
+2:20:05
+it's a command line operating system from Microsoft
+2:20:08
+though Microsoft has uh stolen it from somebody else right so it's disk
+2:20:14
+operating system back in old days yes right so uh in DOSS we used to have fat
+2:20:21
+file system file allocation table full form of fat file allocation table NTFS
+2:20:26
+and uh I don't know I really forget full form of uh the Linux base so Linux have
+2:20:34
+ext file system ext1, ext3, SD is not a file system. Ext is a file
+2:20:42
+system. Okay, SD is the disk partition. Now ext4, right? And then Mac has
+2:20:51
+Mac OS those I mean what is the file system you are using for Mac?
+2:21:00
+HFS hierarchial file system. Mac has
+2:21:04
+hierarchal file system. So there are a lot of files in when you format your uh
+2:21:09
+hard disk or your pen drive your USB you need to select something right. So if
+2:21:16
+you are going to do bootable disk for uh for Linux based operating system use
+2:21:23
+ext4. If you are creating bootable disc drive for Windows use NTFS otherwise you
+2:21:30
+are anyway your operating system will format it again. Right? But then don't
+2:21:35
+give that kind of pain to your software. Be emotional about it. I'm very much
+2:21:39
+emotional about it. So when I format if I I know I would like to install Ubuntu
+2:21:45
+or Linux I use ext4 as a file system. If I need to go for Windows it will be NTFS
+2:21:51
+or FAT right. So when you turn on your laptop or your
+2:21:59
+desktop this operation happens post P O S power on self test. Remember I talked
+2:22:08
+about waking up when you wake up right you call uh
+2:22:14
+you can say your mommy I'm give me some time I'm just waking up right let me
+2:22:18
+boot your mommy or your wife or your girlfriend right let me boot you will
+2:22:24
+take some time so that what happens in power on self test basically CPU sends
+2:22:30
+signal to devices hey RAM are you there hey hard disk are you there network card
+2:22:36
+modem are you here. Sound or uh audio are you there? Right? All the input and
+2:22:43
+output monitor are you there? Camera. So it basically send a signal to ensure all
+2:22:51
+devices are functioning properly. That is called power on self test. That's the
+2:22:56
+reason uh when you wake up you you find sometimes numb your hand or legs. Right?
+2:23:02
+It takes time to you know get into the motion in your proper senses.
+2:23:08
+Exactly similar way uh the post signal does right.
+2:23:14
+What are the key functionalities of this? Because this is purely hardware
+2:23:19
+world right. So uh set the date and time for your hardware clock. Disable enable
+2:23:26
+integrated peripheral. So if you have any uh graphics cards nowadays graphics
+2:23:31
+card are system on chip SOC design but earlier days you have a dedicated PCI
+2:23:36
+slots or separate card for even network card was different. I'm not sure how
+2:23:40
+many of you do did assembling on the desktop
+2:23:45
+any research and development or any ka we used to call this ka right uh uh to
+2:23:53
+open the desktop look at the motherboard install RAM install hard disk install uh
+2:23:59
+graphics card how many of you did how many of you have done that I didn't do
+2:24:03
+in in laptop because it's really delicate but I have done a lot in on my
+2:24:08
+desktop Great. So Amir, Amir and Iwan are
+2:24:12
+already aware of this building a gaming PC because then you will need uh some
+2:24:17
+kind of hits heat sync right? Uh is it is that liquid cool Amir? If I I can ask
+2:24:22
+is that liquid cooled graphics card?
+2:24:27
+No. Okay. So there are various kind of H air cool and liquid cool. Right. So air
+2:24:31
+cooled uh is really I would say liquid cool is better but then it has a
+2:24:37
+maintenance right. Sometimes if liquids spill over then it it can do a short
+2:24:40
+circuit. I have 380 RTX. What is the full form of
+2:24:46
+RTX? By the way, Amir, don't use short short form if you don't
+2:24:54
+know full form. Okay, that's a rule. RTX is rate racing.
+2:24:59
+Rate racing extension. Racing technology. GTX is gaming technology.
+2:25:03
+RTX is rate racing. So uh
+2:25:09
+nowadays the games are quite uh advanced right.
+2:25:15
+So then uh RTX you have really good uh GPU machine
+2:25:21
+uh installed Wulcan on it. Wulcan is the latest driver technology for graphics
+2:25:28
+and gaming. I have worked on OpenGL. I worked on CUDA. So I know bit of GPU as
+2:25:32
+well. Okay, back to this PPD CUDA.
+2:25:39
+If you if you are a IML engineer, you should know CUDA. Okay, not a single
+2:25:45
+workload of a IML will going to work without CUDA, right? So, CUDA is compute
+2:25:50
+unified device architecture. So, CUDA kernels, I have written CUDA kernels in
+2:25:54
+C++. So it's a driver but it's a driver for
+2:26:01
+this going very much specific Nvidia GPU it's not for other GPUs right
+2:26:08
+so CUDA is in capital and it's a for only Nvidia proprietary
+2:26:14
+right but if you want CUDA like functionality and if you don't have
+2:26:18
+Nvidia GPU if you have AMD GPU right or if you have Intel GPU then install open
+2:26:25
+CL open CL is open computing language open CL you will get similar performance
+2:26:32
+as well. So in in case if you are interested in
+2:26:37
+have you heard Raspberry Pi by the way Raspberry Pi uh right so if you want to
+2:26:43
+uh run this uh GPUs or parallel programming uh OpenC is a great choice
+2:26:52
+and Raspberry Pi is uh it is called as I'm not sure if you heard this term
+2:27:03
+FPG GA field programmable gateway arrays right so not all not everybody is uh you
+2:27:10
+know investing in Nvidia I mean there are some budget constraint as well right
+2:27:15
+so don't be uh uh don't be stressed if you don't have Nvidia card if you have
+2:27:20
+AMD card and you want to run uh those kind of LLMs then then there is a open
+2:27:26
+CL is the open computing language from Intel AMD and Apple I guess is created
+2:27:33
+by those three three companies. Okay, no worries. Uh sorry for the
+2:27:39
+detour. But then this is a bias if I you can disable your cards, your hardware
+2:27:44
+motherboard. You can configure error protection.
+2:27:47
+Uh intrinsive detection, intrinsive protection is also there in in your uh
+2:27:52
+desktop based operating system. Then you can change the hardware settings like
+2:27:55
+IRQ which is interrupt request. So uh basically input output uh cues you
+2:28:04
+can change the the configur direct memory access all also if you have
+2:28:08
+multiple hard disk then you can have uh this configuration those who have who
+2:28:14
+are in gaming industry they knows this rapid independent disk of or rapid array
+2:28:19
+of independent disk RAID this are RAID configuration I'm sure Amir or an aware
+2:28:25
+of this since they have built gaming laptop have you set RAD ids air or irran
+2:28:32
+have you anytime set up ra IDs.
+2:28:38
+So basically uh combine all your hard disk as a one representation. So
+2:28:45
+redundant array of independent disk array configuration. So all those can be
+2:28:50
+done from your bias and UFI. If these terms are foreign to you guys,
+2:28:57
+trust me, we are in the agentic AI era. But the expectations are lot. I'm myself
+2:29:04
+head of engineering and I'm literally we are
+2:29:09
+having scrutiny of the people like anything right. I just want people are
+2:29:13
+able to build agents. They must understand software engineering out of
+2:29:18
+it. Right? So if we are offering 1.5C cr I would ensure it is a forward deployed
+2:29:27
+in double quotes engineer right I would I would not let anybody who is you know
+2:29:34
+not capable of earning 1.5 CR he or she must understand engineering part of it
+2:29:42
+because they are deployed on the client side and they are there on their own. So
+2:29:48
+if you really want to target the roles from open AI, Palanteer, Palanteer
+2:29:54
+basically hires freshers. By the way, Palanteer is the company who only who is
+2:30:00
+the only company which I know who hires FDES
+2:30:05
+with freshers background. Generally FD is not for freshers because you need to
+2:30:09
+be expert in specific domain either it can be healthcare, banking and finance,
+2:30:14
+insurance, right? So yes, FD's uh salary are ranging from
+2:30:19
+1.5C cr 1.8 CR but then they are really should be at very cream they their
+2:30:26
+understanding should be very strong right we don't want them just to know of
+2:30:30
+code they they should understand technology at very different level
+2:30:35
+so this is a flow uh it can be biased if your laptop is from before 2005 or
+2:30:42
+something right I'm not sure how many of you born at that time right so before
+2:30:45
+2005 your laptop is from that side then most likely it is bias post 2005
+2:30:51
+We have started having UFI based laptop at least 8 to 9 UFI is very much common
+2:30:57
+right. So I have worked on both uh firmwares both are firmwares right. So
+2:31:02
+this is where uh your computer after starting post has happened. Post has uh
+2:31:08
+initiated uh the power supply to each and every device expecting some kind of
+2:31:13
+response. With that response it is identified that all my devices be it a
+2:31:17
+keyboard, mouse, RAM are working properly well,
+2:31:22
+functioning pretty well then it will jump to bootloadader. We have seen this
+2:31:27
+just before. Grub is your bootloader for uh loading both Windows and Linux. So
+2:31:33
+this is open source grand unified bootloadader. In Windows case it is nldd
+2:31:38
+loader right. It will load the kernel and kernel will fire in it. And this is
+2:31:45
+this is the time where you will see the hardware meets the software right and
+2:31:51
+from here everything is software. Again in it is a process but then there
+2:31:59
+are different kind of kind of in it. One in it is legacy which is sisv in it. So
+2:32:06
+there are two types of init system. one is S CIS unit and I guess one is I
+2:32:12
+forgot uh cysv and systemd systemd unit
+2:32:20
+systemd is a modern and sysv is of unix time it is still supported by the way in
+2:32:27
+Linux age but right now this is the model cv is a sequential do this then do
+2:32:34
+this then do this systemd is a parallel it initiate parallel processes
+2:32:38
+It spawn it creates parallel processes. Okay, basically what are the process
+2:32:44
+should be started before you even see the window of desktop or login window.
+2:32:50
+That's what init does. Are we good so far?
+2:32:57
+Why this is required? We'll come to when we'll start learning or understanding
+2:33:01
+docker. Remember I have said something about
+2:33:07
+partition. The first partition of 512 bytes.
+2:33:12
+The 440 bytes is of for bootstrap and the second 512 bytes is for MBR master
+2:33:19
+boot doss partition table master boot record. So here you have grub or
+2:33:26
+bootloadader. It can be grub. It can be nlddr. And here your kernel
+2:33:33
+bootstrap program for kernel right. So first 512 bytes you have bootstrap.
+2:33:38
+Second 512 bytes. In first 512 bytes out of those 512 440 bytes are for
+2:33:44
+bootstrap. Here it is for bootloadader.
+2:33:51
+This is for bias way of bias type of firmware.
+2:33:57
+This is exactly same. Activates basic components like video output, keyboard,
+2:34:00
+storage, everything and then loads the bootstrap. How this loads? There is a
+2:34:07
+hardcoded instruction in your programmable ROM on your motherboard. is
+2:34:14
+a hardcoded instruction basically jump to this address and that address is your
+2:34:22
+that bootstrap and bootloadader.
+2:34:27
+If there are multiple operating system the address is of your bootloader or
+2:34:31
+generally it is bootloadader bootloader responsibility is to load to load the
+2:34:35
+bootstrap. So loads the second stage of bootloader
+2:34:40
+second stage means the 512 second bite. So this total block is of 1024. This is
+2:34:47
+512. This is 512. Here is your bootloadader second stage and then pass
+2:34:53
+option to the kernel which is a over here.
+2:34:58
+What happens in case of UFI? We have seen so far bias in case of UFI
+2:35:04
+there is a different partition called NV RAM right and it is that partition is
+2:35:09
+called as ESP EFI system partition and that partition must be of file type FAT
+2:35:18
+or ISO 9660. If have have any of you in your lifetime
+2:35:25
+written to CD return to CD
+2:35:33
+so there used to have writable CDs right and then you require CD writer it was a
+2:35:39
+costly than your CD reader right and for that you need a special kind of software
+2:35:46
+in that software you have seen this ISO960 6 this is a called as CD file
+2:35:54
+system compact disk file system and that's the reason for your UEFI and
+2:36:02
+this is you don't need to take care of only you only take care of when you are
+2:36:06
+going to boot based on the UFI system normally when you get
+2:36:16
+normally my bad team so Normally when your laptop you get a laptop your laptop
+2:36:23
+uh purchased the I have made an agreement with Windows and they have
+2:36:29
+done all these things for you. So your laptops have uh this EFI based
+2:36:36
+uh what I can say firmware and then uh you can go to boot directory. So you
+2:36:43
+will find uh my bad you will find I guess in Windows you will find boot
+2:36:49
+directory and then there will be UEFI or EFI
+2:36:55
+directory something called EFI directory and in that EFI you will find some so it
+2:37:00
+it requires special kind of partition called EFI system partition and there is
+2:37:05
+this EFI directory so you can search EFI directory you will find it and in that
+2:37:10
+EFI directory there there are the applications who
+2:37:15
+will do the kernel booting for you. Okay. So there are different kind of
+2:37:19
+booting process. One is for bias which is legacy nowadays and the modern boot
+2:37:25
+system use this kind of firmware called UEFI
+2:37:32
+and then this is exactly same both do these things. The only thing
+2:37:38
+uh in this case you don't need that 512 bytes of things here you have a specific
+2:37:44
+system partition called ESP and ESP execute EFI applications
+2:37:50
+stored in the ES. So EFI folder created in the EFI system partition and then
+2:37:56
+they execute EFI application and these application are basically portable
+2:38:01
+executable by Windows kind of application and that's the reason you
+2:38:05
+have been asked to create FAT file system or a CDFS file system without
+2:38:10
+this file system you cannot have UEFI between enabled okay
+2:38:19
+then you have grub boot loader grand unified bootloader
+2:38:23
+and then you can have liberty how you would like to load your kernel right
+2:38:29
+these many number of options. So you can set the init process as a bin bash so
+2:38:37
+you you you would like to have if loading as a command line basis then you
+2:38:43
+can use this. If you want Ubuntu to load into the desktop mode then you need to
+2:38:50
+set this as a graphical target. So there are multiple targets. Again I don't want
+2:38:55
+to uh to go deep inside this. Even I am also learning a lot. I don't want to
+2:39:01
+pass something which is uh you know mistaken but these are the kernel
+2:39:07
+parameters. While boot time you can send these parameters to kernel that how much
+2:39:12
+RAM uh your kernel should use. So you can limit it how much number of CPUs
+2:39:19
+your kernel should use. Remember when you are passing something it is me it is
+2:39:25
+generally understood that you are in the category of system admin.
+2:39:30
+You understand the kernel design. Okay. So by default whatever is happening let
+2:39:36
+it boot it normally. I have tried this. It is it is really a
+2:39:43
+challenge to recover from it. Okay. So uh do it on your own risk.
+2:39:50
+It just basically you pass the init system. What kind of init system? Then
+2:39:56
+this is a power interface whether you would like to uh control the power uh
+2:40:01
+options. Then uh you want to hide a boot messages by default on so it will not
+2:40:08
+show you what are the messages uh while booting right the logging of those
+2:40:12
+things then uh uh how you would start uh your video I
+2:40:18
+mean your whether it's a VGA driver or it's a proper driver by GPU what is your
+2:40:24
+root partition so it is by default it will take uh the one active but then
+2:40:30
+here you can say okay I don't want uh this Ubuntu to load. I want uh this
+2:40:35
+partition to to load. Right? So SD is first device third partition. Then
+2:40:41
+whether uh your file system should be mounted as a root read only or read
+2:40:46
+write. So these are the options you pass to your kernel if you want to customize
+2:40:52
+those parameters. Right? Generally uh it is by default set for you. uh but if you
+2:40:59
+are interested in redhead certification then such kind of uh information will
+2:41:06
+help you right as I said there are two kind of init
+2:41:11
+system uh once your kernel loaded into RAM
+2:41:16
+why kernel has to load into RAM first because normally your uh file system
+2:41:22
+path is mentioned at this location so this is the root in Linux operating
+2:41:29
+system then you have multiple directories you have bin you have dev
+2:41:35
+USR home so on but then there is one more dtory called etc where you have
+2:41:40
+configuration right in so to reach etc directory to reach this file you have to
+2:41:47
+traverse root and then etc tree and to traverse this you would need hard disk
+2:41:53
+device driver now it's a chicken egg the drivers are in a hard disk right so and
+2:42:00
+to to load that drivers or to read that path you will need drivers right and
+2:42:04
+this checkering problem that's the reason kernel first loaded into RAM and
+2:42:09
+all these path is itself in RAM so RAM has those hard disk drivers with that
+2:42:15
+drivers basically your kernel reach to this path and then mount the root
+2:42:21
+view cannot access any device without having drivers this is
+2:42:27
+This is the principle of operating system any device. So you have hard
+2:42:31
+disk, your hardest driver, you have GPU, you have CUDA drivers for Nvidia, Open
+2:42:38
+CL or some kind of AMD drivers
+2:42:43
+which will keyboard. Keyboard has keyboard drivers, mouse has mouse
+2:42:46
+drivers. So if you want to go this path in your hard disk, you will need
+2:42:52
+drivers. But you are booting, right? You are booting. So your hard disk is not up
+2:42:56
+and running. How you will access this location? And for the same reason your
+2:43:00
+kernel has to load into RAM and in the RAM you will have those drivers with the
+2:43:06
+help of those you will traverse to that location and then kernel able to mount
+2:43:11
+the file system onto the hard disk and then after this mounting operation done
+2:43:18
+this init RAM FS is removed from your RAM. Why? because it has just temporary
+2:43:23
+otherwise it will take a memory in your RAM.
+2:43:30
+I'm not sure have you understood this the way I have explained
+2:43:35
+why init is required because to load a kernel
+2:43:40
+or to load a file system right to load a file system you have to traverse till
+2:43:47
+this directory and how you will traverse you would need a driver of
+2:43:52
+hard disk and those drivers has to be loaded first so when that's the reason
+2:43:57
+your kernel loaded into the RAM with all the drivers.
+2:44:03
+Yes. And then these are some uh
+2:44:13
+pseudo directories, a virtual file system. These are not actual uh in your
+2:44:18
+hard disk. These are in only uh in your RAM when your kernel is when when your
+2:44:25
+system is up and running only at that time these will exist when your system
+2:44:30
+goes down it will goes down. So it's it's in the RAM. These are pseudo pseudo
+2:44:35
+file system /rog/is and one more /de is also a pseudo file
+2:44:41
+system but Dave is still there in the hard disk but these are purely file
+2:44:47
+systems which are kernel internal data structures represented for
+2:44:54
+you. These are kernel internal directory rendered for you and they are only
+2:44:59
+existing in RAM. Right. So any process information, how process is doing, how
+2:45:05
+much CPU, how much memory it is, how much network, how much hard disk it is
+2:45:09
+utilizing, all these information you will find inside /rock.
+2:45:18
+These are the I will say uh virtualized folders.
+2:45:26
+It will look like you are going to that path but they are not in the hard disk.
+2:45:30
+they are only exist in the RAM right so they are path
+2:45:37
+I'm not sure how many of you uh if in case since you are asked this question
+2:45:41
+in case if you know this term in the Linux or in the kernel perspective iode
+2:45:48
+so they are kind of iodes but they are inmemory I know
+2:45:55
+uh don't go in that detail uh that's not the purpose but then you should
+2:46:00
+understand booting from certain level when we going to go into jump into the
+2:46:05
+container that way on that day I will map you why you would you would require
+2:46:11
+booting okay and then uh okay this is we already seen this okay
+2:46:18
+anyway so most likely I wanted to cover booting and the outcome of booting is to
+2:46:23
+start init process the first process in your operating system the beginning of
+2:46:29
+the process is in it. I hope everybody of you understood
+2:46:36
+booting of operating system. Yes, going forward this init system is going
+2:46:46
+to be super much critical in our understanding of containerization
+2:46:52
+booting and then the output the last stage of booting is to start the init
+2:46:57
+process and that generally that init process one part of that init process is
+2:47:02
+yes I'm going to upload that for sure and one part of that init process is
+2:47:07
+starting bash terminal. So when whenever you see uh the terminal loaded as a as a
+2:47:14
+part of booting then it's a part of it. Even your uh desktop which is uh you see
+2:47:20
+in Ubuntu it is nothing but the graphical terminal. It is a graphical
+2:47:25
+terminal. Okay. So don't say I don't see terminal I am seeing this Ubuntu
+2:47:30
+desktop. That desktop is nothing but the graphical interface of the terminal.
+2:47:36
+Yes. So desktop is same as Windows desktop.
+2:47:41
+So when you click on the folder icon, you see file explorer. What is file
+2:47:46
+explorer? It's the same uh UI version of your shell. So if you type directory DR
+2:47:53
+command that is the DR command is done by your
+2:47:57
+file explorer. If you are navigating some directory in in your file explorer
+2:48:02
+basically you are typing cd and that path internally right it is ex it is
+2:48:07
+doing that for you. So remember init process how init
+2:48:14
+process is created because that is going to be the genesis of containers. Okay we
+2:48:21
+will see both part the industry interview part and the solid technical
+2:48:26
+part from the o side as well. Okay. So, we'll stop here.
+2:48:32
+See you soon. Next week. Bye all. Yes, sure.
+2:48:45
+I'm stopping the recording. Bye-bye.​‌
