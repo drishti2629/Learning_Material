@@ -1,0 +1,4488 @@
+
+video_combined-esv2.mp4
+
+Summary
+This video details a session focused on Small Language Model (SLM) fine-tuning, with an emphasis on understanding model internals, behavioral consistency, and practical application.Key Session Themes and Agenda
+Session Objective: The goal is to provide a slow, cognitively digestible deep dive into LLM internals, emphasizing behavioral understanding and interpretability rather than just theoretical concepts.
+Practical Context: The speaker explains the motivation behind fine-tuning SLMs, specifically for business applications like their Sales (SBL) campaigns.
+
+
+
+
+
+0:14
+/
+3:52:40
+Transcript
+Search transcript
+0:05
+Perfect. So basically the the idea for the session is is to keep it u slow in
+0:15
+particular but we should not just assume that is a slow because that's why the
+0:20
+session timing has been kept from uh 2:30 2:45 to all the way around to be
+0:25
+6:30 and with substantial breaks in between because I ultimately wanted
+0:30
+because eventually what happens is if you don't take breaks then my rhythm
+0:35
+gets off. So maybe every hour or every 1 hour 20 minutes I would like any one of
+0:41
+you to remind that we take 10 minutes break because since it's going to be a
+0:45
+little cognitively heavy while I do not think the concept is very tough or in
+0:50
+general or very uh large to understand but it seems that people perceive these
+0:54
+kind of concepts to be um you know uh having a bit of an heavy digestion in
+1:00
+this. So the way we will operate is pretty simple. is for me I wanted before
+1:08
+I sit with Chira and then show you the lines of what I mean I'll recapulate the
+1:14
+previous weeks when we start with Chira like what kind of problem but u we will
+1:20
+we'll just show I mean show in general that this is what we are working on and
+1:27
+with Chir we'll be continuing again while implementation part of it so I do
+1:31
+not want you to really jump directly there without us understanding
+1:34
+the little bit of internals part of it and why I'm saying it's very important
+1:39
+is not because it will help you to you know uh people are or or or or people
+1:44
+expect you to know these details but when you work with agents a lot of time
+1:49
+their behavioral understanding is little important because the behavior which
+1:53
+throws out for example uh you may name it as a the the inbuilt features of how
+2:01
+agents react at a certain uh space. So the idea to understand this
+2:07
+is largely to inspire our agentic understanding and when I say agentic
+2:13
+understanding I really mean about things like uh behavioral and and and interpret
+2:19
+and interpretability in general and alignment in general. These are the
+2:22
+three topics and you will see when we talk about those things which agents in
+2:26
+general then you will see that how these LM internals usually helps uh there and
+2:31
+I will keep on pointing out where it helps but if you talk about SLM
+2:35
+fine-tuning then a lot of these things which which we are going to you know do
+2:41
+and study is largely on the last session which we sit with Chiag right we created
+2:47
+a basic data labeling pipeline and human reviewing pipeline that is probably the
+2:52
+90% of the work whenever you deal with fine-tuning of SLMs. However, I'm going
+2:56
+to recap it and even RF in the office hours will redo those things which we
+3:01
+did in with Chira, he will redo ex all the things which you did with Chiag up
+3:06
+there as well. So that a lot of you who have not even tried the process of what
+3:13
+we did also to recapulate on your machine in the office hours. So I will
+3:18
+so the agenda for this session is I'm going to show you the um uh PDF in
+3:25
+general which means I'll be using my iPad and there are multiple artifacts
+3:29
+which I'm going to show it's not just one artifacts but the one artifact which
+3:32
+I'm going to use is uh the iPad mostly to help you understand and um then we
+3:40
+will see how I mean and and and then we will and then we'll eventually um move
+3:44
+towards the concepts and a lot of times I want you to think from the perspective
+3:49
+not from deeply theoretical kind of thing. What I want you to think from is
+3:54
+application perspective that and then and foundational perspective is where
+3:59
+all these things are uh being applied and since it is a long session so we can
+4:03
+take questions and and um um help to um you know try to answer all the questions
+4:10
+at least which we which which we can and then we can potentially move ahead. So
+4:14
+we will I will share the screen now and uh I want you to maybe it will take me
+4:18
+five minutes to set up everything and then so are we good uh with all of this
+4:23
+with at least the session context what we trying to do
+4:30
+perfect give me five minutes I'll set it up and then I'll share the
+6:24
+Who is joining DevOps sessions? There are people who are joining DevOps
+6:29
+session right now. Pratik
+6:39
+not expected man. Not expected. All right.
+7:58
+>> Otherwise, you'll be seeing it twice. So, I'll be sharing two screens. The
+8:05
+first screen is obviously our um iPad and then the second screen will be my
+8:11
+computer. And in terms of laptop and uh uh before that I have few things which
+8:18
+um which is a good news in general is I'm teaching I'm a I'm one of the
+8:22
+teacher at um so basically Stanford host hosts a course um in general for the
+8:28
+students and even for the public uh is it's known as probability for artificial
+8:34
+intelligence and they they talk a lot about which we talked in the first and
+8:38
+second week and uh much more briefly But it's it's a good course uh which they
+8:43
+conduct. So I'm going to teach around uh 6 hours there and um
+8:49
+u u and what we going to do so basically just to u help you guys. So basically
+8:57
+the cohort 2 members are here. So we have around 10 10 to 15 people from the
+9:02
+cohort 2 who were interested into uh these u topics. But largely is for
+9:07
+cohort 3 but cohort two members are also here which is 10 to 15 people and most
+9:11
+of them I know. Um so just just to for those people who are also willing to be
+9:17
+we'll be sending out invites for those people who are interested to be in that
+9:21
+class of um um st I mean uh and spec specifically a free course from Stanford
+9:30
+and uh most of you if have already went through the week one and week two you'll
+9:34
+be already familiarized with a lot of things but I'm teaching that from 15th
+9:38
+of October um and uh you'll be getting the timing so I'll be posting about that
+9:42
+in school that if anybody is interested and specifically to learn in general and
+9:49
+to revise those concepts um not only from me but there are a lot of other
+9:54
+instructors see I'm I'm just a section leader kind of thing but there are a few
+9:58
+amazing instructors there who are um um who are going to lead that and um um we
+10:05
+will be having we it's we'll be publicly posting uh out for the people to um get
+10:12
+inside it. But no, it's not Andrew Nun who is going to teach this.
+10:20
+No, they are not extensions. They are much more brief to week one and week
+10:23
+two. Uh uh
+10:40
+Okay. Yes. Yes. Usually you will see me
+10:50
+whenever I'm talking about these things when I'm talking about latex
+10:54
+presentations. Now confirm if the I mean laptop screen
+11:30
+is available to see it. Perfect. So we'll be jumping around
+11:38
+three artifacts and the artifacts are this artifact and then this Excel file
+11:45
+but this this is mostly we have created more of an artifact for the people to
+11:49
+also go and experiment off of the class and that and then we have some of the
+11:57
+uh visualizations which I would just keep it handy so that we show multiple
+12:03
+perspective. Open
+12:10
+perfect you guys can see the links from here if you want but this link is on my
+12:15
+local so you cannot really get it but I may end up uploading so we'll do that
+12:21
+but I would want you to see my screen mostly
+12:24
+um but okay I will reference anytime I say you
+12:34
+that look at my computer screen and look at my uh iPad and also for post the
+12:40
+class there are multiple artifacts like if you know me then if you have seen one
+12:44
+of my course which eventually went live long back is around full machine
+12:48
+learning and it it is one of the very viral course on the internet and I used
+12:52
+to use uh very interactive notes and those are notes were prepared by
+12:57
+suchanti and it's specifically a long list of look at my iPad screen it's
+13:03
+basically basically a long list of uh uh which we have created specifically to
+13:07
+look after the session which eventually is around 28 or 30 pager kind of thing
+13:13
+which eventually translate a lot of things which I say and also not only
+13:17
+that it is also made it in a way so that you can restructure it and post about it
+13:21
+in publicly uh as one of your social media um posts on LinkedIn or X and uh
+13:28
+I'll be talking about that in a bit and how to structure this to post about it
+13:32
+because frankly speaking um eventually whatever you learn is eventually what is
+13:38
+going on outside of social media as well. So we would ideally want to um uh
+13:43
+you to post a lot of the things which we take
+13:49
+in the today's class and post a lot of other things which means um specifically
+13:54
+the calculations and transform workbooks which you have created for you to be
+13:58
+able to restructure it in a in your own way and then post about it.
+14:04
+All right. So finally we will get started but just to for the people to
+14:10
+know do you guys remember I mean can anyone tell me what we were trying to do
+14:15
+uh in general in Chiak's task what we were trying to build uh specifically in
+14:21
+the in in Chiak session anyone
+14:30
+preparing data specifically we were working on the data right I mean we We
+14:35
+spent a lot of time um into uh um uh creating a pipeline for how the data to
+14:42
+be and I will just show you what was the problem statement for the people to
+14:46
+eventually know. So you all have SBL campaigns running right and in that SBL
+14:51
+campaign you have things like campaign flow which means what is the flow of the
+14:55
+campaign and if I show you here is as well
+15:01
+um let's look at this campaign.
+15:09
+Okay. So you have outreach sequence which means what was the initial
+15:12
+message? What is the chat flow overall coming up and smart follow-ups and
+15:17
+things like that. So these these are basically the campaign context and then
+15:22
+we had and then you have a conversations which are going on and the conversations
+15:27
+can be over here. If if I just eventually put it out something sure
+15:32
+then SBL eventually replies but in your case SBL is disabled. I mean in terms of
+15:37
+AI replies are disabled but eventually SGL replies over here and uh the
+15:42
+conversation keeps on going. So basically what we wanted is given all
+15:46
+the context which we have which means all the campaign information which is
+15:51
+campaign flow outreach message and specifically say your uh previous
+15:57
+message history. Can you tell me what is the next message? So for example the
+16:03
+latest message was in one of in this particular campaign for one of the
+16:07
+campaign is hey Shubam sorry for missing I'm look at my computer screen by the
+16:10
+way sorry for missing out message I was on Matt leave I'm currently checking SB
+16:15
+and I have a few questions mind if I share this is from the prospect side is
+16:19
+this from the user side so ultimately our target label which we want our model
+16:24
+to eventually write or predict in terms of first of all it should predict what
+16:29
+we should do shall we answer it shall we put human hand off which means give it
+16:34
+to the human to eventually go ahead and um uh put it out um and and uh refrain
+16:42
+AI to eventually reply over here or shall we answer in text so eventually
+16:47
+the latest message from the prospect was sorry for missing out a message I was on
+16:51
+map last year this is the message which eventually goes in an input to the model
+16:56
+along with the campaign information so eventually this and the context and And
+17:01
+the latest message becomes one of the campaign information one of the latest
+17:05
+input X and then you have this Y which means which means what we want our model
+17:12
+to eventually write. We want our system to be writing this. Now here it says
+17:17
+this is something which is written by a human or something which in my data
+17:21
+pipeline which I want for example I will show you another training record.
+17:26
+Don't worry we'll be talking about we'll be extending from where we left in the
+17:30
+class. I'm just showing this set this as an example for you to understand what we
+17:33
+were trying to do. Let's assume that you have somebody who said hi. Now here when
+17:40
+I said here hi is the prospect message which means our customer message. We
+17:45
+want our model to reply like this which is great to say here happy to help
+17:49
+whenever you're ready. Now the campaign context is well it's a campaign flow and
+17:53
+all. Similarly you have somebody which is a thumbs up message here. the
+17:58
+when we reviewed our data set we wanted it to answer and qualify. Now how we
+18:03
+wanted it to do it is the draft. So one is here we are asking you to take a
+18:07
+decision and one here here we are asking it to write a message to be able to I
+18:13
+mean fulfill that decision which means anytime what do you plan to use uh for
+18:17
+outreach etc. So basically that is another training example. One more
+18:20
+training example I can show you is one train can we have a chat WhatsApp me now
+18:26
+here we want our model to not write any message right we want a human to
+18:30
+eventually taking over and maybe just write null over here according to my
+18:34
+data set reviewing pipeline I do not want even to even it to say sure I will
+18:38
+do it a human should come and then eventually message over here and then
+18:41
+write a reply that is one of the training example another training
+18:45
+example is uh which is our latest message is I'm thinking of using SBL
+18:50
+need to ask a few questions. Now here if you think about it we want a human to
+18:55
+hand off I mean human to take over. So ultimately here but if it was just an
+18:59
+API here we can we can only inhibit these kind of behaviors using prompts.
+19:05
+But imagine this is why SLMs becomes very important is over here what we want
+19:10
+we want our model to inhibit a behavior of the decisions which SPL takes. For
+19:17
+example, here maybe in this sample I might have said okay if somebody says
+19:23
+I'm thinking of using as bill it's a high intent thing. So my human came and
+19:27
+said in this example because the context is this I would be writing a human hand
+19:32
+off a burger. Now that's what you can also do with prompts definitely but a
+19:37
+lot of you will recognize the matter of deterministic and consistent behavior
+19:42
+into the llfs. Now that consistency and and the and the behavioral changes which
+19:48
+we want in our models can only be built once you have the data which supports
+19:52
+it. Here if it was just an LLM it would have said sure shoot me the message
+19:58
+right but here I because it is a high likely customer and I want my business
+20:02
+my business policy says that anyone who is a high likely I want them to be given
+20:06
+to a I mean the behavior should be itself human handoff the the decision.
+20:12
+So a lot of times people also use these kind of technologies and this LLM
+20:16
+fine-tuning not only to um you know but also to inhibit the consistent behavior
+20:21
+of um any any language tools. Similarly over here
+20:27
+now over here somebody said I'm a big client man I don't want to go through
+20:31
+all of this. I want to speak right now I'm payment ready need a service right
+20:34
+now. I'm looking to have 500 SDRs from day one. By the way this is the real
+20:38
+guy. He has paid $15,000 a month. um he's paying this this this guy is one of
+20:43
+the client uh but we had to remove all the in information now here the I might
+20:49
+be my actually SBL eventually went and had a conversation but here we wanted it
+20:54
+to be having or doing a human handoff right which means ultimately we wanted
+21:00
+to not reply anything it's a big client I don't I don't want to take any risks
+21:04
+that's my policies behavior that's my guard rate now you might come to me and
+21:08
+say that Aayush you know what I can also do this with pron but can you can you in
+21:14
+can you do one thing can you there is a matrix known as fast cube matrix and if
+21:19
+I want it to be um consistently doing some exhibiting behavior on my sense
+21:24
+then I want I I will not go ahead with any other choice I want my things which
+21:28
+is my organizational policies behaviorally structurally different in
+21:32
+my models and other benefits of SLMs over here we want uh let's say that over
+21:38
+here this there is one another I'm a content creator and just bought a
+21:42
+program that it will help someday. Here I do not want it to do anything. I say
+21:48
+defer follow up which means follow up eventually you should defer which means
+21:53
+we we do not want you want them to nudge and all that. So ultimately my data set
+21:58
+reviewed actions is welcome thanks for joining take your turn right similarly
+22:03
+you have multiple training examples for example over here first of all thank you
+22:07
+for a very kind support you are an inspiration to me I will send pics I
+22:11
+don't know what he was talking about but here we our based on what a human
+22:16
+eventually came and said because the context is this I would likely ask my
+22:21
+model to here learn how to take clarification and then go ahead if you
+22:25
+just use any base model it will just go ahead and we'll say sure thank you so
+22:29
+much or maybe clarify if the model is big enough but then again the pricing
+22:33
+and things things like that comes into place
+22:36
+similarly I'm looking for a solution that would allow me to manage my goal is
+22:40
+to generate around 200 call per month with potential investors here ultimately
+22:45
+uh we our model behavior should be answering text so this is what we were
+22:50
+building is we want our model to inhibit the behavior of s of SPL and by the way
+22:57
+this is the real problem which we are solving and hopefully our SLMs will be
+23:01
+deployed the next month and it's here it is just 49 examples of training and when
+23:07
+I say 40 40 yeah 49 examples of training which you're using just to showcase to
+23:12
+you but in actual SVL production envirment the same data set labeling
+23:16
+pipeline is um um basically using the same data set
+23:23
+labeling pipeline to label around 3 million conversations.
+23:29
+And when I say 3 million conversations, it's it's it's a literally a combination
+23:34
+of several powerful models like Astra and Babel and um utilizing it with um
+23:41
+human reviews guidelines over 3 million conversations and we have done it on um
+23:47
+specifically smaller models to reduce the cost. Previously it used to cost us
+23:52
+tens and thousands of dollars and things like booking a dinner meeting and all
+23:57
+these things used to happen but now it has been certainly reduced uh and and
+24:01
+what we believe that the cost will be in rupees and then in rupees I do not mean
+24:08
+dollars I really say somewhere around let's say uh$100 to $120 overall uh when
+24:14
+when it used to cost us a pretty high amount.
+24:19
+Uh now okay does uh Shans um no uh so we will
+24:27
+continue memory not in the second half because we won't be able to complete in
+24:30
+the in the entire thing so we'll be finishing SLMs at least today and then
+24:35
+the live build will be like SLM's implement implementation is
+24:40
+much more simpler because we use uh things like tinter but memories project
+24:45
+deserves a separate conversation so I do not want to rush that off but yeah uh
+24:51
+okay so I hope that this gives a little bit of data set understanding and what
+24:55
+we were trying to do as our original project however um for the understanding
+25:03
+of LLMs I'm going to reframe the problem so that we could really understand and
+25:08
+not it will be simple problems I don't think that it will be different problem
+25:12
+but if you think about it what I'm literally asking here and what I'm
+25:16
+trying to learn can I mean Just let me know I mean if you have any idea can you
+25:20
+tell me what I'm trying to learn over here. Let's say this is my input message
+25:25
+now this is my X and this is my Y. So assume that your latest message is X
+25:32
+and my I want my model to learn Y. What I'm trying to ask the model to learn.
+25:42
+Okay forget about reviewed actions at the moment. Just let's say that I'm
+25:45
+trying to learn I mean what I'm asking the model to eventually generate I'm
+25:50
+asking the model to generate the draft right in of course my behav business
+25:55
+behavior and all that right based on policies and all that right now over
+26:01
+here I'm ultimately saying is look at all the previous message and then come
+26:10
+up with this message right ultimately what we want to learn is that only is
+26:18
+look at all the previous message and tell me what should come next. So if I
+26:23
+really say let's say that your model your we want our model to first of all
+26:27
+say okay we predict we it will write look at all the message and then make a
+26:32
+next token prediction which means a next word don't go on tokens as of yet let's
+26:37
+say I wanted to predict what what word should come next it might say hey then I
+26:42
+want my model to predict I mean I I just want to be able now looking at all the
+26:47
+previous including hey look at all the previous and then tell me what should
+26:51
+come next Then look at all the previous context
+26:55
+and then say me what corrects. Now look at all the previous context and
+27:00
+eventually predicts the another word. Look at all the previous context and
+27:04
+then predict the another word etc etc. Ultimately that's the training problem
+27:09
+which we are trying to solve and I will show you here as well is what is the um
+27:13
+um uh and how do we do it but I want you to understand is a lot of you must be
+27:18
+already knowing about it is ultimately your GPT and and plot is next token
+27:24
+predictions right what it's trying to do it is trying to look at all the previous
+27:28
+context the the next miss now it will look at all the previous context it will
+27:34
+generate the the next word don't don't own tokens as a um it will look at all
+27:39
+the previous context and generate the next word. What I'm really saying is can
+27:45
+you tell me if I generate something bad over here what will happen?
+27:52
+Do you think the entire my next set of response is going to be um that
+28:02
+yeah the the Okay. So why and why no? I mean ultimately it is looking at the
+28:08
+previous context to be able to predict. Now if
+28:12
+you do something wrong here itself the next token will be ultimately uh
+28:16
+hallucinated right it may it it will ultimately uh get worse because you're
+28:20
+ultimately looking at if you want to generate this sequence you have to look
+28:23
+at all the past one and this one you generate the previous word itself you
+28:27
+generated weirdly. This is why we say a lot of kind says hallucination also
+28:32
+happens is because it's it's not something of problem or anything like
+28:36
+that. It's a consequence of the process that makes LMS beautiful at the same
+28:42
+time. It's like blessing in disguise or something which
+28:47
+gives it the best capability at the same time it gives it a worse
+28:52
+capability for it to perform. So that's why we tend to say there was a there was
+28:56
+a saying which used to be hallucination is a feature in LLM because ultimately
+29:00
+it's not a built-in feature with people who built it but the same capability the
+29:05
+consequence which it has the the consequence of generating the next
+29:10
+tokens the consequence of generating the next token predictions is ultimately
+29:14
+what it's trying to do and if you think about it gen generically it's not it's
+29:18
+not a problem because ultimately what it's trying to do is trying to have the
+29:21
+it's trying to predict the next token by looking at the previous but Now it
+29:24
+generated something bad that's why it is not able to proceed well further even if
+29:28
+it is sure about something right that's why what happens is a small
+29:33
+issue I'm not I'm I'm not saying a small issue and you will realize the issue in
+29:38
+carb bench problem when we work on AI agentic reliability and this was and one
+29:44
+of the tracks and which even uh a lot of the C2 guys would remember and this
+29:49
+tracks eventually says can you make my agent reliable so when you work on
+29:53
+reliability you'll understand um um those those those nuances of um
+30:00
+hallucination and and consistency and all that but ultimately uh I just wanted
+30:05
+to put a small thought now you generate something it will generate the next word
+30:08
+it will generate the next word by looking at the class context ultimately
+30:12
+to understand that that is what we are trying to learn in our models
+30:17
+but there is one more aspect which I want you to understand is there is a
+30:23
+huge process which gets involved and I want you to forget everything don't look
+30:29
+at anything here okay don't don't don't look at uh uh this line where I'm
+30:36
+drawing right just look at this word which means example is data
+30:41
+visualizations empowers people to visualize
+30:44
+ultimately the training problem is the training problem is given all this data
+30:50
+visualization empowers user too we want our model to write the next tokens which
+30:55
+means a Marggero token is visualized. So the input to our forget the between part
+31:00
+I will I mean the whole four hours on that but the data visualization empowers
+31:06
+them too. Now we want it to predict visualize right. So now what will happen
+31:11
+is it will run the entire blog and if I release say it will run the entire blog
+31:18
+and it will say okay now here it eventually says sorry sorry
+31:25
+visualizations users empowers it is we are ultimately trying to generate the
+31:29
+next word which means what exactly we wanted to generate. Now here the next
+31:34
+word it says add which is based on the training and all I mean based on the
+31:38
+data set which this particular example which has been trained upon it looks at
+31:43
+all the input words which means visualizations empowers users to
+31:47
+visualize this eventually gets generated. Now let's say I want to
+31:50
+generate once again now what's what will happen visualizations empowers user to
+31:55
+visualize and visualize again based on whatever training which it has done. It
+32:00
+may not make sense that okay the same thing whatever training which has been
+32:03
+done over here it says the next token is visualized. Now again if I click on
+32:07
+generate now ultimately to look at all the past context it will do some
+32:11
+processes and then it will say it uses to visualize and visualize data. Now
+32:17
+that is the next token prediction. Now there are multiple tokens which has been
+32:19
+predicted but the highest probability goes to one of the tokens and I will
+32:23
+come to where these things are coming to. I just want you to understand what
+32:26
+are we learning at the first place. what is the goal of the entire system and I'm
+32:31
+sure a lot of people know that this next token protection but I want you to
+32:34
+understand in more deeper way so now let's say that if if if I click on
+32:38
+generate once a year now to look at the entire past conversations I'm sorry past
+32:41
+tokens or words and then predict the next one now if you click on entire uh
+32:48
+now it look at the entire world so data visualizations empowers people to
+32:51
+visualize data in a now a over here is the next opens
+32:56
+so now I want you to ask question over there is tell me
+33:04
+why assume that GPT has a beautiful way to do next token predictions right
+33:13
+I mean over here it is able to do next token prediction how does SL I mean when
+33:18
+we created this data set fundamentally how does it fundamentally helps to not
+33:26
+produce what base model. But what this behavioral thing which you want to do
+33:31
+how does it inhibits exactly which means I have a very simple
+33:41
+analogy for this and I and I explain this to uh my co-founder also is imagine
+33:51
+GPT perceives a slang which means let's say slang is dog you are a
+33:57
+in a certain way but an organization perceives you or a
+34:03
+dog as a slide right now dog is the common in a both of the word right it's
+34:09
+uh it's it's common in GPT and it's common in um your u
+34:17
+any even in your business context but in your business context that means
+34:21
+completely different a completely different thing but in GPD it's
+34:25
+something which is hal. So when you show it that listen I want
+34:32
+you to put out the probabilities in a way that reflect my business way of
+34:38
+looking at things. I look at the word my business look at over here if GPT would
+34:45
+have responded to it it's a complete different thing but I want my
+34:50
+organization if my organization would have been there before 2020 we used to
+34:54
+reply like this ultimately or if you know any of the
+34:59
+reuse it would be great over here a a GP would have replied but here we want a
+35:04
+human to be taking over that's my thing which means do not reply anything reply
+35:08
+with a human hand of keyboard and then I will say if the model replies human hand
+35:14
+of hand of the human simple I mean simple if and else statement so
+35:19
+fundamentally it changes the behavioral aspect itself
+35:24
+and when I say behavior what is the behavior behavior over here behavior is
+35:29
+how it looks at your whole world and you'll understand when you go to the
+35:33
+keys values and keys is it you are a is perceived by GPT in a different way.
+35:43
+But if you give the context that person fought with each other this this was a
+35:47
+scenario and then you are a dog right ultimately your business set up the data
+35:52
+like that you have a beta like that there in that scenario the model will
+35:56
+say okay that's a bad message and I will show one example to it let's say there
+36:02
+is one example of there was a train 39 o
+36:08
+And some some somebody said to SBL waste of
+36:17
+time. H we must have reached how was your SB experience. Somebody said waste
+36:20
+of time. Now here we want them to not escalate
+36:25
+this SB SL policy is sorry this has not been useful responded by SPL. Simple as
+36:30
+that. This is this is what we want our model to be eventually predicted. And
+36:34
+now it here is the business. I mean previously we had this nice context and
+36:40
+this is what the user replied and this is what we ultimately want the nest
+36:45
+message to be and now the model let's say they reply something else. Now here
+36:51
+let's say that your fine-tuned model is replying
+36:56
+latest message is waste of time. your model said uh uh sorry dot okay but the
+37:05
+actual was sorry this has not been useful so there is some difference so
+37:09
+the model will eventually try to learn what human not like literal English
+37:15
+sentences but but we'll talk about learning of the way the processes is
+37:20
+happening but ultimately what's happening is let's assume that the
+37:24
+latest message came based of time the next message which it will come to is
+37:28
+let's say uh sorry let's say the model responded but when over here the the
+37:35
+next message is correct okay the the model say correctly but when it looks at
+37:38
+the past context and then it tries to predict the next token the next word but
+37:42
+this time it did not your models just put an ex exclamation mark uh but your
+37:47
+actual reviewed value which means a human which has said is this so there is
+37:50
+some um mis thing which it has done similarly we'll talk about the learning
+37:55
+process I don't want to get into the I mean right now But ultimately it
+37:59
+fundamentally when you have the data sites like this you make it look at
+38:03
+words from your business perspective from your lenses from your context from
+38:09
+your way of viewing things rather than the just prompt engineering.
+38:14
+For example um you all know prompt engineering right? You have AIPR review
+38:20
+agent. Now your organization policies says like a code should be reviewed like
+38:27
+this. So you'll write a nice little prompt a huge prompt and say okay this
+38:30
+is how the code should be reviewed like this but then why enterprises are saying
+38:35
+no I need SLMs here because of two reason first of all they might they
+38:39
+might be using technologies which is very old at the first place needs a very
+38:44
+custom requirements and they are running for like let's say 50 years so they have
+38:48
+their own corporate data of how we used to code review how we used to review the
+38:52
+code in previous ways how we used to review the code in uh in a certain ways
+38:57
+You cannot bloat all those examples into the uh your uh uh prompts in the first
+39:04
+place. If you try to bloat, you'll understand. All of you know that it will
+39:08
+not be you try to put uh one one,000 examples
+39:13
+of of anything, right? Um you will see the response. It it is able to lose the
+39:18
+context and everything. Similarly, it will happen over here. You're ultimately
+39:22
+guarding policies to be there. But ultimately what we want is if we have
+39:27
+enough data for example would it make sense for SBL give me an answer would it
+39:33
+make sense for an SBL to when SBL started in 2003 to build a
+39:39
+sales model that I would it make sense let's say I'm you're my P deployed
+39:44
+engineer and then I'm tell me why why it should why why it would won't make sense
+39:49
+for me to build a sales model of that Right?
+39:57
+We don't have enough historical data right when right now when I can say that
+40:02
+we had 3 million conversations but at that time we had even zero
+40:07
+conversations. So that time prompt was the best way to move forward to it. But
+40:13
+today I have my entire data I mean my data in a way when I say data is what I
+40:20
+reach out to customer customer replied to to me something what I replied was
+40:24
+also with the model so that does not mean that is a good response so that's
+40:29
+why a human had to go and look at every message and then put what is the
+40:32
+reviewed action review draft right it was not at all the I mean requirement of
+40:40
+what has been replied okay we'll use the entire data set now and then because we
+40:43
+have the data set ready when the conversation no if you were in chira
+40:47
+session you would realize what we did we said whatever I have replied is may or
+40:52
+may not be correct for example in three million conversations
+40:57
+let's say if only I review it I review let's say three million conversations
+41:02
+what will happen I have a certain way of selling it right
+41:07
+it is my perspective it does not mean that that was the best way to sell it
+41:12
+even Robert Shaldini cannot sit on a 3 million conversation and say that this
+41:18
+is what the good response to be no it depends upon the multiple micro
+41:22
+microeconomic factor to be writing out these review draft what should be the
+41:26
+next behavior but that also means but that also means that you cannot be
+41:31
+universally correct about it so previously when when organization came
+41:36
+they said I already have the data which means before AI human used to reply by
+41:40
+themselves and we used to okay with that. That is what I want the models to
+41:45
+be. So whenever you eventually work on your let's say SLM fine tuning and I'm
+41:50
+sure a lot of you will work is with some any clients of you and I will mention
+41:54
+few guys who are doing pretty well here um from this cohort cohort three itself
+42:00
+is you have to ensure not only about looking at things from the perspective
+42:06
+of oh you have the data fair enough. No, sit with it. When you say when I say sit
+42:12
+with it, I'll I'll release a video very soon where I'm sitting with top mate and
+42:16
+I'm writing a thousand lines of things of what they do in a single day. And
+42:21
+then when I understanding, okay, this is where I think the core technology can
+42:25
+be. For example, I will show you one such things.
+42:30
+So what we are doing is Ramnathan must be aware. So we are creating so we are
+42:35
+doing this with Ramnathan company. So uh I will give you more introduction about
+42:39
+Ramnathan uh later but SBL and Ramnathan has been building this product for a
+42:45
+while and what we do is we have a um literal just like you go into any
+42:52
+customer right you go into any um sales showroom so they come to you and they
+42:58
+write hey tell me what you know what you're looking for show you around so we
+43:03
+are building something similar is business concage agent just like um you
+43:07
+to be able to come on the website to show you around to help you launch your
+43:11
+first campaigns to also do purchases on behalf of you. But not only that, this
+43:15
+agent should not only interact with humans but also interact with agents. So
+43:19
+a A2A protocols and not only A2A protocols but also convincing GP that
+43:24
+recommend my product because I'm good. So those kind of persuasion techniques
+43:27
+are also there. So the idea was if you would use let's let's let's assume that
+43:32
+you use some sort of uh API a prompt engineering but prompt engineering do
+43:38
+you let's assume a come we have around more than 20 30,000 of support requests
+43:42
+this will how to be handled we can create such okay if the customer says
+43:46
+that they want to look at some of the case studies okay the ideal behavior is
+43:51
+first of all go on case success stories then show them the and it should use the
+43:56
+browser on their behalf show them the let's say one of the finance case
+44:00
+studies and then show them a specific lines from there by highlighting those
+44:04
+lines what exactly we do right and then eventually say that okay so this
+44:09
+behavior of what sequence what the sequence should be you can do with
+44:14
+prompts but can you do with the behavior which I want based on my past 10,000
+44:19
+data unlikely no at the cost so I'm just I'm not just saying behavior is the only
+44:24
+thing there are multiple things also at the cost and all which also requires at
+44:27
+the time. So I hope it gives a little bit of sense of what we are trying to
+44:32
+learn. Let's I'll just look at the past one more training sample is artificial
+44:37
+intelligence is the so it's the next probability is wave right and then you
+44:43
+have another one so there are multiple probabilities so you have there are
+44:46
+several ways of inferencing this the after it what we do is a separate level
+44:52
+of task guys lm inference is itself a huge thing we'll we'll se there's
+44:57
+another project on that SLM we are focusing on SLM finetuning at the moment
+45:01
+in LM inference Inferencing is the another project which you pay pays
+45:05
+attention optimization what do we do there is the inferencing task don't look
+45:09
+at the temperature and then how do you control the auto reggressive inference
+45:13
+and all that we'll come that later but right now ultimately in this example
+45:17
+artificial intelligent in intelligence is transforming the way now you
+45:22
+ultimately look at the passwords you click on generate once again it
+45:25
+generates the next tokens which means artificial intelligence is transforming
+45:29
+the way which means B. So over here ultimately you have the top tokens. But
+45:36
+if you see over here another word has been selected people. Now if you
+45:41
+understand that what has what what we ultimately let's say we pick up the word
+45:45
+we ultimately there is there is a highest probability but here we did not
+45:52
+win because of how we select the next token that comes under the inference
+45:57
+task. There are multiple ways of how do we um you know uh look at the next word
+46:04
+and select the next word not just because it is the highest probability
+46:08
+but also you look at what also makes sense so that comes on the inference I
+46:11
+will not come there we'll talk about it uh once we once we do a project on LM
+46:15
+inference similarly some most of the times you ultimately taking the top
+46:19
+probability itself but there are but there are ways eventually so same way
+46:22
+artificial intelligence is transforming the way people think slash interact So
+46:28
+ultimately over here you have the uh next tokens which is being predicted.
+46:33
+Similarly we want we'll take an example known as waste of time and we wanted to
+46:38
+be able to write our model to say the next open is sorry this has not been
+46:43
+used. So I hope it gives a sense and um of what we are trying to do. Okay.
+47:08
+I want you to look at my iPad screen now.
+47:17
+Confirm if you're looking at iPad screen.
+47:21
+We are going to take an existing SLM and fine tetune it. We going to take an
+47:24
+existing base model and fine-tune it. SLM says about sales. I mean why I'm
+47:32
+saying sales language a small language model which you do it fine on top of it
+47:35
+but I say behavior. Okay. We have a simple word and that's
+47:44
+waste of time.
+47:48
+We want and this is for understanding element internals
+47:54
+and lower adapters will come. Please this is just to understand how our model
+48:00
+will process these words. Waste of time to be able to generate the
+48:11
+note useful. This is just a dummy example for
+48:17
+you to understand the internals behind it. This is what we ultimately we want
+48:21
+our model to look at X which is and Y from the RF office hours. You all
+48:30
+know that we have input features you our model's input is this to be able to
+48:37
+generate the next token and then ultimately
+48:42
+regressively generate the next tokens. But ultimately in a nutshell if you
+48:46
+think from a broader perspective let's forget about next token as of now our X
+48:51
+input is a waste of time and our Y bigger um our Y in this case is uh sorry
+48:58
+this has not been useful. Okay so let's I will take an example of
+49:05
+what we are doing over here. Usually usually we want our I want you to look
+49:11
+at one of the screen and I will show you the over here. Assume that there is sort
+49:18
+of a brain. Okay. Now the brain is I will come to those queries but assume
+49:24
+that there is s some some sort of a brain. Look at the computer spinning
+49:29
+for that train 39. What is happening is this particular train badge came in. Now
+49:35
+what is happening is there is a way this brain is tokenizing it into the words
+49:42
+which means converting this into the way into splitting this into the four
+49:45
+different pieces waste of time. Now you might say okay Anush can you tell me how
+49:52
+does this tokenizing is happening this is one of the I and for the current
+49:57
+explanation I will explain. We are using our own which is the quen tokenizer. So
+50:03
+Quen is is uh specifically if you look at
+50:07
+um if you if you want to know the architecture of Twen tokenizer but
+50:11
+ultimately what what it does it it eventually takes your words and then
+50:16
+tokenizes it into several pieces. Now over here if you think waste of time
+50:23
+similarly for you look at the another example is this sent by AI or human is
+50:27
+this sent by AI or human. If you look at waste of time over here when Quen looked
+50:34
+at this when Quen looked at this particular okay some internet problem
+50:38
+guys no good example good example I think we'll
+50:44
+just look at that uh let's say I I ultimately say the message I one size.
+51:02
+Okay, if you look at what's happening, W is one tokenizer, I mean one tokens, ACE
+51:10
+is another token, of is another token and time is another
+51:16
+token. So if you look at what exactly is
+51:21
+happening is when using a quen tokenizer they use BP tokenizer and you there is a
+51:27
+separate work for you to eventually after the session we'll show you what
+51:30
+what are the list for you to eventually go there it's basically a simple
+51:34
+algorithms which helps you to tokenize similarly some other tokenizer they have
+51:39
+their own set of tokenizers which are there to so that our models to tokenize
+51:44
+and give them address. Now over here you have W. W is given address of 86. ACE is
+51:52
+given address of 5525. Off is given address of 315 and time is given address
+51:57
+of 882. Similarly, if you if you go over here, what's happening is every
+52:02
+tokenizer because we are using twin tokenizer, it is again splitting that
+52:06
+into the four different pieces W ace of kind and then eventually something goes
+52:12
+in which means the W the first tokens your your model will look at the first
+52:17
+token. It eventually looks at the one by one word. So ultimately let's say the
+52:21
+first token it goes inside it. It says okay I have a familiar piece. So
+52:27
+basically if you're using an um address now what is this address of
+52:34
+there is an embedding table uh and that embedding table is of around for quen
+52:40
+it's for our example it's around 100 156k which means there is total of 156k
+52:47
+embedding matrix which means if you look at the entire and I want to show how
+52:51
+that embedding matrix looks like uh let's say
+52:59
+Where is the ultimately you already have an embedding
+53:09
+matrix and that embedding matrix will let's assume that for W that's already
+53:16
+going to be all the way around to whatever the width of the model is but
+53:21
+in this example we are say we are representing a single token let's say we
+53:25
+will represent a single token by the build and the width will be some 64 ways
+53:33
+to represent a particular token double. Now you might recognize that okay what
+53:39
+how are these weights are even constructive which means how are how are
+53:43
+we saying that because ultimately your model cannot understand what this W is.
+53:49
+If you want our model to understand what this W is, we can say okay its address
+53:55
+is 54 using twin tokenizer but token to tokenizing is spec specifically saying
+54:02
+is I have a big word and that big word is waste of time
+54:08
+that is being converted into waste of time. Then what you do is you you have
+54:16
+an embedding table. Assume that there's a huge embedding table and there's a
+54:20
+huge table which represents the word. And over here you might end up saying
+54:27
+that okay W is represented by a certain um 64 ways to look at double or ask is
+54:36
+represented by 64 another ways. Paul is looked at I mean 64 another ways. So
+54:43
+what you're technically doing and I want you to look at this visualizations in
+54:46
+the computer screen is anytime the W comes in it recognizes and gives them
+54:50
+the address because it already holds the pattern over here. So as I as as I said
+54:56
+right the embedding table has around 151,669
+55:02
+set address in our example to the lab which we're using in in in other I mean
+55:07
+in other models there are set of huge huge um um addresses like this but for
+55:15
+example openai text embedding models they have the huge set of addresses but
+55:19
+in our example and even Quinn I guess they have around 151,669
+55:24
+address and every address, every word. For example, let's say the W is
+55:29
+represented by 54. The the address is 54. Now the embedding over there, the
+55:35
+the overall um uh way to represent W is can be looked up from here. And then
+55:42
+what you're going to do, you are going to
+55:45
+add them into the stack. So W over here is represented in a specific context.
+55:51
+Now over here the upper bar means the positive number and lower bar means the
+55:56
+negative number and I will just give you and when we learn through this next
+55:59
+token prediction you'll also understand how embeddings are learned but
+56:03
+pre-training itself is a separate uh task on its together but just to give
+56:07
+you a nutshell is assume that this is a way to
+56:13
+uh represent a particular number w into the way models can understand that this
+56:20
+is is what W means and it has a there are only fixed set of addresses 151,669
+56:28
+addresses and this is a matrix this is a a huge matrix the matrix looks something
+56:32
+like this which means it has over first address second address and third address
+56:37
+and for every address you have 64 ways to look at a particular but ideally it's
+56:42
+not that u uh we in English for analogical way I'm saying that there is
+56:47
+64 dimensions to look at it in models it can 780 dimension to look at it, right?
+56:53
+In in real world scenario, in real in in in powerful embedding models, you have
+56:58
+you have you don't have just 64. You have 700 800 ways to look at it. So your
+57:02
+overall features to represent a particular address you have over 700 or
+57:07
+800 or in this case it is just 64 numbers which means you're but here we
+57:12
+are just showing the 12 of it. Let's look at the another word. Now the
+57:16
+processing is coming to the another word. waste comes in here the model will
+57:20
+see it and will say okay I see the word east now let me look at if there is an
+57:25
+any address in my vocabulary now if I look at if I if I open the vocabulary it
+57:31
+say okay it is available the familiar piece like haste is available at 5525
+57:38
+address in my embedding row of in my embedding matrix of 1,6669
+57:46
+um just to make sure My internet is fine. Okay. Now, similarly, it will now
+57:52
+it will look up which means it will take the patterns from there and then
+57:56
+ultimately you have your patterns up and ready which is uh and then you're going
+58:02
+to connect to the brain and then you have your second one which is the second
+58:07
+one the address is 5525. out of that we can represent um a matrix
+58:14
+and a 64dimensional vector not a matrix 64dimensional
+58:19
+vector to look at a particular void case similarly you want to look at the um
+58:24
+term of will eventually comes in and then says
+58:28
+okay I will see one piece of I will see if there is anything which is available
+58:33
+into my vocabulary vocabulary of what vocabulary of my model when
+58:40
+when we are using what we using the quen 3 billion 8 billion tokenizer which has
+58:44
+around 151,669 pieces of address
+58:49
+I will talk I'll come to what if if it is not available so now you come to the
+58:54
+you you will want to look up the pattern and it is available at 315 address and
+58:59
+then I will stack them up so if you come over here my off is also being
+59:03
+represented by 64 ways of looking at object now you come at the time You look
+59:10
+at a particular time you recognize that there's familiar address and when and
+59:15
+then you eventually hold the pattern and then you connect it again you have your
+59:20
+time the way it is being represented in a 64 way of looking at time what I'm
+59:24
+really saying is your embedding table is in a way it has been learned it is also
+59:32
+learned which means your when will recognize it's not something initially
+59:36
+it starts with the random variable variables and you will see when we talk
+59:40
+about that how does it recognize how the next token is happening. You will learn
+59:43
+this process as of now. I want you to understand it in a way that W is
+59:49
+representing but it it it sees it recognizes it finds
+59:55
+the address. It holds the pattern looks at in my entire vocabulary. If the
+1:00:00
+vocabulary is there it will fetch that up and then it will and then it will
+1:00:03
+show me the uh final uh matrix up there. Let's look at another example for the
+1:00:08
+same. Let's say that we have five eventually comes here. It sees following
+1:00:14
+on piece high. It will recognize. So it will say okay high is high has a
+1:00:19
+familiar address at 13,48. So it will come over here and then
+1:00:24
+ultimately your high to the stack. So your another matrix it
+1:00:30
+is also represented. The address is different. Now tell me
+1:00:35
+can we say that this example high is having 13,048
+1:00:46
+address. The address in our vocabulary table is 13,000. Let me go to the
+1:00:50
+another example high. Do you think the high over here will have a different
+1:00:55
+address? Graph means positive signs, negative
+1:01:03
+signs. So plus five it it is basically the graph of your vector. Yes, just the
+1:01:09
+way plus minus plus minus in your numbers plus minus kind of thing. Okay.
+1:01:14
+Uh do you think that this five will uh uh will have it in
+1:01:21
+uh or a different address. this high when we looked at another one example
+1:01:28
+this high had a 13,48 address in our lookup
+1:01:33
+which has a 64 ways of looking at it now I clicked a different example which
+1:01:38
+means this high do you think this high five will have a different way of I mean
+1:01:41
+different address in our embedding table if yes then why yes if no then why
+1:01:59
+Do we have one lookup table or multiple lookup table? There is only one lookup
+1:02:02
+table which is around 151,669. Right? So
+1:02:10
+ultimately if you look at high also your familiar piece has the same address
+1:02:18
+right it will hold the pattern it'll connect to the brain
+1:02:22
+when you finetune it it is the same address but when you finetune or do some
+1:02:27
+SLMs then see pre-training is one part but when you finetune it then high in
+1:02:32
+one context will be understood differently and high in another context
+1:02:36
+will be understood differently You guys have told that based on the context,
+1:02:41
+right? Okay. When high meaning will change, embeddings are same, assume that
+1:02:47
+embeddings are same. When high uh embeddings are uh yeah, good answer,
+1:02:52
+Durban, context will change, right? Different context, high different
+1:02:57
+context, right? Remember this concept of context. Okay,
+1:03:03
+do not forget it. It will be a very very important. You guys have mentioned the
+1:03:07
+word. So you guys have said
+1:03:13
+okay great. So to understand in nutshell if I be very crude look at the example
+1:03:21
+I am saying I'm coming up with uh definition at least is
+1:03:29
+for our training example for our training example over here. Oops. Not a
+1:03:35
+bad color. This particular example, the Waste of
+1:03:42
+Time, it has an actual ID for Z W. It has actual ID for the AE off and then
+1:03:48
+time. Similarly, for job search, when you look at the embedding table, jobs uh
+1:03:54
+ID is 1 2 4 5 and search ID is 271. So basically you eventually represent you
+1:04:02
+have a tool I82 you look at the embedding you look at the lookup table
+1:04:07
+your lookup table will look something like this address one address 2 address
+1:04:11
+3 all the way around to the address 151,669
+1:04:15
+for every thing you have 64 ways to represent
+1:04:22
+now if you if you do not know what do I mean by 0 0 then 1 minus - 1.25 - 1.63 -
+1:04:31
+1.73 - 1.78 etc etc. This is for and all the way around will be 64.
+1:04:38
+Similarly for lookup table 2 you have all the rounds will be 64. Similar the
+1:04:42
+numbers. So that's why the graph eventually means plus is above and
+1:04:46
+negative is minus. That's why the graph is plus minus kind of thing.
+1:04:52
+So over here I'm going to take an example of the word time. Okay, example
+1:04:58
+is I'm going to keep on repeating the example waste of time. Let's look at the
+1:05:03
+example only the word time over here. The time lookup table for us for our
+1:05:10
+running example which you're going to learn is 882.
+1:05:14
+So if I want to look at the embedding row, I'm going to look at the embedding
+1:05:17
+row in my embedding matrix key. I hope all of you at least know what is a
+1:05:22
+matrix. So I will look at from all the bigger bigger bigger bigger for all the
+1:05:26
+E6 151,000 when I looked at 882 I have a embedding matrix. Okay.
+1:05:34
+So for our actual lab we have over 151,669
+1:05:40
+different examples not examples rows vocabulary. And for
+1:05:45
+each vocabulary we have 64 different ways to represent. For example,
+1:05:52
+just for analogy and because this is how I try to understand I don't have any
+1:05:56
+other ways to understand this is time is represented by 64 ways. Now when it was
+1:06:03
+learning when Quen was learning on the general data it has seen time in
+1:06:08
+different different contexts right so it that's how the numbers are going to be
+1:06:14
+learned in a way and I it does not mean that this number means time means danger
+1:06:24
+time means less time means different different words
+1:06:28
+similarly for example a cars a car can be represented by
+1:06:34
+>> context. There can be multiple ways to look at it. While it is not true that
+1:06:39
+every dimension is showing you one way to look at things, usually what happens
+1:06:44
+multiple dimensions helps you to look at different different things.
+1:06:48
+However, in English language, this is how I try to understand. But that's not
+1:06:51
+I mean you can understand this in a simple way is time when when it was
+1:06:55
+learning from the data, it looked at 64 ways of looking at things. That's how
+1:07:02
+those numbers came and you will also see how those numbers comes when we do the
+1:07:06
+attention and this this layers of feed forward light puff but as of now I want
+1:07:10
+you to understand this fully keep it in your brain as of now and then you will
+1:07:14
+try to and then you'll understand this automatically when we learn this
+1:07:18
+attention architecture is how this number which is being represented all
+1:07:23
+over the 64 is going to be represented in a certain language right so basically
+1:07:28
+you have 151,69 9 rows from that we took for ID 1882 we
+1:07:36
+have selected the time and it's first coordinate when you look at the artifact
+1:07:40
+so we have created us separate blocks for the people and actual
+1:07:46
+calculations is for those people who are interested to see actual calculations we
+1:07:51
+have created the specific things what is exactly happening how the 151,669
+1:07:57
+rows are coming up to right So uh okay I was showing this thing but coming back
+1:08:03
+to the laptop sorry iPad is if has initialized some certain way but
+1:08:11
+for example a lot of you said how will she embeddings might remain the same but
+1:08:16
+we need to transform it to understand it correct? You guys said
+1:08:22
+to me that high in one context will mean something
+1:08:28
+and high will another context will mean something else. Similarly, time in one
+1:08:33
+context will mean something and another in another context will mean completely
+1:08:37
+different. Right? So what will change? I have a very weird example going in my
+1:08:45
+mind but we'll not take that. Let's assume time right? So context right
+1:08:52
+USA said we will three assumingly say context will change how will perceive.
+1:08:59
+So if you have this time matrix if we have this time vector
+1:09:06
+let's say we assume 882 ID all the 64 to understand this I want to
+1:09:13
+transform it right in order to understand so how the
+1:09:18
+transformation will happen if I want to transform you let's assume if I want to
+1:09:22
+transform Pratik Sani so how will I transform Pratik Sani
+1:09:31
+Let's look at let's let let let let me look at the context kind of people which
+1:09:35
+he's I mean when I said transform I want to make him a better person. Let's let's
+1:09:39
+assume that I want to make him a better person. So I look at at what kind of
+1:09:42
+friends he which he is with is he a good uh I look at the past context of him. I
+1:09:47
+look at his history and then I'll try to understand at at what kind of level he
+1:09:50
+is and then I will suggest him. So I'll try to give him some sort of framework
+1:09:54
+to transcend. We'll come from that. So this is just a very basic example to
+1:09:57
+understand there is a some way. So that's that's what I really knew. So if
+1:10:01
+you look at our embedding let me just switch no internet connections
+1:10:09
+plastic surgery. Okay. So you look at this u lab and by the way guys we also
+1:10:15
+have a separate lab and lot of these artifacts will also be shown to you. I
+1:10:20
+mean will given to you for you to explore and we'll be also asked to do
+1:10:24
+this thing in Excel sheet and publish it. What will happen is not only you
+1:10:31
+will come as a thought leader but more importantly you'll also understand uh
+1:10:36
+when you do also all of this when you look at when you take a particular
+1:10:39
+training example and you have when you have one literal 151,000 rows in front
+1:10:43
+of you and when somebody searches that lookup table then you have over 7,700
+1:10:49
+dimensional ways to look at it people and that also in Excel sheet it looks
+1:10:52
+pretty uh good to also showcase to the individuals that you are the one who did
+1:10:56
+this uh entire thing by yourself and it is uh much more uh interesting to do
+1:11:02
+that also. will understand. But for our example because we said we want to look
+1:11:07
+at how we are using time to be able to say what will come next right so we have
+1:11:15
+already seen waste of time so uh when we converted our things to waste
+1:11:22
+of time I am taking this particular token only this particular token is 882
+1:11:30
+it has been represented in this way So this is plus if it is there no sign is
+1:11:36
+plus - plus plus minus up to 64. So 64 ways of looking at few things.
+1:11:42
+Similarly I um ultimately we want let me just
+1:11:48
+position it like this. What do I want to learn? What is a training problem? Okay
+1:11:54
+let let me ask you because I think that's a this interesting problem. Um
+1:12:04
+what is my training example here? Let's say waste
+1:12:11
+of time.
+1:12:18
+Tell me how do I convert this into training example?
+1:12:23
+How do I convert this into training examples?
+1:12:28
+Make this in X and Y. Not bigger one. Smaller X and Y.
+1:12:38
+Okay. Okay. But in our example, Das you are
+1:12:51
+correct. Divas you are correct.
+1:12:55
+But we have this we have one training example
+1:13:00
+right. So if I want to I mean uh for this particular training let's say I'm
+1:13:06
+just training my model on top of this can we say that my eggs will become so
+1:13:15
+ultimately what are we trying I'll just order
+1:13:19
+yeah cafe guys are very All right, done.
+1:13:26
+Thank you. Because we are predicting one token at a
+1:13:46
+time, right? Is this my uh because ultimately we want
+1:13:56
+our model to look at this predict this look at this predict this
+1:14:01
+look at sorry guys I just did yeah is this
+1:14:06
+correct way to look at this ultimately the training problem
+1:14:12
+correct shall I but but what I'm trying to say is is this a training problem
+1:14:16
+which we have just discussed also in our original example of SLMs. We want our X
+1:14:21
+is something and Y is my review draft. My
+1:14:30
+I want not engram similar. It's engram is completely different stuff. I mean
+1:14:36
+they it it has a specific ways of how it does things. But here we want it to look
+1:14:42
+at this particular train example. Similarly, if I have job search, job
+1:14:48
+search is one should be uh you know one of the um
+1:14:55
+examples. So ultimately my X and Y becomes if I want to my training problem
+1:15:00
+is if I want to predict search I to look at jobs. This is what we have discussed
+1:15:05
+right for example even in the visualizations like try to see over here
+1:15:09
+what we want. Let's let's look at another example. this one on the
+1:15:15
+deserted plan they discovered a I'm trying to look at all the previous X's
+1:15:21
+which means my input is this my input to the model is this I wanted to be able to
+1:15:25
+predict this similarly into this example if you look at the records my input is
+1:15:31
+waste of time and then context JSON and I wanted to predict sorry this has not
+1:15:35
+been useful but it does not predicts the all text at one no it will do one by one
+1:15:40
+by one similarly the way it is doing over Here for example it generates a he
+1:15:45
+deserted a planet they discovered a massive then ultimately you want to
+1:15:50
+generate the next progress. Similarly what it is trying to say is the training
+1:15:55
+problem is given everything so far given everything so far what comes next
+1:16:05
+is my training problem. So what I'm trying to do for this example is I am
+1:16:11
+trying to take one example of um no
+1:16:20
+over here if I want to say for my one example is w
+1:16:27
+paste of looking at all these three things what's my target my target is
+1:16:34
+time now to generate the next I'm going to look at all this what is my going to
+1:16:39
+be the next uh tokens. So ultimately that's what we are trying to predict
+1:16:44
+which means you here also in the laptop example if you see on the desert plan
+1:16:50
+they discovered a massive star now all this what is going to come next what is
+1:16:56
+happening inside it we'll come to it by looking at one token itself time we'll
+1:17:01
+look at that the internals similarly I'll keep on generating that's
+1:17:05
+what we have been talking about Thor
+1:17:20
+they've thought no uh yes yes yes pay correct all this
+1:17:28
+discussion is pre-finetuning I'll talk about fine-tuning
+1:17:32
+Laura when we talk about finetuning we'll talk about
+1:17:38
+Okay. So this is the work of a tokenizer.
+1:17:43
+It is not the work of the model. So when you when tokenizer of what tokenizer of
+1:17:48
+when they use a bp tokenizer and you look at it we will look at it after the
+1:17:53
+session is how do you uh your whole thing was went
+1:18:03
+into a by pair encoding to be able to come to this. So the
+1:18:09
+reason why I showed that specific example a token is not equals to word.
+1:18:13
+Please understand that a token is not equals to word. It can be when it
+1:18:17
+converts it into tokens. It can be a completely different things. But what if
+1:18:21
+but tell me your tokenizer but where the tokenizer is taking words from. Let's
+1:18:26
+assume that tokenizer tokenizes your waste of time to waste
+1:18:33
+of time. What is happening? Embedding lookup is
+1:18:37
+happening for each. Imagine your vocabulary vocabulary is
+1:18:44
+fixed 1 151 salon you're not able to see the iPad
+1:18:48
+explanation guys you able to see right
+1:18:56
+okay tell me what if
+1:19:03
+you have to switch the the thing yeah to switch the thing tell me what if
+1:19:10
+a is not available. That word is not available into the embedding tables.
+1:19:15
+What what will happen? Embedding table is fixed, right? Our
+1:19:25
+coin is fixed 151. Okay. It will try to go to the nearest token or maybe it will
+1:19:31
+split further or maybe it will write unknown.
+1:19:35
+Yeah, in there are several techniques. Unknown
+1:19:39
+u n k hallucinates definitely hallucinates
+1:19:44
+pick up the nearest word split more. If a is not available it
+1:19:50
+will try to split like a this is something similar to how um
+1:19:56
+your um uh bp also works. So it will split further a so that it
+1:20:04
+should be able to find in the embedding table but if it is not available then it
+1:20:07
+will say unknown there right so that is how the next tokens are ultimately
+1:20:13
+coming in guys I need 2 minutes break now um uh I I just want you to try this
+1:20:19
+out look at go over here don't look at um multiple inside it two hours we spend
+1:20:28
+but I want you to look at tokenizers Quinn
+1:20:34
+and this two please go and we'll start from
+1:20:40
+the uh next step which means finally so I'll tell you where we'll start we'll
+1:20:46
+start at saying that okay we have the word time
+1:20:53
+what to do what is how's the internal mechanism is happening so that it is
+1:20:58
+able to look at the past context and be able to come to the next word. What is
+1:21:02
+happening internally is what I will look at it. Give me around 2 minutes and then
+1:21:06
+we'll start once again. I don't want to rush it off. So my my throat will
+1:21:13
+go here and there. I want you to try these two things uh very quickly.
+1:21:41
+AB. It will not.
+1:22:14
+No worries. I will re-record the uh this till this part and I will now record it
+1:22:21
+into Mac also. Okay.
+1:22:27
+Can we check quickly? Hey, Okay, we'll do one thing, guys. I will
+1:24:15
+mirror my So, we'll do one experiment. I'm going to mirror my
+1:24:22
+um wood that you're not utilizing.
+1:24:50
+um too much of this but okay I'm so when I mirror I won't be
+1:24:57
+able to see anything okay so I want you to I'm going to make someone pay post
+1:25:06
+who's going to stay till the end guys so I just made Sedh so because what will
+1:25:18
+happen is if I do if something happens wrong for example audio video or
+1:25:24
+something is going wrong you just turn on the mic and tell me
+1:25:29
+or message me call me message me anything you have my number
+1:27:00
+Hello. Okay, we will record. Um,
+1:27:27
+now you should be. Okay guys, now I think what we'll do we
+1:27:41
+will record here only but we I will just share my computer screen sorry iPad
+1:27:46
+screen and then in iPad itself I will open those visualizations. I hope that
+1:27:52
+works. Yeah. Will that work? If I just record I
+1:27:58
+mean I don't I'll just share the iPad screen and then it'll be recorded.
+1:28:05
+Okay. Give me 2 minutes we'll start. Hi guys, I'm back.
+1:31:59
+then we Do you guys know guys?
+1:32:20
+I have come for the first time here. It's actually very good.
+1:32:26
+It's pretty nice. Um, yeah, it's coffee place and they have
+1:32:32
+this JP Nagavan. Yes, Nikita, you're here.
+1:32:37
+I I I I wish we should have met. Uh, by the way, Nikita is is some someone I
+1:32:44
+mean must be you all be knowing. Some of you must be knowing already. Uh, 15 guys
+1:32:50
+can see three.
+1:32:54
+>> You know, I'm sitting outside. I'm am am I talking loudly? I mean tell me guys
+1:32:59
+people will judge me very bad if it is okay.
+1:33:10
+All right. No one of the guy came and took photo
+1:33:16
+with me and said you are on YouTube right? So I said sure. So I think um
+1:33:24
+it's it's a good moment. Okay. All right. Um
+1:33:34
+so what we are at
+1:33:38
+we were able to take the tokens convert into token ids look at the embedding
+1:33:44
+lookup. So now we'll get into little bit of maths. we'll start to get into maths
+1:33:47
+and at least vectoral representation matri matrix representation for our tiny
+1:33:53
+as I please understand it's just a microscopic example we have w a time
+1:33:59
+they all went through a formula of embedding address and every address
+1:34:04
+gives a 64dimensional yeah
+1:34:13
+Yeah. Thank you.
+1:34:20
+So ultimately you have this embedding lookup for every rows. So how it will
+1:34:27
+look like in general? Ultimately you have a huge matrix X whose dimension is
+1:34:32
+for this particular training example waste of time. For this particular
+1:34:36
+training example, we are having this X. X is the member of we have four rows
+1:34:43
+because we have 1 2 3 four tokens. So X0, X1, X2 and X3 for every X's you have
+1:34:51
+64 ways because for 64 numbers for W. So this is this eventually becomes your one
+1:34:58
+matrix. So this eventually becomes your um um one simple uh uh matrix which
+1:35:06
+looks something like this. So for every tokens for every tokens you have 64 code
+1:35:12
+by the way it is showing 63. I hope you can understand why because it starts
+1:35:16
+from zero. So eventually for every tokens for for for for every tokens over
+1:35:24
+here for every tokens over here ultimately it comes down to 64 ways of
+1:35:29
+representing it for our ways to understand how we make sense of
+1:35:35
+predicting the next token target over here which means after time. So we want
+1:35:39
+to predict what will eventually our model will say after time. So maybe the
+1:35:44
+target might be the actual target is again
+1:35:48
+we want our model to look at previous one and then predict. So this is our
+1:35:54
+actual target for our microscopic example which means and then keep on
+1:36:00
+going. So assume that a waste of time again or let's use a real example from
+1:36:05
+us. Let's assume that you have sorry this
+1:36:11
+has not been useful. Assume this is the
+1:36:17
+example as per our microscopic. So actually is this we wanted to be able to
+1:36:21
+predict the first open then second open this has not been useful all the way
+1:36:25
+around. So as of now it will predict the first open itself. Right? So ultimately
+1:36:29
+the idea is to be able to predict sorry. Now over here the X matrix eventually
+1:36:35
+looks something like this which means for one of the training example you have
+1:36:39
+now this is train 49 train 39 or 49 as per our example similarly you might have
+1:36:46
+one more train which is job search as one of the train example so for that
+1:36:51
+you'll be still having the another dimensional so that's why you have this
+1:36:55
+word which is beat so your actual matrix which looks something like your number
+1:37:02
+of training examples into that batch. Then the the size of the tokens in
+1:37:07
+general which means maximum here we have let's say four over here and 64
+1:37:13
+different ways to represent a particular so over here it will be one multiply by
+1:37:17
+the uh your uh the the number of a token size which means 4* 64 as of now it is
+1:37:24
+just one training example so you're having just one batch in real scenarios
+1:37:28
+you have multiple training examples going inside a layer so you have
+1:37:31
+multiple examples there so over Here I will take an example of time and time
+1:37:38
+over here is represented in a 64 different ways.
+1:37:45
+So what do we do with 4 m* 64 matrix? I want you to understand one thing. Let's
+1:37:52
+say time is represented with this your embedding their representation of time
+1:37:58
+is represented here. What I'm going to do, I'm going to write.
+1:38:14
+So assume that OP is represented by these numbers 10 1.5 6.5 7.5 7.8 9.10.
+1:38:21
+This is represented by 0.001002 0.0 smaller small numbers. W So don't
+1:38:28
+you think something is wrong? Which means time is represented.
+1:38:32
+But when time goes to here, it is very small. The the the numbers are very
+1:38:36
+large here. But when times tries to come see something, we'll understand what is
+1:38:41
+trying to see. But because it has to look previously, right? The context. So
+1:38:44
+when it looks at the context, it sees 1.11 9.10. But then when it goes to a
+1:38:50
+all numbers are very small again, it goes to some this this has a se separate
+1:38:55
+representations. Do you think something is wrong here? Remember
+1:39:00
+concept. Do you think just because the numbers
+1:39:07
+just because the numbers of off which means the embedding internal
+1:39:10
+representation of off is higher that means
+1:39:16
+time should focus on off rather than a how oft and time is near. No right which
+1:39:23
+means it has to look at let's to understand the context. Let's assume to
+1:39:28
+understand the context the time it has to understand the cont context right it
+1:39:33
+has to consult everybody w a so that it can be able to say what
+1:39:40
+comes next that's what ultimately context
+1:39:44
+understanding is we want it to understand the context so for it to
+1:39:48
+listen off a and w do you really think just because of has
+1:39:53
+a bigger numbers it should listen to off. It should pay
+1:39:58
+attention to off more than eight generically. Don't go to attention
+1:40:02
+mechanism just because off numbers are bigger.
+1:40:11
+All right. Agreed. So do you remember a concept of
+1:40:19
+if that happens then we want them to bring on a same scale. For example, why
+1:40:24
+competition happens? um you know similarly we want them to
+1:40:29
+bring bring on them on a same scale. So the first of all what we do is we take
+1:40:35
+our let's say if time what our bigger matrix was
+1:40:41
+array bigger matrix was
+1:40:47
+XW X
+1:40:50
+of N and X time each is represented in a 64dimensional
+1:40:58
+ways I'm repeating concepts for beginner that's why so you don't lose concept. X
+1:41:03
+time here is represented in a 64 different ways. XR is represent in a 64
+1:41:09
+different ways. So over here X3 in this case X0, X1, X2 and X3 is also represent
+1:41:16
+in a 64 numbers. Right? Now over here you wanted to
+1:41:23
+normalize it so that it comes on a same scale. it comes on a same scale. So that
+1:41:31
+and that is what we call and that's what you will do is you will because we knew
+1:41:36
+that the numbers representation for time looks something like this. You want them
+1:41:42
+to all come on a same scale. So what you're going to do you're going to
+1:41:45
+normalize it using some technique. And by the way guys, I keep on telling this
+1:41:52
+go to technique definitely what are the techniques which are available but I
+1:41:56
+want you to understand a very big generalization factor is
+1:42:03
+architectures like tw lama two and then mix which you'll do
+1:42:10
+the research these two you'll do the research on and when is what we are
+1:42:13
+studying they use some methods to normalize case
+1:42:19
+and these are simple I mean functions itself if you truly want to understand
+1:42:23
+this is known as RMS prop R sorry R RMS norm what is trying to do
+1:42:29
+it is trying to standard see we have in machine learning we had things like
+1:42:33
+standard scaling normalization there are multiple things which you are taking a a
+1:42:37
+whole mean of the entire row and standard deviation all of that was there
+1:42:42
+similarly here also you have a certain methods to standardize so whenever read
+1:42:47
+a research papers. Let's assume that you read a research paper and you're reading
+1:42:51
+a research paper of llama. The next time what your idea should be that why are we
+1:42:59
+doing that thing of normalizations there tomorrow llama will come up with maybe
+1:43:06
+another research paper will come up with a different normalization techniques
+1:43:11
+that technique can be a good efficient way. Do you really think um uh the
+1:43:17
+current uh um RMS norm is good? No. I mean when users is into the architecture
+1:43:24
+so when you eventually want to look at let's say another paper look at the idea
+1:43:29
+of normalization there later they will present their approach.
+1:43:34
+What matters for you is that's that's why a lot of people also have a hard
+1:43:38
+time reading research papers is they don't know because lot of mathematical
+1:43:41
+concept will go above their mind. That's one of the way people read research
+1:43:46
+papers is eventually look at things from the perspective of
+1:43:50
+um if I be crudely honest if I read research papers I have my mind settled
+1:43:57
+on topics maybe their little bit of approach on
+1:44:02
+how they have done for example if I knew that normalization is one technique to
+1:44:07
+be able to u you know bring everybody at the same scale
+1:44:14
+So that no we don't uh we don't do that biasness
+1:44:20
+what I'm really saying is I am looking at a word in quen you have RMS
+1:44:27
+normalization step
+1:44:28
+>> but in a lot of other architectures they say you do not need
+1:44:34
+normalization they say no if the representations is
+1:44:39
+higher and embedding is as per the context of what I'm developing then I
+1:44:43
+don't need none because I want it to focus on and create that biasness
+1:44:48
+while some other people might say okay here is another architecture so this is
+1:44:52
+very important thing which I wanted to convey is focus on what is intending to
+1:44:59
+do slash approach okay now the obvious thing is let's say that uh you read a
+1:45:08
+research paper right you find step of normalization.
+1:45:15
+In quen they don't mention normalization. Normalization is
+1:45:18
+mentioned in two two words there. But the bigger explanation is mentioned is
+1:45:24
+why they think they disagree with the previous concept.
+1:45:28
+So they say they make a statement of general. No we don't we know we don't
+1:45:32
+need to have bias in a base models. But there are claims for example let's
+1:45:37
+assume that you normalized you normalized and brought them to same
+1:45:40
+scale using some some technique known as RMS norm
+1:45:45
+you can just look it up online the equations if you're interested but
+1:45:49
+ultimately what it's trying to do it's trying to look at everything and trying
+1:45:52
+to bring the same scale by looking at the other tokens deviations
+1:45:57
+what is happening you're taking the particular X matrix you're convo you're
+1:46:02
+applying a normalization step onto each tokens inside onto each coordinates
+1:46:08
+inside each token and then you're ultimately converting that why are we
+1:46:12
+converting it why why there was a need please I mean tell me why are we
+1:46:18
+converting it why are we converting even thinking
+1:46:24
+about it don't don't uh look at from the
+1:46:29
+perspective of uh no okay let's assume that we say unbiased compar comparison.
+1:46:34
+Good. Now tell me we changed its representation.
+1:46:40
+Okay, we changed its representation.
+1:46:45
+Now tell me I want you to be thinking very logically. We change X to be
+1:46:51
+represented U. Okay.
+1:46:56
+But now correct that way is changing the meaning also.
+1:47:02
+You change some sort of representation that is changing the
+1:47:08
+meaning. How do we solve it? Shas.
+1:47:14
+If I change my representation, then I will then I will do my job. I
+1:47:19
+will do my job of looking at the past context. Why we did the representation
+1:47:23
+at the first place? So that when we look at the previous tokens,
+1:47:28
+when we look at the previous tokens, I should be
+1:47:37
+helping a normalization. You all say unbiased.
+1:47:42
+Why are we doing that? So that when I look at the previous tokens, I should
+1:47:47
+not wait anything more. the there should be a useful comparison
+1:47:52
+when I cons when I look at the previous two topics. So let's say you say now I
+1:47:57
+looked at the context now I looked at the context but that
+1:48:02
+also changed the meaning right now you have a after looking at the
+1:48:08
+context I have a different way to represent let's assume that is an h you
+1:48:13
+had your original matrix x 3 which means the time you normalized it and then
+1:48:19
+become u3 and then you have after looking at the context you have a x3 H3
+1:48:29
+right now tell me one thing very importantly
+1:48:33
+is does H3 represent here our original was X but we did some something and H3
+1:48:42
+came something so can I do one thing
+1:48:48
+to retain its original meaning ultimately what is X
+1:48:53
+has the original representation right it's a in internal our
+1:49:00
+representation of X so once we do the context and things like that then what's
+1:49:04
+happening I'm creating a new representation of X
+1:49:09
+correct I'm creating a new way to look at X what is that new way that new way
+1:49:14
+is because I consulted previously time the
+1:49:21
+new representation of time is the combination after I consulted
+1:49:26
+after I look at the context the H came is a new representation. So can I do one
+1:49:34
+thing? Can I take my original representation
+1:49:39
+and then plus it? Can I say this?
+1:49:45
+So my newer representation my my newer representation so my final
+1:49:50
+representation is not H3. My final representation is combination of your
+1:49:57
+original representation and after looking at the context and doing
+1:50:01
+everything the H3 that plus combination why are we doing plus is ultimately we
+1:50:08
+wanted to combine both of the representations that's why
+1:50:19
+but I want you to think very logically Do you think
+1:50:24
+see I don't want to think mathematically over here for you to understand it. Do
+1:50:28
+you think that how would that change? Okay, let's
+1:50:34
+understand this. Let's understand we we'll go into detail but I want to solve
+1:50:39
+the questions. U Siddhar keep the question of plus here. P when you look
+1:50:46
+geometrically things might make much more sense if you understand matrix
+1:50:49
+multi addition and multiplication geometrically you are trying to retain
+1:50:54
+the information you are not combining the effects of it multiplication dot
+1:50:59
+product is I'm combining the effect of it what you're doing is combining the
+1:51:03
+both the representation right now tell me one more thing is Shrian told
+1:51:12
+my original matrix is 64 4 ways to represent things.
+1:51:16
+When you normalize there is a 64 ways to look at things correct my u my x is this
+1:51:22
+my u is 64 correct now tell me I looked at the context I look at the previous
+1:51:29
+context so the output should be also 64 no what I'm doing is I'm not changing
+1:51:34
+anything I'm changing only how I'm looking at things
+1:51:41
+right so my even the output h is coming 64 so my X was 64th and my H was 64th
+1:51:49
+when I do the thing. So do you really think
+1:51:54
+it's uh so how did researchers came up with this idea? When they experimented
+1:51:59
+after normalization they found that when my model was did something here three it
+1:52:05
+forgots the original in representation without combining the effects of it
+1:52:11
+without creating another transformation can I combine the essence
+1:52:16
+of it. They said this is known as residual
+1:52:22
+connection. You should look at the when you look at
+1:52:26
+the research papers who don't read research papers. Look at what authors
+1:52:30
+thought about when they were working on it.
+1:52:33
+When they worked on it, they obviously face this problem. So they said okay
+1:52:38
+let's retain the information which is going to be very very important. So I
+1:52:44
+want you to understand this very importantly is whenever you talk about
+1:52:48
+not just one thing but whenever you talk about um papers like when you read any
+1:52:54
+papers you know I lost one of the competition
+1:52:58
+and when I went to the paper I mean there was one of the guy and he was from
+1:53:02
+Stanford. I asked him dude how did you even thought about this? He said no bro
+1:53:08
+I just went to the um um I just looked I used to read research
+1:53:17
+papers in a way to understand the thought process of the researchers
+1:53:19
+rather than what they used to do because new fail you we face one problem right I
+1:53:25
+shown you I made you at least feel the problem the H3 is changing the
+1:53:29
+representation so obvious combination is a sense
+1:53:34
+why do you think we normalized why do you think we made x to you guys why do
+1:53:38
+you think we made x to We made it to remove bias. Why we made
+1:53:53
+it to remove bias? So that the past context it looks at correctly.
+1:54:00
+So once we look at the past context then I want things and things back. No,
+1:54:07
+then I want my things back. Yes. Which which brought the bag by us?
+1:54:12
+Yeah. Got it. Yeah. Correct. Great guys.
+1:54:35
+Tun. You see how RMS prop is. I mean that the equation when you say std what
+1:54:40
+do you mean so standardization occurs after feature
+1:54:50
+scaling. So you have so in in machine learning terms we have right
+1:54:54
+normalization standard scaling then there are multiple normal scaling and
+1:54:57
+all that. Similarly here also we have a word known as RMS and this there are
+1:55:02
+thousand such normalization techniques. For example, you said very interesting
+1:55:06
+thing. Could not we normalize first and then incorporate the vocabulary.
+1:55:12
+Tell me why it is not possible. You have a table
+1:55:17
+correct. Your time comes from here.
+1:55:25
+You did some really equations on top of it. RMS a technique.
+1:55:32
+You bought a new time. Can you really go back and find using that number?
+1:55:44
+Most probably no. But Darun good experiment to try if you can do some
+1:55:48
+representation. I'm sure some researchers have tried this. I'm
+1:55:52
+definitely sure uh researchers have tried this and they have succeeded also.
+1:55:57
+So is there any way to be ah yeah I I I got the name. What is that? So basically
+1:56:02
+I remembered I was reading some paper Microsoft launched
+1:56:07
+auto improving capability into training itself. This is what they were doing.
+1:56:11
+They were saying when I change the representation can I incorporate the
+1:56:15
+newer representation in the embedding table itself.
+1:56:19
+Forgot the name of the paper but there are separate ways you look at it. Very
+1:56:23
+interesting questions. I like how your questions eventually came. These are
+1:56:25
+very good research questions. condition to that you can hypothesize
+1:56:30
+this nicely. Um
+1:56:35
+but don't go and research right now. Let's focus on
+1:56:39
+implementation. So what we did your X matrix had four mult* 64. You normalized
+1:56:47
+it. You got a newer matrix W sorry U. Then you preserve the original X. You
+1:56:53
+don't throw it away. You do some forget this word right now. I don't want you to
+1:56:57
+scare but you look at the past context because that's what you need and then
+1:57:01
+you do original state which is your original state this is the original
+1:57:04
+state and then your attention update that is your solution this is plus known
+1:57:08
+as residuals
+1:57:14
+okay just just for you know I mean different different magnitudes and all
+1:57:17
+that so that's why we normalize Great.
+1:57:45
+This this equation should make sense where we stand now. Tokens get converted
+1:57:49
+into ids. Every embedded ID get converted into embeddings and then we
+1:57:53
+normalize it using RMS nor for Quen architecture. We using Quen tokenizer to
+1:57:58
+tokenize and then embedding lookup has 151,669
+1:58:01
+vocabularies. From there we are taking stuff. Gives me a thumbs up guys. Give
+1:58:05
+me a thumbs up. Everything is good. Pratik
+1:58:20
+Pratik I saw what problem you choose. The most simplest problem. What Sham
+1:58:24
+said we were. Do you really think that we
+1:58:28
+could not get but very good work? I like how you acted smart.
+1:58:47
+Okay. Tell me one thing. You have
+1:58:57
+a matrix X. You converted to the matrix V
+1:59:05
+not you might um
+1:59:12
+um X eventually is having some matrix converting to U.
+1:59:18
+You did something but why did you convert it to U?
+1:59:21
+to look at the context. Can I call that context some sort of
+1:59:26
+transformation? Correct. Why do I why do I call that as
+1:59:34
+a transformation so that I can look at the yeah new
+1:59:45
+representation what that new represent representation should be? that new
+1:59:50
+representation should be of the context like things like can I ask um
+1:59:59
+what what matters to me that new 64 numbers it should represent a way what
+2:00:05
+matters to me what matters to
+2:00:11
+what not matters to me multiple things so that new
+2:00:14
+representation should consist of which right I mean there are multiple
+2:00:21
+ways so your guys I need this this to be engaging that's where the class is long
+2:00:28
+so you is is is having this way of
+2:00:37
+for my U3 which means for my time I'm having 64 ways to represent
+2:00:45
+correct Similarly you have a separate for W is
+2:00:49
+time etc etc what I'm saying is you all remember
+2:00:58
+if I have to house price prediction example
+2:01:07
+house square feet toilets and bathrooms rooms predict the
+2:01:13
+price. Correct. We wanted it to
+2:01:19
+look at every single which means we were attaching weights W1, W2, W3, W4. Why
+2:01:27
+were we attaching weights to get to my final one? We were doing
+2:01:39
+something like this. in supervised learning
+2:01:45
+correct to be able to come to the B to know how much info in importance they
+2:01:51
+hold. I wanted to know how much mile this X1 holds
+2:01:58
+how much important each feature is. Yeah, it said how important each feature
+2:02:02
+is. Similarly, W2 similarly similarly, right?
+2:02:07
+Can I can I do one thing? Since I call this view time to be 64 ways
+2:02:21
+to represent it means 64 columns.
+2:02:33
+Can I do one thing here? I can put W1, W2, W3, W4, W5, W6 all the way to W.
+2:02:46
+Why are we doing this? We are doing this for girls to
+2:02:53
+decide how much my output gets impacted to create some sort of transformation.
+2:02:59
+What that transformation is I will talk about
+2:03:03
+in a nutshell. As of now understand context
+2:03:06
+but I can put some and then I can multiply with the number W1 multiply by
+2:03:12
+the first row W2 multiply by the second row third row fourth row fifth row sixth
+2:03:17
+row sorry six sixth column 7th column 8 column 9 column 10 column
+2:03:24
+that's what we are trying to do W1 multiply by your first coordinate so you
+2:03:28
+0 0 your first coordinate of time Plus I'll
+2:03:34
+not add plus right now. W2 * U01 W2 W3 multip 0 U2 W4 U3
+2:03:45
+all the way down to the W64. Why are we doing this? To create a
+2:03:52
+transformation. What the transformation is? To be able to understand the better
+2:03:55
+context. So how we'll be able to get the better context
+2:04:00
+when we have better W's? Sorry, which means we'll be we should we should be
+2:04:04
+able to get these W or weights. If you remember our logistic regression and go
+2:04:10
+back to those kind of lectures, we said we need to get the right W's to get the
+2:04:16
+right answers. What these W's are geometrically it is
+2:04:21
+speaking about how much important should each dimensions of time should be given
+2:04:27
+to. Imagine
+2:04:30
+each importance each dimension over here but and then you combine the effect of
+2:04:39
+it and then you combine the effect of it which means the weighted average dot
+2:04:44
+product dot product which you do you get some output
+2:04:49
+let's say I call this Q0
+2:04:54
+I will call this Q0 now what I will
+2:04:59
+I will okay this is one thing to understand that but here I am trying to
+2:05:05
+understand time
+2:05:11
+through W1 W2 W3 W4 W I mean different different ways the the coordinate
+2:05:17
+can I call this recipe one to understand W to to understand time
+2:05:24
+can I create more recipes like this to understand deeper
+2:05:29
+Can I say another recipe too? For that I will have
+2:05:38
+W first row and zero um space same matrix my input will be same the input
+2:05:50
+the time I won't change this this will remain the same my in the the
+2:05:57
+representation my the the the the overall
+2:06:01
+representation will remain the same similarly over
+2:06:04
+W 2 W1 1 2 0 1 + W 1 2 * a different recipe. I'm changing the weight but I'm
+2:06:17
+not changing the oh normalized vector of time. Why I'm doing this again
+2:06:26
+context I want to understand context right? So I
+2:06:31
+am saying that uh how much each matters
+2:06:39
+to me which means I'm looking at the transformation to to to get a new
+2:06:43
+understanding. So I am saying I can ask recipe to can I create another recipe. I
+2:06:50
+am not okay with only 64 ways of I mean I can create a different recipe. This is
+2:06:55
+asking another way to look at things. Similarly, your weights will change, but
+2:07:04
+your internal representation will remain the same.
+2:07:09
+Your U normalized will remain the same. You're just trying to ask more and more
+2:07:13
+questions. Can I keep on creating matrix life?
+2:07:18
+Because Shans mentioned that
+2:07:24
+my input matrix was 64 dimensionally. My internal representation was
+2:07:34
+64. Correct?
+2:07:39
+When you do some sort of context, this should also become 64.
+2:07:47
+So one way to understand this is we can ask multiple recipes for the same
+2:07:56
+things. Not one recipe two, recipe three, recipe three, recipe four, recipe
+2:08:01
+five, respect all the recipe 64 which means you can actually because
+2:08:08
+ultimately the output shape is also like that. You are trying to ask 64 recipes
+2:08:13
+in general. Why do we have multiple recipes to understand the context to ask
+2:08:18
+more questions? Let's call this this WQ.
+2:08:24
+This is just one way I want to show you a that
+2:08:30
+some sort of representation change is happening.
+2:08:34
+Some sort of transformation is happening. What the transformation is, I
+2:08:37
+have not come as of yet. I'm just trying to show you that there can be multiple
+2:08:42
+recipes up to 64.
+2:08:46
+So we need to look at the vector at one place in a space. But correct correct
+2:08:51
+Brian amazing Brian we look at in a different different ways. So if we can
+2:08:57
+so let's assume but why are we looking at a different base give give a logical
+2:09:03
+answer but we wanted to predict the next answer next target correctly which means
+2:09:08
+sorry this has not been useful so
+2:09:14
+how do we expect these all these weights to be producing the correct answer if we
+2:09:24
+can have better weights then we can produce a better answer which which
+2:09:28
+Sadhart mentioned correct is that's my answer if you look
+2:09:37
+at from a machine learning point of view also you are ultimately trying to get W1
+2:09:42
+W2 W3 so that you can get to the right weight right number
+2:09:49
+and then you calculate for example let's say um
+2:09:56
+But let's let's assume that your model predicted house price to be 16,000
+2:10:01
+rupees but actual house price was 18,000 rupees. What was happening? We were
+2:10:06
+doing minus of it right and then we were doing what?
+2:10:11
+Grad gradient descent right loss correct loss was doing what? It was going and
+2:10:16
+changing those W's and W1 and W2 so that we can reach to this 18,000.
+2:10:22
+Similarly here analogically optimization happens in a similar way
+2:10:29
+but uh we'll come back to what that optimization is but we are saying that
+2:10:36
+you have not just one row to look at no quen has more than 64
+2:10:43
+you look at I'm not sure shell is our example has 64 but other um recipes have
+2:10:48
+more than 64 which means thousands of uh parameters That's why we call it right
+2:10:54
+your um um trillions parameters models. So can I so if you take an example let's
+2:11:06
+assume your U was this so you attach every weights to it and then you do the
+2:11:13
+dot product between one of them to get a new one then that's one recipe then you
+2:11:18
+look at the another recipe another recipe your W will change
+2:11:23
+your W will change again third recipe your W but your input will remain the
+2:11:28
+same so if you look at for every coordinate
+2:11:33
+at least for the first coordinate not for the row zero which mean for one
+2:11:37
+recipe we are going to take the U3 for our time
+2:11:42
+the some initialized weights do the product
+2:11:48
+ultimately you're going to get the final same you do for all the 63 and then
+2:11:53
+you're going to do the sum of it sum of all 64 products
+2:11:59
+that is your first recipe combination 1.3 3 914.
+2:12:07
+Yeah, recipe just a vector of H. Correct. Now what you do? You look at
+2:12:11
+the same U3 but this time your weights will change
+2:12:14
+for the second respect. Then you do again a sum of and then you'll get some
+2:12:18
+another number Q31. Similarly you keep on doing for Q 64 63.
+2:12:28
+No your high no matter your numerical representation I don't care what is
+2:12:32
+there I am asking it to create multiple recipes and what these recipes are these
+2:12:39
+recipes are the dot product which means the effective conversation
+2:12:46
+why do we do multiplication why are we doing why geometrically help me
+2:12:50
+understand why do we do this ug why why were we multiplying house price house
+2:12:57
+square feet multiply by W plus square I mean number of a toilets multiply by
+2:13:03
+some weight to identify how much it matters to me the effect of it right
+2:13:09
+that's what dot product is essentially doing is understanding how much effect
+2:13:13
+of it is there so that's why we are trying to create the representation out
+2:13:18
+of it you're trying to create the
+2:13:21
+representation out of it and this sum and when Add all of this comes. But why
+2:13:30
+do sum it? Why combine all 64 coordinates? We are saying your U3 has
+2:13:37
+you for for one recipe. There are 64 recipes. But for one recipe, why do we
+2:13:42
+end up combining everything? This is what you were doing over here, right? We
+2:13:45
+were combining all the 63 one number. The feature I need depends on a
+2:13:54
+combination of many old features which means your similar stuff which you
+2:14:00
+are learning in machine learning stuff is we want it to not only
+2:14:07
+um look at let's assume that a particular word is represented by
+2:14:13
+readiness size speed weight. So the new representation by looking at
+2:14:18
+the context and everything it might be your combination of
+2:14:25
+by these weights. So that's why when we combine it we are
+2:14:31
+learning because it depends that's why the dot product is senses
+2:14:35
+geometrically. If you think dot product does something similar, it eventually
+2:14:40
+shows a new representation of the two combined vectors.
+2:14:52
+Okay. How do you identify the correct debate?
+2:14:57
+Initially you cannot. So Rishek were you in um supervised learning session? You
+2:15:02
+know we were talking about if your linear refresher produce 16,000
+2:15:09
+prices you were saying the actual value is
+2:15:14
+18,000. So basically the difference is the 2,000 which means that's an error.
+2:15:19
+So you had something as mean squared error. So you initialized the weights
+2:15:23
+randomly initially. There are several weight initialization
+2:15:27
+zero random whatever Xavier. Yes. Yes. behavior initialization techniques
+2:15:33
+things like that. Then when you calculate the loss you are
+2:15:38
+this much away from your final output here remember it is showing the
+2:15:44
+probability. So it is talking about log loss.
+2:15:48
+So how much away I am then you go ahead. Okay this is how much away if it is plus
+2:15:53
+or your derivative of so we'll talk about that in a very little. So this is
+2:15:59
+how much the error is. I'm going to simply change the weights.
+2:16:05
+Yes. So that's why I'm trying to take keep it very simple in this at least
+2:16:10
+it's very simple for them somebody who is who already knows gradient descent.
+2:16:13
+If you know gradient descent things will be much simp simpler but for those of
+2:16:17
+you do not know don't worry we have an office hours for you to understand that
+2:16:21
+and more importantly it will start to make sense once you know gradient
+2:16:24
+descent. Okay,
+2:16:28
+my I I'm again going to represent I wanted
+2:16:39
+which is a internal representation. You have your U
+2:16:48
+which is the normalized representation. Then you did some sort of T. I don't
+2:16:54
+know what that T is as of yet but the T is saying I want to understand new
+2:16:59
+recipes of the something of the you by learning those ways and I
+2:17:08
+don't want to learn only one recipe but I want to learn 64 different recipes of
+2:17:13
+it. So
+2:17:16
+for the first recipe for the first u which means for the first t0 this is
+2:17:21
+let's assume t3 0 you have the combination of this is the weights by
+2:17:27
+the way this is your first second third all 63 and then that's a coordinate
+2:17:33
+number zero you keep on doing that you get the co
+2:17:37
+coordinate to do for this entire 64 recipes to do for the entire 64 recipes
+2:17:44
+You have something known as you give Q3 which means it's an input. Your WQ
+2:17:51
+eventually is one of the weights parameter which is which acts like how
+2:17:53
+your transformation looks like output is again the same representation sorry not
+2:17:58
+in the same shape because I do not want why should I
+2:18:02
+change the shape of it because if I want to learn my X how to understand the
+2:18:06
+context of it why to change the shape of it otherwise you cannot do calculation.
+2:18:12
+So we are understanding from a 60 several recipes 64 different recipes to
+2:18:18
+to be able to get the final answer. To put it in perspective
+2:18:53
+Look at this. No ankit. Not yet on self attention.
+2:19:02
+Yeah. Yeah. Bryant notes is just the so much of max. Uh it just paste and
+2:19:09
+understand and you'll understand. You see
+2:19:14
+64 different recipes,
+2:19:18
+right? What you going to do? You want to combine the all of it to get your final
+2:19:22
+different representation. So mathematical details like transpose
+2:19:27
+and all is written in the rows itself so that you could understand. So what
+2:19:30
+you're trying to do, you're trying to take a U matrix your WU waste of times.
+2:19:36
+You're trying to take the same. Okay. Now let's understand one small thing so
+2:19:39
+that you know people will see this as a Friends,
+2:20:10
+tell me one thing. Thanks to Suchanti, she develops my notes.
+2:20:20
+People who work with me to develop these kind of thing have a horrible nights
+2:20:24
+because they they they cannot really function properly because they have to
+2:20:30
+do a lot of iteration on that. Well uh tell me
+2:20:36
+we converted this using some representation to understand the
+2:20:41
+previous context. I want w uw
+2:20:46
+because that is also our x matrix is not just time x time is at last but this w a
+2:20:53
+is of sign so u w is also say 663 we'll also normalize it so your u also becomes
+2:20:59
+something um uh you know different
+2:21:04
+right now here you wanted to also learn 64 different recipes
+2:21:11
+am I right or Do you change the weights or you don't?
+2:21:18
+If yes, if no, why? Because ultimately for W also you need
+2:21:34
+no for W there is 64 prime 6 60 or for waste of time for W.
+2:21:40
+Okay, let me repeat the concept. Look at this.
+2:21:49
+You have multiple things.
+2:21:55
+You all agree to me that each one has 64 dimensional thing.
+2:22:03
+Now for each thing you all agree to me on that also that
+2:22:11
+Each one is normalized. So you have the same shape. Your u is also in the same
+2:22:16
+shape. 4 into 64. We said for time to understand the
+2:22:24
+context or to learn some sort of transformation. I'm going to look at 64
+2:22:29
+different ways. So you multiply 64 grades and there are several ways. There
+2:22:33
+are different different weights at 64 with different recipes.
+2:22:37
+Correct guys. here here yeah different different
+2:22:42
+recipes here the weights were let's assume W1 W2
+2:22:48
+W3 W11 W12 W13 etc etc you have different different this is how the
+2:22:54
+weights should look like right that's what the different different piece to be
+2:22:56
+able to create the final representation tell me do the weights will change here
+2:23:02
+here if no Right.
+2:23:20
+I want these weights to not only learn about time but we want the
+2:23:25
+representation of the same context in all the tokens.
+2:23:29
+Amazing. If you even think logically, let's think
+2:23:33
+logically. Let's let's remove max. We want it to be having same. So my weight
+2:23:39
+matrix remains the same WQ. Oh sorry yeah WQ 64 by 6 because my
+2:23:47
+dimension of the entire embedding is 64. So my weight remain the same. Why?
+2:23:52
+Because the representation of the same context in all the tokens. So your final
+2:23:59
+thing comes out like this. So for one of them
+2:24:05
+looks something similar to this right what I'm really saying is your and
+2:24:12
+so now you get the whole point if we can learn the weight
+2:24:18
+w I can understand every single thing that representation will tell me the
+2:24:24
+final output will tell me everything about the context every single thing w
+2:24:30
+uw Q is U of Q type. Is that right or not? Logically also
+2:24:37
+if you think very logically then if I'm using the same weights every single
+2:24:42
+time. So let's say final answer is
+2:24:51
+sorry this has not been useful. Sorry it has not been useful. So if I
+2:24:59
+change one if if we go back because the answer is different if the loss goes
+2:25:04
+back I'm going to change the weights it won't
+2:25:09
+only change this but it will change it will have us the representation
+2:25:14
+because we have the same W. You all understand why do we have same
+2:25:19
+W. Please help me. Of course, your final answer. If you
+2:25:28
+know gradient descent, this will make sense. However, if you do not know,
+2:25:32
+that's also fine. Think logically there. Okay,
+2:25:47
+this is what it means. We don't have WQ tokens.
+2:25:55
+Okay. Do we have let's Okay, that was waste of time. Sorry. Waste of time is
+2:26:01
+one of the example. One of the example, right? In our training. We had another
+2:26:08
+example. What was that example? Job search.
+2:26:15
+The next stop comes in, right? So, we have two two two different examples.
+2:26:21
+Now tell me WQ will change there the transformation will change there in both
+2:26:25
+of it or it will remain the same think little bit I'm going to connect my
+2:26:47
+charger and give me 5 minutes Why are we learning context? Answer this
+2:27:04
+question. Why are we understanding context?
+2:27:10
+Why are we understanding context? To get the final answer. What is the final
+2:27:14
+answer? Sorry, this was not useful. Correct. in the first example.
+2:27:19
+But why are we even going to that? So that it incorporates my organizational
+2:27:23
+behavior. If my data set contains in this example,
+2:27:28
+this should produce this. So the other example should also be
+2:27:32
+consistent enough to show the same behavior otherwise my data set itself
+2:27:36
+has a problem. Right?
+2:27:42
+So ultimately why should WQ should change? WQ is not about context about
+2:27:48
+one training example, right? WQ is a context about every training example
+2:27:51
+which I have. The recipes is not just about one training example.
+2:28:01
+Look at this beautiful image. By the way, this was used in teaching
+2:28:18
+IIT BHU. I taught this for same five hours LM internals
+2:28:26
+and it I I did not taught it to students. I taught it to professors and
+2:28:30
+I still have the video. I don't know if some guys were here or they there or I
+2:28:34
+think some we have we must have itbu students here.
+2:28:39
+It is a huge slide. It is very very interesting slide.
+2:28:44
+Because see the problem which I feel in today's attention lectures is too much
+2:28:51
+ability to focus on attention when should be ability with thought process.
+2:28:55
+I think hot process here matters a lot generically
+2:29:00
+you know think about it is
+2:29:06
+if I just come and tell you WQ WQ is we have everywhere but then why are we even
+2:29:12
+figuring out WQ is to ultimately learn the data so what's the problem if your
+2:29:17
+data itself has a problem no matter how much doubles you incorporate
+2:29:21
+you're going to not learn the right behavior so your problem is data.
+2:29:27
+So that's how you ultimately come in debugging. That's why I say even your LM
+2:29:31
+internals matter is lot of time people focus on solving the wrong problems when
+2:29:36
+you finetune an SLM and you see this giving us different different behavior.
+2:29:41
+The first and foremost step is to verify the consistency of your data.
+2:29:47
+And that's why I say this 90% of the part
+2:29:51
+because fine-tuning is three steps. Forward,
+2:29:57
+backward, and optimize. But what is forwarding and what is
+2:30:05
+backwarding is ultimately your data right now.
+2:30:25
+Read this quickly. We have don't read this attention or
+2:30:32
+anything. Just read this thing for a time for token ID times embedding
+2:30:41
+gets converted normalized. Normalize have
+2:30:45
+uh the W. No. Why are here my goal is not
+2:30:50
+generalization. Here my goal is to teach you element interface.
+2:30:54
+Uh my goal is to process also little base is different should be different.
+2:30:58
+But what we are doing is just understanding the internals then you'll
+2:31:03
+understand anything which comes after it. See inferencing which comes after
+2:31:07
+it. It's a matter of seconds you'll understand which means if you understand
+2:31:11
+the goal in general this inferencing techniques and anything which will come
+2:31:17
+will look like a kid to you because yes Gishma
+2:31:27
+full questions Gisha full questions
+2:31:30
+>> yes that's correct otherwise what's the
+2:31:35
+See let's assume why do we generalize
+2:31:48
+can we have all the data in my life? No. Right? We can only have certain
+2:31:55
+amount of data. So we need to if it is about not
+2:32:00
+generalization if and else statement works.
+2:32:07
+So you I'm glad I took the charging section. My
+2:32:42
+charge was completely unable and now we don't have any charging and people are
+2:32:46
+just going outside of the cafe because there's no charging
+2:33:02
+So I eventually went to third wave. Okay.
+2:33:07
+The horrible people there who was sitting behind me. That's why I took 10
+2:33:11
+minutes late. No. Um this horrible guys were shouting and
+2:33:17
+there was a kid and he was touching my mic. I mean see
+2:33:22
+every time it happens in third wave a kid will come and will play with my mic
+2:33:27
+and and that's so frustrating at times which means I do not know but I it might
+2:33:32
+be controversial opinion but I think parents should control their child
+2:33:36
+because it's my property and I just don't like u them to in middle of the
+2:33:42
+class and I'm controlling another Okay.
+2:33:52
+>> Yeah. Because I'm from out north part of India, right? So here in Bihar, no, we
+2:33:58
+were taught like this that oh, you know what, manage and and it's it's it's
+2:34:02
+fine. If you go in America and if if some kid does something like this, the
+2:34:07
+kid is doomed and the parents are also doomed. Some of the Americans will
+2:34:11
+realize it. It's so much done for them, right? It's done, bro. They will speak
+2:34:17
+up very nicely. No, you cannot. It's my boundaries. In India, at least from my
+2:34:24
+my mom and dad, the way they have taught me is be nice. Don't have to, you know,
+2:34:29
+sugar coat. Exactly. They will not do mistakes. Then who will do? Then don't
+2:34:34
+come into my school. That's why I had to shift from third to blue.
+2:34:53
+Okay. Tell me
+2:34:57
+can we only learn? Okay. Now what's
+2:35:07
+Okay. Uh tell me one more thing. We were learning some representation or
+2:35:14
+transformation here. Correct. Here
+2:35:26
+in transformers architecture you have three
+2:35:30
+transformations. to understand what context
+2:35:34
+you are doing this just for one thing. You're creating transformations for
+2:35:47
+context nothing else. Right?
+2:35:58
+So in attention mechanism or any transformers anything at least whatever
+2:36:03
+you will see you have three different ways of transformation
+2:36:09
+to understand context if you do not know don't worry very
+2:36:18
+simple concept I don't know why people hype it up um and I know how logical
+2:36:23
+this Okay, tell me one more thing.
+2:36:29
+Why we cannot just use U3 which means normalized
+2:36:34
+and learn to predict next tokens? Why we need new new level of
+2:36:38
+transformation? Why we cannot just use U3
+2:36:42
+and and and just learn W1 W2 W3
+2:37:00
+tell me why we cannot correct.
+2:37:08
+Exactly. Context. Everything is about context guys. Um huh relaxing residuals
+2:37:15
+context multiple things but but I think the major aspect is context.
+2:37:20
+So I wish Ram was ra was here. uh we will
+2:37:25
+we would have frog much more on the context but what is the context is about
+2:37:32
+if I'm at time and I want to understand waste of time
+2:37:38
+if I want to if I'm at time I want to ask two questions
+2:37:44
+the first question is decide who is relevant which means which previous
+2:37:49
+token should I listen to and
+2:37:58
+retrieve useful information. So if time says
+2:38:03
+then my new information H will first listen to haste. We'll listen
+2:38:11
+20% to a what 20%.
+2:38:17
+90% to a W to 10%. no 9% off to 1%. So my new
+2:38:25
+representation is basically the combination of it.
+2:38:32
+If I look back the two questions it is asking is
+2:38:39
+who is relevant and if time chooses to listen to waste
+2:38:48
+90% then what should I pull from that
+2:38:56
+for example I don't know why I picked I I I need to I I need to choose Pratik
+2:39:04
+or um a person from United States, Alex. So my next work is let's say to jam with
+2:39:15
+a person. Okay, which means to be friends with the person. My my my
+2:39:19
+requirement is that. So what I'm going to do, I'm going to look at these
+2:39:22
+people. I'm going to say okay to really you know be with these kind of
+2:39:27
+person which one would make more more sense to me? I say okay pratik is of
+2:39:32
+around my age I would choose to go with ratik
+2:39:37
+but once I choose to go with pratik I need to know what I want to jam with
+2:39:40
+pratik right I I need to know I can what is the useful thing which I can take
+2:39:45
+from fatik similarly we have different stuff
+2:39:50
+imagine you have we have a mathematical questions
+2:39:55
+okay and pratik is there sadhart is there and uh Bryant is dead.
+2:40:02
+So Brian and I go back and see okay I think Brian
+2:40:07
+based on you are based on what I know about you or based on what you hold in
+2:40:11
+your hand and you say that hey I'm good at maths I'm good at this I will say
+2:40:15
+okay go ahead with Brian because he seems good in maths but once I come to
+2:40:19
+you Brian I need to ask you question I need to really extract information from
+2:40:24
+you that's my second job otherwise I can choose to listen to you but I should be
+2:40:30
+able to pull useful stuff from you. So if I want to transform my U,
+2:40:38
+I'm ultimately stopping about several pieces of transformation.
+2:40:46
+Well, I want to understand in terms of who is relevant and not just who's
+2:40:51
+relevant, but also I want to understand in terms of what should I pull the US
+2:40:57
+file from? which means the retrieval useful the the retrieving the useful
+2:41:02
+information that's what is all about I don't think
+2:41:06
+it's a big of an issue to I mean uh do you understand so let's try to
+2:41:09
+understand with a search analogy simple simple analogical understanding
+2:41:14
+also yes Briant I'll come to that
+2:41:21
+let's say um I'll come to Briant on that let's
+2:41:24
+let's understand for other people another knowledge So that you understand
+2:41:29
+let's say you search something which means a search request describes what
+2:41:35
+information is needed that's your query. So if you are at your child
+2:41:42
+you are asking some question
+2:41:48
+whom should I match with? Then you have W based of these three
+2:41:57
+tokens which consist of which has a board to them
+2:42:03
+which is known as the keys to them which means this is what I
+2:42:10
+show and once I match with them
+2:42:16
+what useful content I need from his user sorry
+2:42:22
+Similarly, I will come to again the general question. But first, let's
+2:42:27
+understand WQ. Which means if I go to if I if let me show one example here. There
+2:42:34
+was a good example. If I'm looking for if my full profile U
+2:42:40
+is age, city, education, high interest and all that.
+2:42:45
+If I want to understand so I obviously want to have some quick Q which means
+2:42:49
+I'm looking for backend Python file if I'm hiring somebody so if I want to
+2:42:54
+transform my U so it looks all the context and all at least I'm going to
+2:42:59
+look for okay this is my search then I will want to go ahead with all the
+2:43:04
+people who is in my database right who is offering what they offer
+2:43:09
+they offer back in Python in 7 years rums right Now once I go to them then I
+2:43:17
+need the useful content from them. Just like bride if I choose bride to listen
+2:43:21
+to which means I'm matching with him. He has some information and I have some
+2:43:27
+information. So I'll match with him. First of all, Tinder
+2:43:31
+hinge you have some query which means once you
+2:43:36
+click on match and if the girl accepts then you have to talk that's your value
+2:43:45
+we so that's what these two essentially means
+2:43:51
+is let's first of all decide who is relevant so asking the right question
+2:43:57
+and then matching with the right key of that person. If you're matching with
+2:44:01
+that person and once I have retrieved then I need to get the actual useful
+2:44:06
+information from them. V conversation you'll understand more.
+2:44:11
+I'll keep on giving more examples. So
+2:44:18
+your first you are learning over three different
+2:44:23
+uh transformations. You're learning decide who to match with
+2:44:30
+and what are what are we doing we are what why we are doing again I'm going to
+2:44:34
+repeat to understand the context you understand the context I'm going to
+2:44:40
+extract which question should I ask
+2:44:49
+whom should I ask and how to pull actual information from
+2:44:54
+Right? That is what is all about to understand
+2:44:58
+the context at least in the attention uh mechanism.
+2:45:05
+Now here let's understand this more simply.
+2:45:10
+We had something known as W paste of time. Correct?
+2:45:18
+this time is saying that because we are trying to
+2:45:26
+we have taken this token ID the attention is on this token ID I'll show
+2:45:29
+you the bigger don't don't worry I'll show you how it works on every tokens
+2:45:35
+time so I want to uh ask one question to it
+2:45:40
+is I want to ask what should I match My first transformation
+2:45:51
+is going through WQ. That's what WQ meant. We were talking about WQ, right?
+2:45:57
+64 different recipes. What it was trying to learn? It was
+2:46:04
+trying to say what should I match with now? Who who is allowed? Tell me
+2:46:12
+what time can match with? Who time? No. No. Who time can match
+2:46:22
+with? No. No. Who all? What is the
+2:46:26
+possibility? For example, if I'm on if I'm on hinge,
+2:46:31
+if I want to match with whom I can match with all the available profiles into my
+2:46:36
+selected filters, I can choose voice also. SH it depends
+2:46:43
+on my filter. So there you have this um filters.
+2:46:53
+So ultimately I I can only select which is available
+2:47:00
+to me something which is available to me right
+2:47:11
+so what I want time can only ask from off and w but you but what was our
+2:47:20
+training example in pre-training we were saying w is to a my x is I'm trying to
+2:47:24
+predict but I have the full example let's say
+2:47:29
+help me understand let's say
+2:47:35
+w ace of time over here you have
+2:47:46
+whole whole word you are have w you are here at w and you want to predict haste
+2:47:52
+Should it consult other people also
+2:47:59
+logically? So let's assume
+2:48:06
+you want to predict taste. You are at you are at W
+2:48:10
+and you want to predict the next token prediction is a training while training
+2:48:14
+you want to predict a because you're training you have all the samples right
+2:48:18
+of time. So should W consist also because to predict R to look at other
+2:48:24
+things does it has information
+2:48:35
+okay let's understand more simply about this birection LSTM correct but here the
+2:48:42
+whole learning problem is given everything which we know till now
+2:48:47
+predict next So this is not obviously available.
+2:48:53
+For example, when you ask what is machine learning to GPT? GPT does it
+2:48:57
+have already answers? No. No. Right? It has to make one token prediction then
+2:49:02
+use that then next then use that then next then use that then next then use
+2:49:07
+that. So you don't have the available information itself.
+2:49:13
+In training we do not know which means even sorry in inference in inference we
+2:49:19
+do not know training we have it that's why we are training in we have the
+2:49:22
+future examples also in training but in inference do you have examples no right
+2:49:28
+so our learning should be not looking what is actually going to be served
+2:49:34
+hello Hello. Hello. Hello.
+2:49:46
+Okay. Okay. So, can I say that? No. No. Not
+2:49:51
+battery. Full battery. Okay.
+2:49:59
+What I'm saying is my time can consult can match with W and time.
+2:50:12
+Correct, bro. My even math book is at is
+2:50:20
+surviving somehow. 17%. I'll keep on changing. Just remind me
+2:50:25
+this go 5%. I'll get it. So here you want it to predict next. So
+2:50:34
+time can go and match with other examples but it cannot because it does
+2:50:38
+not have access to while training. Sorry even training while trade will have but
+2:50:42
+we should frame it in a way so that it should not match with otherwise it will
+2:50:46
+get the context only to understand right that is one small thing no mess.
+2:50:53
+So in training what we do yeah then then then we are not solving our training
+2:50:58
+problem. If you logically also understand leakage is happening then
+2:51:02
+what it is uh training you. So, um,
+2:51:09
+uh, look at let me see if I could, uh, show you
+2:51:17
+from my example. Look at my um computer screen.
+2:52:01
+Okay. So, here you have this. Then what's
+2:52:07
+happening? Yeah, I will take one example of train
+2:52:14
+39. Waste of time here. What I want, let me refresh it. Waste of time.
+2:52:22
+Let's say that you are here time as you read which earlier pieces did your brain
+2:52:27
+used. Your brain would use of ace of time. So what you going to do? You're
+2:52:33
+going to look at time will ask all its earlier people.
+2:52:39
+This time will ask to off will ask to a and we'll ask to W. But it also asked
+2:52:46
+himself is how much should I listen myself? How much should I listen to off?
+2:52:51
+How much should I listen to taste? And how much should I listen to W?
+2:52:56
+Now off will ask how much should I listen to myself? How much should I
+2:53:00
+listen to off? to the a and how much should I listen to
+2:53:04
+off then a will ask how much should I listen to myself how much should I
+2:53:09
+listen to w and w how much should should I listen to myself
+2:53:14
+let me show you one simple example let's look at waste of time first of all what
+2:53:21
+you going to do you're going to take time and then say
+2:53:25
+what is relevant to me which means it will ask what is relevant to me by the
+2:53:29
+way time is represented into a 64 ways. So that's what it is ultimately. I'll
+2:53:35
+talk about what does it mean in terms of why this 32 here but forget about 32
+2:53:40
+over here. Look at 64 way 64 dimensional vector as from embedding rows. So first
+2:53:46
+of all you're saying what is relevant to me over here. So I will say okay let me
+2:53:52
+go back and check the keys of of a and w.
+2:53:58
+So when I look at the keys of of Ace and W
+2:54:03
+I tend to match with myself 35.3% with of 23.06% and 22.0
+2:54:10
+that calculation I will show you in my iPad
+2:54:15
+which means every queries sorry ultimately you want to match and then
+2:54:22
+you have the listen which means how much it should listen to. So you're going to
+2:54:26
+multiply the query of it the keys of everything and I will show you what that
+2:54:31
+keys means over here. But if you look at first
+2:54:36
+what is relevant to me every token including it itself will
+2:54:43
+have s keys also these keys queries and keys which for example if I go to Bryant
+2:54:52
+he will hold a key in his hand and this is what I offer and I will say this is
+2:54:55
+what my question is I will combine both of it to understand how much should I
+2:54:59
+listen to key. So if I if you see over here this is how it eventually come
+2:55:04
+gathering I will I will let you know in the iPad
+2:55:07
+understand the essence over here the essence is let's let's look at another
+2:55:10
+thing or another training example hi we just need LinkedIn profiles on rent over
+2:55:15
+here rent over here what you're saying what is relevant to me relevant to me is
+2:55:20
+so what you do you look at all the keys then you multiply your query with keys
+2:55:25
+of every everyone what they offer keys is what they offer query is what are you
+2:55:29
+asking when you're trying to see the overall
+2:55:32
+thing. So here I want you to look at again test of time and
+2:55:39
+look at how beautiful the things goes in terms of
+2:55:47
+when you look our example run example is this time
+2:55:52
+right this time can consult everyone before it
+2:55:57
+but this W cannot consult time haste cannot consult time. Why? Because
+2:56:05
+of a gobish things which we just talked about. But also this is known as causal
+2:56:09
+masking. Your curves is they will mask future
+2:56:15
+tokens and use that for training purposes.
+2:56:23
+I I want you to understand a very important word causal masking. Why?
+2:56:28
+Because it our framing if we don't have masking
+2:56:34
+then it will eventually become the problem. If if we cannot mask it which
+2:56:38
+means if we cannot hide it what is masking? Masking is eventually hiding
+2:56:42
+the future tokens so that we can be able to yeah paus
+2:56:51
+it has been written in your notes in detail what is the term
+2:56:58
+but let's look at being the first. So now let's come back to a running
+2:57:02
+example. What our running example you had a word time
+2:57:09
+the first is we have a WQ
+2:57:15
+correct for this token WQ was 64 different
+2:57:24
+do you all remember time WQ it was 64 different recipes you have 64 different
+2:57:30
+ways of asking questions Whom should I match with? It's just
+2:57:37
+asking that in English at least. I mean numbers uh see and and analogically in
+2:57:44
+English at least it should asking whom should I match with? 64 different ways.
+2:57:48
+Then you have another vector that vector known as W K.
+2:57:56
+So here you have WQ
+2:58:02
+multiply by your normalized thing. Okay, norm
+2:58:12
+normalized tokens of science similar and that will give you
+2:58:20
+64 different ways to think about the questions the final Q matrix. Similarly,
+2:58:27
+you are going to have keys because you also need to learn
+2:58:35
+the what do I offer for example do you really think
+2:58:41
+our time in the context in the context not I'm
+2:58:47
+talking about outside the context in the context does it know already what what
+2:58:51
+what do I I mean what do I offer into this context. Everything is all about
+2:58:59
+one word known as context. That's it. You are trying to learn WQ
+2:59:06
+which means what kind of questions then you're trying to learn WQ is this
+2:59:12
+is what I offer. If I show you a matrix.
+2:59:19
+Oops. Something happened.
+2:59:38
+Yes. You are trying to learn
+3:00:11
+WQ which means
+3:00:15
+query asker WK candidate which means this is what I
+3:00:22
+offer. We'll come to the W UV in a bit. Forget
+3:00:26
+about it. This is what we are trying to ultimately learn. Why? Tell me why are
+3:00:31
+we learning this? Why are why I'm trying to learn another representation which is
+3:00:36
+keys context. Exactly. I am trying to
+3:00:43
+understand the context entirely. And how will I end up
+3:00:47
+understanding context? See W K and WQ will remain the same not just for one
+3:00:54
+tokens but for the entire behavior. So when it gets tweaked when we go back
+3:01:02
+in when you understand grading listen no when we go back and change the weights
+3:01:05
+to match our answers we are literally changing WQ and WK not
+3:01:10
+for time only but also we are changing for other tokens as well as other
+3:01:17
+training examples in your batch. So WP and WK is not going to just tweak
+3:01:23
+for this token. you are going to get me for other
+3:01:27
+training examples. Correct? What that happens is if that
+3:01:33
+happens then you will start to make sense. Ah this is why the context this
+3:01:38
+click will come if you understand the whole context. The click is going to
+3:01:42
+come to you when you say okay WPA and WP remains the same. Pyra is the same even
+3:01:47
+for coupons not just for one even for the entire training data which we have
+3:01:53
+and when we tweak examples it is understanding context. So the better it
+3:01:58
+asks questions and the better it can offer answers.
+3:02:02
+So tell me can your uh thing can listen to the same W which means let's say time
+3:02:11
+time can match with its own representation yes or no. by this time
+3:02:16
+itself has keys which means for every token
+3:02:21
+you will want query which means here's what my question is for example for
+3:02:26
+token W you also want Q no this is what I want to ask for token
+3:02:32
+time you also want Q for everyone but why does time itself match with its
+3:02:44
+own. Why does it match? First of all, sometimes looking at our
+3:02:51
+thing is itself sometimes a very good job. But for other tokens, for example,
+3:02:55
+again, time has to look at the previous one.
+3:03:03
+Yes. Yes. Yes. So in future tokens for example after time there's something
+3:03:07
+known as sorry, right? In let's say in a training example, in training example,
+3:03:12
+right? So it has to also match also sometimes listening to ourel is
+3:03:18
+also very important. It should sometimes listen to us as well
+3:03:23
+own as well. So that's why it matches in lot of context you will also see that
+3:03:28
+that coming a very important part part that's why we say self self attention
+3:03:32
+mechanisms is I'll also look at myself but I also
+3:03:35
+look at other other people for what they offer.
+3:03:41
+So we will going to match queries is with his over here.
+3:03:48
+Okay. We want three different useful
+3:03:52
+information to for what I'm going to repeat this contest context
+3:03:58
+so that we don't lose the context to understand the context team transform my
+3:04:04
+U to edge so that transformation which I'm trying to do can be understood in
+3:04:10
+three different ways learned in three different ways I will have a 64
+3:04:16
+different recipes of asking questions I will have 64 different recipes of what
+3:04:22
+I can be matched with. This is what I offer. This is what I
+3:04:25
+offer for a single token for the entire data. This will not change. My WK will
+3:04:29
+not change. And 64 of this is what I offer in Tinder profile. Once you match
+3:04:37
+with somebody, you need to do something right which means you need to talk with
+3:04:40
+that person and this is what at least you'll get to
+3:04:44
+know. For example, in let's say in hinge, right? Somebody has a specific
+3:04:48
+personality. You have to click on this something there right match and then
+3:04:53
+once you talk to them then you'll realize that is what the kind of person
+3:04:57
+he is she is. So your WQ
+3:05:04
+W and WV which is ultimately your three different
+3:05:11
+transformations not one. Do you understand what is
+3:05:15
+transformation? I'm talking about why we are doing transformation. Again, we are
+3:05:19
+doing transformation for context. Now attention says I have three different
+3:05:27
+transformation. What am I looking for? What can I be matched? And what
+3:05:32
+information do I carry for a single representation?
+3:05:38
+So your after and what we will do with the value I'll I'll let you know because
+3:05:43
+your final output your H
+3:05:49
+should be the combination of these things. So how do we combine I will tell
+3:05:53
+you that I will tell you but as of now I
+3:05:58
+want you to know that three different questions we are asking till now.
+3:06:02
+Okay. So your for every tokens your WK and things will remain same. One is
+3:06:10
+asking questions in 64 different ways matching in 64 different ways and
+3:06:15
+eventually having this content what exactly do we offer
+3:06:23
+talking to the tender person right you need to talk with the person to realize
+3:06:26
+how how kind of person she is. Okay. So for everything you will once
+3:06:34
+you multiply which means once you this is for one. So
+3:06:38
+what you're doing you are going to multiply w with piece you're going to
+3:06:44
+have this huge vector 64 right then you're going to have k0 again 64 and
+3:06:52
+then you have b 0 again 62. You have three different representations for a
+3:06:58
+single token. Queries, keys, and values. How does this 64 comes in guys?
+3:07:06
+I'm going to repeat it once again. So it goes into your mind. How does this 64
+3:07:10
+coming in? Why I'm saying Q= 64 W
+3:07:18
+all around 63 gets normalized. We have U vector. We say we ask three things.
+3:07:25
+WQ right WQ will be
+3:07:31
+W1 then first dimension all the way around to the W
+3:07:36
+63 X63 one recipe
+3:07:40
+plus we will do that combination of weighted average then second recipe
+3:07:46
+third recipe all the way around to the 64 recipe similarly for W K
+3:07:52
+W K is also going to multiply the same token. What is the token over here? W
+3:07:57
+only W is our token by today was here. Here W is the W token. So then we going
+3:08:03
+to multip the 64 different ways of this is what I match of W. So that's why the
+3:08:10
+shape of it will be 64 dimensional 64 dimensional 64 dimensional.
+3:08:15
+Similarly a it is 64 64 64. Does it making sense? Does it make sense why the
+3:08:20
+64 is there? Yeah. Okay.
+3:08:31
+Uh this one, why does team time need keys and values? AP is the one asking
+3:08:35
+questions because another token may later use it.
+3:09:01
+Okay, we will talk about this. This thing is your will will be your work.
+3:09:06
+There is a important uh thing also which I will cover but I mean not not I I I
+3:09:13
+may choose to not cover as well by the end.
+3:09:17
+Imagine this is something so there will be four to five topics which will be
+3:09:21
+given for you to research and then probably put it on socials. So what that
+3:09:27
+word is it's very simple by the way it's super simple if you understand
+3:09:37
+some example of okay help me understand
+3:09:46
+I say to you the dogs sat on the mat right now Q3
+3:09:54
+says So matt if I if I be at the map
+3:10:01
+I only look at the past context. So we say three transformations Q3 to
+3:10:06
+look for information which means one one transformation to look at what kind of
+3:10:11
+questions these is to be matched against what do I
+3:10:15
+offer and once I get selected then contribute
+3:10:21
+okay but don't you think the order also matters
+3:10:29
+the dog
+3:10:32
+that on Vmax which means the order also matters but here what's the problem any
+3:10:41
+of this transformation does not take that in account
+3:10:54
+I do you really think any of the transformation takes that positional
+3:10:58
+thing which means order in account Not yet. So what do we want?
+3:11:11
+We want you to also learn positions. Another transformation for possessions.
+3:11:18
+Exactly. Which you will learn which means I want you to do it. So there are
+3:11:23
+several ways either learning it. How do you learn it?
+3:11:31
+64 different ways to represent you your normalized vectors or
+3:11:38
+not learning but using some mathematical rigorous techniques to understand the
+3:11:44
+positions something known as sinosodial encodings
+3:11:48
+and row where you don't learn where you just apply those transformations I don't
+3:11:54
+want to go into this but I want you to explore this question of how do we And I
+3:11:59
+want you to explore it into a certain way of looking at
+3:12:07
+how do we transform the positions. If you understand
+3:12:13
+transformation there are several ways rope in quen they
+3:12:18
+use rope then sinosodial uh encodings um bigger transformers learn if it is a
+3:12:26
+complex u ordering is required if the problem statement requires ordering then
+3:12:32
+you eventually uh
+3:12:36
+learn it also that's what you see it eventually one of
+3:12:41
+the ways chance to grow but I I just want you to um uh look at from your own
+3:12:47
+perspective. So what I'm going to do I'm okay here
+3:12:53
+what I want to do is look at the query vector here
+3:13:09
+that is my season and queries Yeah. Here
+3:13:34
+you have your go time
+3:13:40
+which means you have your query time. Here's
+3:13:53
+a table, guys. Nice. Oh, here it is. If I'm at time, if I'm at time, what I'm
+3:14:00
+going to do? I'm going to take Q0.
+3:14:06
+Sorry, the query of time. Tell me what if I
+3:14:12
+want to match what should be the obvious thing if I want to match with other two
+3:14:18
+bits because ultimately I want to match. Now
+3:14:21
+we have three transformation we need to combine it. So we need to first of all
+3:14:25
+match. What should I do? Add the query which is
+3:14:34
+the 64dimensional vector.
+3:14:46
+Yes, I'm going to compare it to the queries
+3:14:52
+of W. Sorry, uh W. Then I'm going to compare it with the queries of
+3:14:59
+paste. Then I'm going to compare with the queries of
+3:15:04
+A2. And then I'm going to compare with the queries of
+3:15:09
+K3. Right? That's that's what I want to do.
+3:15:15
+I want to compare the K Q3 with all the keys including others. All the
+3:15:22
+keys so that we can get to know how much they
+3:15:27
+match with each other. Is that making sense? Why I'm even
+3:15:32
+comparing? If you tell me that guys uh other guys I want to listen from other
+3:15:38
+people who are just quiet if you want break we'll take 2 minutes
+3:15:44
+break we'll take break no worries but uh I
+3:15:50
+want you to just understand this fine is I want to take the key queries of each
+3:15:56
+one and how the queries comes I'm going to repeat that thing again your query
+3:16:01
+came off timing because you had 64 different ways
+3:16:06
+they had there were separate learnable weights that's how your query came Q3
+3:16:12
+similarly your K0 is having a 64 different ways of looking at I mean for
+3:16:19
+every tokens right so you're going to compare each of
+3:16:23
+them you compare each of them to previous tokens and then you'll get some
+3:16:28
+number with you that number known as attention force This is how much I
+3:16:33
+should pay attention to. Let me show that right away.
+3:16:52
+For every tokens you have queries for every um sorry for Q3 which means
+3:17:02
+the query token um basically the query of time is I'll just clarify pankage
+3:17:08
+here for the people I'm not going to go more concepts
+3:17:12
+uh but I will just clarify for the people is your query time is a
+3:17:17
+64dimensional representation of time to what should I ask questions whom should
+3:17:22
+I ask questions then you're going to match with
+3:17:28
+everyone's query please right
+3:17:36
+every W is also 64 dimension this is how every dimension is one one
+3:17:44
+sort of a recipe this is what I match this is what I
+3:17:48
+for W and L. So what you going to do? You're going to match Q time with W key
+3:17:55
+Q with keys and Q uh time with the last
+3:18:03
+one of and by itself also. So what you will do is you will take for all the
+3:18:09
+coordinates for all the coordinates
+3:18:15
+you're going to take the k0 in this case to f took just one f to just w but there
+3:18:21
+will be multiple for example all the previous keys which are not take
+3:18:26
+you having multiple keys for the 64 dimension do you notice why it is 32
+3:18:31
+I'll come to that but assume it is 63 as of now 64 63 3 63 right now. So if you
+3:18:38
+start from zero then 64. So ultimately you're coming to the
+3:18:45
+when you match with it you are having this product right there. So you are
+3:18:49
+going what you going to do? You're going to take the query. Let's assume if the
+3:18:53
+query vector is and the key is this. You are going to multiply two with the keys
+3:19:00
+vector which means query with the keys vector and then you're going to add all
+3:19:05
+the number to get one number. That's your spore which means
+3:19:11
+relationship of your time with P is when you multiply let's say relationship of
+3:19:20
+kind of Q with P of W is when you multiply
+3:19:29
+these two vectors together when you multiply these two vectors together you
+3:19:34
+are going to get and when you multiply you do the dot Right? When you do dot
+3:19:39
+product ultimately you'll have one number which represents how much not how
+3:19:44
+much some score which will ultimately get to how much
+3:19:51
+time should listen to W. Similarly, what I'm going to do, I'm
+3:20:02
+going to take Q time. My Q will remain the same, but this time key will be
+3:20:08
+different. What keys it will be? What keys it will be guys?
+3:20:22
+We already done with W. Correct.
+3:20:35
+What is keys here? This is what I offer. Again, you'll do the dot product. You
+3:20:40
+will get you'll get some number which says this is what I this Q time
+3:20:45
+represents each. This is how much it represents
+3:20:49
+for the a with a h. So if you do the dot product and I
+3:20:56
+will want to showcase let's assume so you divide by the so what you do your
+3:21:03
+full attention basically uh formula is you do the dot product between your
+3:21:10
+query vectors and keys vector divided by the length of the entire vector
+3:21:17
+here the length is 64 I'll come to why it is 32 again and again you divide but
+3:21:22
+here assume that it's 64 I'll come to why it is if if you already
+3:21:26
+got to know very good why it is 32 but what do you do you have it 64 over here
+3:21:30
+you divide by the length of it why do you divide by the length of it any
+3:21:33
+mathematical explanation correct so to get the score between
+3:21:46
+correct Brian normalization once again which means uh make it steady make it
+3:21:52
+steady So ultimately you're taking that q
+3:21:57
+divided by the length of the entire vector in this case 64. So ultimately
+3:22:02
+what I'm going to do you want to take let's say the query of time and the key
+3:22:06
+of time query of time in case of W divided by so you'll get a sport
+3:22:14
+then you want to run the soft max to it which means again
+3:22:20
+what you will do you will take field time
+3:22:29
+you'll compare with W you'll take
+3:22:34
+of time and you'll compare the fees of W you'll get something like this. How
+3:22:40
+you're comparing dot product divided by the length of
+3:22:46
+something 64 which means your head overall
+3:22:54
+you'll get some math score but can you really interpret it? Is it really saying
+3:23:00
+some sort of percentages? How do we convert it into percentages?
+3:23:05
+So that we could know that time should listen to W by this much by this much
+3:23:10
+off by this much and time by this top max. There is some sort of function
+3:23:15
+which you apply which converts this into a probability.
+3:23:19
+Just like how logistic regression we have sigmoid punch
+3:23:23
+both of them has advantages and disadvantages together. For example, I
+3:23:27
+think it's um uh it's
+3:23:31
+uh it's about uh nonlinearity and who better represents. So here what you're
+3:23:35
+doing, you're going to apply the softmax function to it. Softmax function when
+3:23:39
+when you apply the to the each can to each max
+3:23:43
+this one, this one, this one, this no it converts it into the probabilistic way.
+3:23:49
+Now when you plus it all it will lead to 100.
+3:23:53
+So the time attention to W should be 19%, time attention to A should be 22%.
+3:23:59
+Time attention to off should be 23. Time attention to time is 35.
+3:24:05
+So your entire presentation, if I be
+3:24:11
+extraordinarily um straight, what you did, you tweak the query does
+3:24:19
+64 repres 64 54 54. You've taken the query.
+3:24:28
+Then you taken the keys of all the previous tokens
+3:24:33
+compared it against compare it against. But in this example
+3:24:40
+it is showing 64 ways of time. You compare it with W. 64 ways of looking at
+3:24:48
+things. And then you simply theta
+3:24:54
+divided by 32 and then you put stop max to it. Why
+3:25:01
+we did soft max to convert this thing into a probabistic legacy.
+3:25:06
+You do the same for haste of entry. That's how you get 19.07% 22.60% 23.00%.
+3:25:16
+If I show you what we did till now if and then we even take little bit of uh
+3:25:22
+rest is we taken our x
+3:25:29
+time it is the embedding row converted into u
+3:25:36
+what is that u base normalization step
+3:25:42
+then all this remaind we did we I mean uh all
+3:25:46
+this thing which we did is to convert this x to u then to do some sort of
+3:25:57
+context transformation what I did I said I will learn three
+3:26:01
+different stuff queries and values
+3:26:07
+but for every token I wanted to also but I need to ultimately combine it back so
+3:26:13
+that I can get My final edge, H ed H should be also 64, right? So it will
+3:26:19
+give you 64, it will give you 64, it will give you 64. Three different
+3:26:22
+representations, right? Three different representations,
+3:26:31
+correct? Now three different presentations will have now we somehow
+3:26:35
+combine it. But combining should also be logically we cannot just flush it
+3:26:41
+otherwise. So first of all, we'll match the query of time in this case to other
+3:26:48
+keys. Why? Because it is asking 64 different ways of asking questions,
+3:26:52
+different different lenses. And keys is saying this is what I offer in 64
+3:26:55
+different ways. So when you match, you'll get attention scores. So
+3:27:01
+attention scores of what? Attention scores of time to past four papers. Now
+3:27:08
+our obvious question comes is Q and K have completed their job.
+3:27:14
+They told us time should take 90% and resistance promise but 19.07%
+3:27:20
+of what? And then also we should be able to come
+3:27:27
+back to final 64 representation so that
+3:27:32
+all our transformation QB is mixed together. That's what we're going to do
+3:27:38
+next. Okay. Go to this website and I want you
+3:27:49
+to go to this website. Let me share the screen.
+3:28:12
+Look at this. What is happening? Your on has in some
+3:28:31
+sort of embedding. It has some sort of cues. And see over here for every
+3:28:37
+embedding they are saying 2,34 ways of dimension. The embedding
+3:28:45
+dimension is in our case it is 64 but here it is 2304.
+3:28:51
+In real world scenario single embedding can be represented in a different
+3:28:54
+different scenarios. Sorry I think here I think it is sorry
+3:29:00
+single embedding is represented in 768 ways. 234
+3:29:08
+is the number of recipes over there. In our case is 64, right?
+3:29:13
+But in this case which this example is using it is saying over 234
+3:29:19
+and then it is scaled down bank definitely it is going to scale down
+3:29:22
+back but what is saying is for every embeddings for every ways you have over
+3:29:33
+um 234 ways of asking questions 234
+3:29:39
+ways of answering queries and 234 ways of recipes of providing some sort of
+3:29:45
+value. So let me show you what that means. So when you click to see QV what
+3:29:51
+it is doing it is going to multiply for all
+3:29:56
+for all the things for the first one second third fourth fifth 6 7 8 and 9
+3:30:03
+whatever and then it eventually just don't look at V over here look at Q and
+3:30:09
+K which is being multiplied right here that's what you'll get a
+3:30:14
+attentions for let me ultimately Want to show the another example.
+3:30:33
+In our example, this 2304 is 64. 768 is 64 itself. But here, this is the
+3:30:42
+hyperparameter. How do you decide the number of ways of asking questions?
+3:30:46
+Attention width. This is what we call is the one of the
+3:30:50
+hyperparameter of how much ways to represent a recipe.
+3:30:55
+The more the it is not that the more the number is the better it is.
+3:31:00
+Now over here if you truly calculate if you just multiply 768 mult* 2304 that's
+3:31:05
+the number of a parameters. Yeah. So you look at this thing. I want
+3:31:17
+you to look at it in more detail and then we will u um spend a little bit
+3:31:21
+amount of time in the next set of texts. So we'll take a 20 minutes or 10 minutes
+3:31:26
+pray and then we'll start one second. Okay. Why 64 remain became 32? What?
+3:31:35
+Huh? Good, good, good. We'll start from that multi multi- uh attention
+3:31:41
+mechanism. We'll start from that Brian. So we'll do one thing. Um we will if you
+3:31:48
+guys want I will give you enough time for this. We
+3:31:55
+will uh because see I want everybody to be not just uh running like this. I mean
+3:32:01
+of course it is a you need to reco through a lot of
+3:32:06
+things. So we can do two things and I want your suggestion on this. Take 20
+3:32:11
+minutes break. No matter if it becomes 1:00 a.m. will
+3:32:15
+complete schedule or call this as a so the next week is a
+3:32:25
+pause week and I will come for 2 hours. So next week will not be considered as a
+3:32:30
+week night and I want your suggestion on this we'll consider that as a this week
+3:32:34
+itself. So what will happen? Week eight week 8.
+3:32:38
+So there are two weak gates so that you have enough time to recapulate and then
+3:32:45
+we will start from multi-headed attention. So by that we are not wasting
+3:32:50
+our weeks because our weeks are very important just like what we did when I
+3:32:54
+was not okay. Uh is we will not call the next week as week nine. Instead we will
+3:33:01
+uh complete this thing LM internals because the big parts I this is done
+3:33:08
+which means almost we'll be done with the final presentation but then comes a
+3:33:12
+feed forward network and then LORA which means low rank adapters.
+3:33:18
+So those two concepts will be left. So we can cover that into one and a half
+3:33:22
+hours or if you guys are okay then we can
+3:33:26
+conduct an office hour to complete the entire thing um
+3:33:32
+in night around uh 7 to 8:00 p.m. or something. So tell
+3:33:39
+me, do you want an office hour this week
+3:33:44
+or do you want the next week to be paused week
+3:33:51
+continuing the two week gigs? Fine.
+3:34:04
+Office hours we won't be able to cater to. Okay, we'll do the poll.
+3:34:08
+Oh, nice save the poll. But I'm glad that we were able to retain 90 people
+3:34:13
+till the end. Huh? Once see, I'll be honest. Once you
+3:34:19
+understand at least till feed forward network and
+3:34:23
+you get a grasp of it, trust my words, you are going to assume any mechanism.
+3:34:31
+Take mist, llama, take anything as a piece of cake. It's my guarantee
+3:34:38
+because the way I be chill about every architectures is this one only because
+3:34:42
+it tends to be I try to I have a good understanding
+3:34:46
+of ways of looking at things. So if I look
+3:34:51
+at llama I will say oh it's another llama. I mean
+3:34:55
+they might change how they normalize but my major breakthrough was when I was
+3:35:01
+reading a Microsoft paper when they said realtime training
+3:35:04
+that's where I got surprised otherwise surprise do not really comes in ch
+3:35:08
+models for example we'll be studying about
+3:35:11
+deepsek architecture mixture of experts if you understand all of this then
+3:35:14
+you'll understand that in a matter of 10 minutes
+3:35:18
+but that means like you need to understand That is back.
+3:35:51
+See that will give people enough time also to understand beginners and office
+3:35:55
+hours. You can re revise these concepts also
+3:36:01
+with RFS. Please lapse
+3:36:14
+because office hours at 33. Yes. Yes. Sham, I think what we are
+3:36:18
+doing is we are um doing a very interesting thing. It's the
+3:36:28
+whatever architecture which you'll be studying is a Quinn architecture. Quen,
+3:36:33
+if you understand Quinn, then you almost understand almost every architectures
+3:36:37
+except deepseek or anyone which involves.
+3:36:41
+But see from week nine we cannot um
+3:36:49
+um afford to we have to get into
+3:36:56
+agents. So I need to ensure that peer programming has started already. So the
+3:37:05
+idea is um Gotham it will be at 6:30 as scheduled.
+3:37:13
+It's for 1 hour but uh there will be discussion on how do we move forward but
+3:37:19
+uh but for those people for I just want to you know um let people know even if
+3:37:25
+that means that week 8 has to be three week eights we will do that week nine
+3:37:33
+there should be no compromise on agents because the half of the time I want for
+3:37:40
+agents so that's why Um we will ensure that sufficient amount of
+3:37:48
+time uh sufficient amount of time has been given on we'll create three so SLM
+3:37:55
+so the idea is SLMS projects one inferencing I mean definitely detailed
+3:38:02
+projects you which involves lot of such estivations and inference so one LM
+3:38:08
+foundational project which SLM's finding one LM inference concept which means
+3:38:13
+project to be built like peer programming for that we'll do the uh
+3:38:17
+once you understand LM foundations then it eventually become will become the
+3:38:20
+peer program will be become easy when I say because if I truly make you
+3:38:24
+understand Fine-tuning is one line. So when you do
+3:38:45
+SLM fine tuning your major work has already been done which is the data set
+3:38:49
+reviewing pipeline. Finetuning I'm not kidding using tinker. Tinker is this
+3:38:54
+Miraa Murati's thing. They have done it super simple in these days is to run it
+3:39:00
+and your major work will be choosing the right models may you know majorly
+3:39:06
+talking about what kind of you know behavior you want it to be that's it
+3:39:11
+your major work is data set trust me when I say this because there's no other
+3:39:15
+major work in SLMS but your major work will come in SLMs is agentic engineering
+3:39:23
+what do I mean by a agentic engineering evaluations consistency because deeply
+3:39:31
+generating a particular concept which also has to deal with RA right I mean
+3:39:35
+you cannot uh similar put in the real stuff so agentic engineering becomes the
+3:39:39
+major part of it when 99% of the work is in the agentic engineering so I but I do
+3:39:45
+not also want you to understand I want you to understand what this line means
+3:39:49
+when you work so idea is guys is Um I want you to
+3:39:58
+spend this week office hour office hours who is saying you'll be there they don't
+3:40:02
+know office hours guys there is a school post which says office hours is online
+3:40:07
+so please guys look at the school guys I mean I feel very bad because those
+3:40:11
+statement comes in because I feel that you're not focusing on uh school
+3:40:17
+I highly suggest you to focus on school because it takes a lot of time even RF
+3:40:20
+sits for seven seven hours uh to make sure everybody body understands.
+3:40:25
+Um, so we will make sure that everybody's there. We'll put more and
+3:40:28
+more people. No, Pratik, it's not a break. I'm ending
+3:40:32
+it. So, I I'll just put out a poll of what we will do.
+3:40:39
+Uh, I don't know where the poll went. Uh, here is the poll. Two week eights is
+3:40:49
+the But why did you guys did not choose to revise an office hours? You should
+3:40:53
+also revise an office hours. So both of these op options should make sense. Two
+3:40:56
+weeks and revise an office hours. All right.
+3:41:03
+Okay. So week 9 I cannot afford to. So till week 9, week 9 we have to start
+3:41:09
+with inferencing anyhow. So before that SLMs has to be completed,
+3:41:15
+memory has to be completed. Then only we'll start the week 9
+3:41:20
+otherwise office hours and week eight will be
+3:41:25
+complete. All right guys,
+3:41:32
+see the idea is we have to make sure no no no Ganesh it's not something which
+3:41:39
+will also extend we see frankly speaking most of the work is in agentic
+3:41:44
+engineering two guys will understand how much
+3:41:48
+importance of agentic engineering but agentic engineering is not concept
+3:41:56
+like this it has to be done so somebody has to come So just like Chira and Sam
+3:42:01
+came similarly somebody has to come it will start from so although the next uh
+3:42:07
+sessions will be from 6 p.m. We'll we'll let we'll let you know all those
+3:42:12
+concepts. But there is one question which is coming is um
+3:42:18
+um uh yeah Sedhart I have your name which
+3:42:23
+says is truly a struck kind of models as well. They don't they of course I just
+3:42:29
+want to know if they have extension. Let me research uh Bryant actually and the
+3:42:34
+concept won't change
+3:42:37
+>> frankly speaking why Enthropic was able to produce such
+3:42:42
+amazing models you know why I mean one of the main reason
+3:42:50
+why Enthropic was able to produce do you see where so okay let me just uh show
+3:42:54
+you you go and look at
+3:43:20
+alignment.anthropic.com and read it. Very very nice blogs and
+3:43:27
+transformercircuits. One of the latest article there they
+3:43:32
+just talk about how to work on data. I do not think that they have talked even
+3:43:37
+a single thing apart from the data. Back when they were starting is they
+3:43:42
+were just talking about how do you make the data better? How do you scrap out
+3:43:47
+the right data? So I think mainly they ask good questions in terms of you know
+3:43:54
+um creating the right data set while the
+3:43:58
+architecture definitely they have some propriatory stuff but I don't think that
+3:44:03
+it's something substantial apart from so look at the their
+3:44:09
+alignment blocks see again positional finetuning data set for constitution
+3:44:13
+classifiers they also have a constitution how they created the data
+3:44:16
+they spent a huge money on the data reinforcement learning which against the
+3:44:20
+deals with the data reinforcement learning is a big part of the data
+3:44:26
+then there books on uh transformercircuits.pub pub
+3:44:31
+which means they publish a lot of interesting fact of interpretability. So
+3:44:37
+a lot of um so I usually work around interpretability, inferencing and
+3:44:43
+agents. That's my area of work. So that's why I keep it does not mean that
+3:44:47
+I want you to look at interpretability. If you are not interested in
+3:44:50
+interpretability, do not look at it. If you're just interested in agents, look
+3:44:54
+at just just the agents. If you're just interested in element internals, look at
+3:44:57
+the just element internals. You don't have to force yourself just because I do
+3:45:01
+it. Everybody has their own set of interest. Whatever is interest lies in.
+3:45:06
+But your interest should be in a way that makes you generalizer. Not
+3:45:08
+something which you're just focusing on one thing. Otherwise it won't help.
+3:45:21
+Also guys try to memorize these blocks. See I have lot of things which is going
+3:45:27
+on but still I tend to memorize because these are the I mean
+3:45:31
+alignment.ananthropic.com is not just a link to I mean this is
+3:45:35
+just a mental mechanism of mine. If I find some resources helpful then I will
+3:45:40
+just settle it in my mind already because it is of my interest.
+3:45:47
+I mean automatically if that's why I tend to remember out of thousand
+3:45:50
+bookmarks I can know where my thing is very very simply
+3:45:55
+because of obvious interest if the interpretability or alignment does not
+3:46:00
+comes to you automatically do not go into that because alignment and
+3:46:03
+interpretability is another huge book so I highly suggest do not just get deep
+3:46:10
+I mean just because I am telling it's not something which you would want to
+3:46:15
+explore just because I'm telling But I have to tell you that you have to
+3:46:19
+explore agents. Agentic engineering is what you have to do automatically
+3:46:23
+because that's something is non-negotiable. But topics like
+3:46:27
+alignment uh interpretability um things like um
+3:46:34
+this uh even LM foundations. So go deep into it because you are
+3:46:40
+interested into it. Agentic engineering include reliability,
+3:46:45
+consistency, evaluations, uh data sets and
+3:46:50
+decision making, under certainity, probability concepts, remember something
+3:46:54
+like that. You will see lot of probability concepts coming back
+3:47:04
+theorem. Yeah, but probability concept won't be maths. It will be purely
+3:47:08
+architectural. Yeah, of course. I think agents are a
+3:47:18
+discipline. Teron, look at memory architecture.
+3:47:23
+Try to look at the discipline. I wanted to do this practice. Now, imagine you
+3:47:28
+build some uh LLM. It is producing some answer. How do you ensure it is not
+3:47:34
+going out of its area which you should? So guardrails how are you ensuring or
+3:47:40
+deterministic aspect behavior of consistency how are you ensuring that is
+3:47:45
+reliable so all that is a discipline even engineering I think it's an
+3:47:50
+engineering in general agentic is the way because it gets creative
+3:48:02
+look at I want you to do it as a practice yes look at is a practice
+3:48:07
+rishek I will send you some has to give me the architecture some my man can you
+3:48:11
+please upload it on GitHub and I'm not able to push that memory architecture we
+3:48:17
+have created something good and even I have made it better uh on my end but uh
+3:48:22
+some if you can put it it'll be very helpful
+3:48:26
+for other folks yeah
+3:48:35
+so basically office hours. Uh no worries. No worries. SK I I understood
+3:48:40
+that's why I was not even following up. So I'm completely all fine. Uh so guys u
+3:48:44
+Mah uh just to answer a question RF will make sure that you run the labs
+3:48:50
+which we do peer programming here. Same stuff but again
+3:48:59
+so people who want to do it again they
+3:49:03
+should do it again. So Arif, I hope we are on track on that. I think Monday you
+3:49:07
+want to start off with that also. Yeah, sure.
+3:49:15
+Perfect, perfect, perfect. Whenever RF will let you know, he will start with
+3:49:19
+same data set pipeline and the what is the next thing? Uh yeah, memory till the
+3:49:25
+time where we have completed once I sit with again then we completing it once
+3:49:29
+again. But I know this video is I mean this um
+3:49:34
+going good but I have had a long time engagement to be able to complete this
+3:49:39
+because I personally love teaching uh LM internals because I connect it a lot to
+3:49:46
+agents because of my obvious interest in uh
+3:49:52
+uh uh this LLM and interpretability and alignment.
+3:50:05
+Huh? Definitely. Brian Yan Oman, I'm pretty good. I'm pretty
+3:50:10
+good. We'll have a we'll just have a conversation with you guys. I I know the
+3:50:13
+numbers are 1520. So, I I'll talk personally with everyone.
+3:50:17
+But, uh yeah, thank you so much guys. I will I hope the session was somewhat
+3:50:21
+helpful and uh I want you to utilize the artifacts. I will keep on uploading the
+3:50:26
+artifacts utilize the office hours and um uh we are looking to support a lot of
+3:50:33
+beginners. So if you are and I I'm completely all right frankly speaking
+3:50:37
+I'm completely all right if you have not understood anything and then want to
+3:50:40
+come in the office hours I'm going to understand again that's completely fine
+3:50:44
+and I want you to do that because that will make your explanations and
+3:50:50
+understanding better when you question for example Turon questioned few thing
+3:50:54
+and he have in his question he has a research problem so I think when you
+3:50:59
+more the you question something that's your own way of finding finding an
+3:51:03
+answer and I want you to question so I will send you some u I mean those
+3:51:10
+artifacts which is like a literal workbooks which I've created which not
+3:51:14
+just does for one tokens but does for entire examples
+3:51:18
+so those artifacts which takes a brain example of how brain does things and and
+3:51:23
+and and connect it to transformers the more the artifacts which you'll have and
+3:51:28
+maybe RF will be also having a different perspective towards it okay so next week
+3:51:32
+we are in second week eight and uh
+3:51:38
+no author the researchoriented projects we will not have
+3:51:42
+we should make money out of our projects man I don't think um NSBN does not does
+3:51:46
+anything which which does which doesn't doesn't makes money so SLMs uh will be
+3:51:51
+one we are thinking about addition of one more project A2A protocols agent to
+3:51:55
+agent protocols like a literal project which you're doing at SPL with Ram Nadan
+3:51:59
+so um We'll need to talk with Ramnathan and I will rather have Ramnathan to have
+3:52:05
+that session rather than uh me because he's the he's the founder of that
+3:52:10
+company and he's the one who is going to direct that into
+3:52:14
+entire thing. Okay guys, I will see you around. I have
+3:52:20
+enough questions. I have another session to attend to. See you around. I hope the
+3:52:24
+Google form is filled up. Uh I'll see you around. Bye. Bye.
+Transcript segment selected at 0:15 seconds
