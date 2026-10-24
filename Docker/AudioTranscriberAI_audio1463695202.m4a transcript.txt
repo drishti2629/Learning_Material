@@ -1,0 +1,2 @@
+[02:11:32]
+Thank you all. We will meet next Sunday and continue with merging and rebasing, which are fundamental to branching strategies. Please take care, stay hydrated, and complete the attendance form. I may spend more time on networking fundamentals, while coding assistants can help with Dockerfiles and Kubernetes files. Do not hold me strictly to the syllabus; you also need to put in the effort. See you next Sunday, and enjoy your weekend.

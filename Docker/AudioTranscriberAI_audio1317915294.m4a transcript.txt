@@ -1,0 +1,86 @@
+[00:00]
+Oh, yeah, thanks. Recording is now started. Okay, great. So what are the commands that we saw last week? Can we quickly have them in the chat box? Once we start the session, I generally don't see the chat box because I have only one screen. We discussed `git add`, `git status`, `git commit`, `git hash-object`, and `git cat-file`. Why do we need Git in the first place? Vedant has answered `hash-object`; we also have `cat-file`.
+
+[00:54]
+We started with what an application is and how Git is similar to an application. Then we detoured into normal Git commands so everyone would be familiar with the basic workflow. We wanted to derive the underlying concepts from first principles. Someone made the powerful statement that Git requires `git init` for state management. Today we will go deeper and understand the concepts behind Git.
+
+[02:18]
+The agenda is to question and prove that Git is using SHA-1. We have discussed hashing and its constraints: it is unidirectional, a small change in the input creates a drastic change in the output—the avalanche effect—and the same input always produces the same hash. Collision is another constraint that we will discuss today. Divyansh has listed all four constraints, so let's give him a big clap.
+
+[03:25]
+Please open your Git terminal or Git Bash terminal. This will be hands-on; I will share my screen and ask you to follow along. I will occasionally switch context and ask whether we are going at the right pace. I will not be able to pay much attention to the chat box. The course will cover GitHub, enterprise GitHub practices, Docker, Kubernetes, and GitHub Actions over approximately eight to ten weeks.
+
+[04:53]
+I am focusing first on the core engineering behind Git, GitHub, and DevOps because it is integral to your work. When you push code into a repository, that is where your pipeline begins. The tool may be Jenkins, AWS CodePipeline, AWS DevOps, CircleCI, Travis CI, or GitHub Actions, but ultimately each tool has a pipeline. We will focus on the engineering concepts; you will probably write YAML and Docker files better than I do.
+
+[06:26]
+By the way, does anyone know why examples generally start with “Hello, world”? I will share a repository, and for each topic I will create an AI-generated image covering the commands. Someone guessed that `printf` was used for testing. That is partly right: in the past, `printf` was commonly used for debugging because we did not have modern breakpoint tools. Today we will understand how hashes are created and prove that Git’s hashes are SHA-1 hashes.
+
+[07:53]
+Hello world. If you change the casing or spacing, you will get a different hash. As long as you remember exactly what you type, that is fine. We previously used the command with standard input and the `-w` option. If you follow exactly, you should get the same ID. The ID is 40 hexadecimal characters. In the Git database, the first two characters become the folder name and the remaining characters become the file name.
+
+[09:47]
+Now let us prove that this is SHA-1. Depending on your Git installation, the `shasum` tool may be available. Type the command and use Ctrl+C afterward if necessary. If there is no error, the tool is present. Remember to include a space after `stdin`. We will use `shasum` independently of Git, then compare its output with the ID produced by Git.
+
+[11:24]
+We will echo “hello world” and pass it to `shasum`. If you do not have `shasum`, use an equivalent tool from your operating system or an OpenSSH package. I missed the exclamation mark earlier, so the output did not match. The input must be exactly the same. The question is whether we made a mistake or Git is wrong. If Git uses SHA-1, the same input must produce the same hash.
+
+[14:25]
+Even if you do not have `shasum`, focus on the process. Git creates the object using a particular format. We have already seen `git cat-file -p` to retrieve the content. The `-t` option displays the object type, which is `blob`. Git hashes the type, a space, the total number of bytes, and the exact content. For “hello world” followed by a newline, the size must be counted precisely.
+
+[17:59]
+The null character, written as backslash-zero, is a string-termination character. It tells the system where the string ends. Git therefore hashes a header containing the type, a space, the size, and the complete content. When using the shell, backslash-zero must be treated as an escape sequence rather than as literal content. The extra newline explains why the size can be 14 instead of 13.
+
+[02:10]
+`git cat-file` has another option, `-s`, which displays the exact size of the blob. `-p` means pretty-print and is used to display the content. We have used `shasum` to convert input into a SHA-1 value; other tools provide SHA-256 and SHA-512. Git first appends the object type and size to the content, then generates the hash from that complete string.
+
+[02:35]
+Next we will understand the `-w` option and how these commands execute in memory. Imagine the operating system, a Bash shell, and Git. Bash runs `echo`; Git receives the input through `git hash-object`; Git returns the object ID. The first two characters identify a directory inside `.git/objects`, and the rest of the key identifies a file. The object content is stored in persistent storage, while the command itself executes in RAM.
+
+[02:58]
+Why does Git use hashing? Consider what happens when you type into a file and press Ctrl+S. The save operation does not necessarily write immediately to the hard disk. RAM is faster than disk, so the kernel uses buffers and decides when to perform the actual write. The system has registers, cache, RAM, and persistent storage. This operating-system context helps explain how Git manages content and state.
+
+[03:34]
+We will echo “hello world” and redirect the output into a file. The greater-than sign is an output-redirection operator. Then we will create several copies of the file and ask how much disk space they use. Although five separate files may each appear to occupy space, when the same content is added to Git, Git creates only one blob for identical content. Multiple file names can refer to the same content object.
+
+[41:29]
+This is especially useful when multiple projects share common packages or files, such as Python packages, Node modules, .NET assemblies, DLLs, or Java JAR files. It would be wasteful to store identical content repeatedly. Git uses the content hash so identical content is stored once. The file name is not part of the blob; the tree object stores file names, permissions, and references to blobs.
+
+[44:17]
+We have seen blobs, so now we move to commits. `git log` shows the commits, and `git cat-file -p` can inspect them. `git add` creates or identifies hashes for file contents, while `git commit` creates a hash for the commit. All these objects are stored inside `.git/objects`. Commit IDs differ because author, committer, timestamps, and other metadata are included.
+
+[48:03]
+In Linux, everything is a file, and a directory is a special kind of file. A Git tree behaves similarly: it stores file names, permissions, and references to blobs or other trees. A commit points to a tree. A commit may also point to a parent commit. The first commit has no parent and is therefore called the root commit. A later commit becomes the child of the previous commit.
+
+[53:48]
+The Git object model is: a commit points to a tree, and a tree points to blobs or other trees. A commit tracks the previous commit and represents a snapshot of the repository at that moment. When you create another commit, the current commit becomes its parent. Git can reuse existing blobs when content has not changed, creating new blobs only when content changes.
+
+[58:03]
+For a new project, you initialize Git with `git init`. For an existing project, you use `git clone`. Cloning starts from the latest commit and walks through the commit history. Git reads the latest commit, its tree, and the referenced blobs, then follows the parent commits. Because unchanged content is reused, cloning can be efficient even when there are many commits.
+
+[01:06:18]
+Every smallest change results in a new snapshot of the tree. The tree represents the folder at that moment, while blobs represent exact file contents. A file name can change while still pointing to the same blob if the content is unchanged. If the content changes even slightly, the hash changes. This is why Git can track files efficiently and preserve historical versions.
+
+[01:23:30]
+If the current commit causes a production problem, you may need to roll back to the last working commit. You can create a branch such as `prod-rollback` pointing to that specific commit. `git checkout -b` creates and switches to a new branch; with `git switch`, the corresponding option is `-c`. The problematic commit is not destroyed; development can continue with new commits and new blobs while production points to the last stable state.
+
+[01:28:44]
+Now we will create a tree manually using plumbing commands. A tree cannot be empty; it must contain at least one reference to a blob or another tree. We will create a blob with `git hash-object -w`, inspect an existing tree with `git cat-file`, save the tree output in a file, edit it carefully with Vim, and create a new tree using `git mktree`. Directory entries include permissions, object type, object ID, and file name.
+
+[01:42:50]
+The normal Git flow is working directory to staging area, then staging area to the repository: `git add` moves content into the index, and `git commit` creates the commit in the repository. Porcelain commands generally enforce this direction. Plumbing commands operate at a lower level and can manipulate objects directly. We created a tree directly inside `.git/objects`, so we must use commands such as `git read-tree` to bring that tree into the staging area.
+
+[01:48:50]
+To see which files are in the staging area, use `git ls-files`. `git status` compares the working directory with the index. If a tree has been placed in the index but the corresponding file does not exist in the working directory, Git may display it as deleted. That status is a representation of the difference between the two areas, not proof that the repository object itself was deleted.
+
+[02:01:12]
+Practice is essential. I will create a history of these commands and attach it to the repository. Understanding the Git object model provides a foundation for CI/CD because a commit or push can trigger a DevOps pipeline. We also connected Git’s immutable objects to programming languages: changing an immutable string creates a new object rather than modifying the old one. Git works in the same way—modifying content creates a new blob and a new tree.
+
+[02:09:27]
+Today we covered the Git object model. Next week we will cover the reference model and go deeper into branching. Later we will discuss distributed version control and GitHub. Please ask questions from the layers we covered today. We used plumbing commands to store objects directly in the repository, something normal commands protect users from doing.
+
+[02:12:12]
+To summarize: Git objects are created in `.git/objects`. A blob stores file content, a tree stores directory structure, file names, permissions, and references to blobs, and a commit stores a tree reference and usually a parent commit. We created a blob, read an existing tree, added an entry, created a new tree, and used `git read-tree` to place the tree into the staging area. `git ls-files` then showed the staged entry, while `git status` revealed the difference between staging and the working directory.
+
+[02:18:54]
+That was the summary of the session. Please practice the commands and attend the next sessions. The goal is to establish the foundations correctly before moving on to references, branching, GitHub, and DevOps workflows.
